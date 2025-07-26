@@ -1,0 +1,546 @@
+.contactPage {
+  background: #fff;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Hero Section */
+.hero {
+  background: linear-gradient(135deg, #fce4ec 0%, #f8bbd9 100%);
+  padding: 120px 0 80px;
+  min-height: 500px;
+}
+
+.heroContent {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+}
+
+.heroText {
+  max-width: 500px;
+}
+
+.heroTitle {
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #2d3748;
+  margin-bottom: 24px;
+  animation: slideInLeft 1s ease-out;
+}
+
+.highlight {
+  color: #ec407a;
+}
+
+.heroSubtitle {
+  font-size: 20px;
+  color: #4a5568;
+  line-height: 1.6;
+  animation: slideInLeft 1s ease-out 0.3s both;
+}
+
+.heroImage {
+  display: flex;
+  justify-content: center;
+}
+
+.contactImage {
+  border-radius: 16px;
+  object-fit: cover;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  animation: slideInRight 1s ease-out 0.5s both;
+}
+
+/* Quick Contact Section */
+.quickContact {
+  padding: 80px 0;
+  background: #f7fafc;
+}
+
+.contactGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  margin-top: 48px;
+}
+
+.contactCard {
+  background: white;
+  padding: 40px 32px;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  animation: fadeInUp 0.6s ease forwards;
+  opacity: 0;
+}
+
+.contactCard:nth-child(1) { animation-delay: 0.1s; }
+.contactCard:nth-child(2) { animation-delay: 0.2s; }
+.contactCard:nth-child(3) { animation-delay: 0.3s; }
+
+.contactCard:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 30px rgba(236, 64, 122, 0.15);
+}
+
+.contactIcon {
+  color: #ec407a;
+  margin-bottom: 24px;
+}
+
+.contactTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 16px;
+}
+
+.contactText {
+  font-size: 18px;
+  color: #2d3748;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.contactSubtext {
+  font-size: 14px;
+  color: #4a5568;
+}
+
+/* FAQ Section */
+.faq {
+  padding: 80px 0;
+  background: #fff;
+}
+
+.sectionTitle {
+  font-size: 36px;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 48px;
+  text-align: center;
+}
+
+.faqGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 64px;
+  align-items: start;
+}
+
+.faqContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.faqItem {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.faqItem:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.faqQuestion {
+  width: 100%;
+  padding: 24px;
+  background: #f7fafc;
+  border: none;
+  text-align: left;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2d3748;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.faqQuestion:hover {
+  background: #edf2f7;
+}
+
+.faqQuestion.active {
+  background: #ec407a;
+  color: white;
+}
+
+.expandIcon {
+  transition: transform 0.3s ease;
+  color: #4a5568;
+}
+
+.faqQuestion.active .expandIcon {
+  transform: rotate(180deg);
+  color: white;
+}
+
+.faqAnswer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  background: white;
+}
+
+.faqAnswer.open {
+  max-height: 200px;
+}
+
+.faqAnswer p {
+  padding: 24px;
+  margin: 0;
+  color: #4a5568;
+  line-height: 1.6;
+}
+
+.faqImage {
+  position: sticky;
+  top: 100px;
+}
+
+.faqImg {
+  border-radius: 16px;
+  object-fit: cover;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Location Section */
+.location {
+  padding: 80px 0;
+  background: #f7fafc;
+}
+
+.locationGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: start;
+}
+
+.locationCard {
+  background: white;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+.locationIcon {
+  color: #ec407a;
+  margin-bottom: 24px;
+}
+
+.locationTitle {
+  font-size: 24px;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 16px;
+}
+
+.locationAddress {
+  font-size: 18px;
+  color: #4a5568;
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+
+.locationDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.locationDetail {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.detailIcon {
+  color: #ec407a;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.mapContainer {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+.mapPlaceholder {
+  padding: 80px 40px;
+  text-align: center;
+  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+}
+
+.mapIcon {
+  color: #ec407a;
+  margin-bottom: 24px;
+}
+
+.mapPlaceholder h4 {
+  font-size: 20px;
+  color: #2d3748;
+  margin-bottom: 8px;
+}
+
+.mapPlaceholder p {
+  color: #4a5568;
+  margin-bottom: 24px;
+}
+
+.mapButton {
+  background: #ec407a;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto;
+  transition: background 0.3s ease;
+}
+
+.mapButton:hover {
+  background: #ad1457;
+}
+
+/* Contact Form Section */
+.contactForm {
+  padding: 80px 0;
+  background: #fff;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 64px;
+  align-items: start;
+}
+
+.formContent {
+  position: sticky;
+  top: 100px;
+}
+
+.formTitle {
+  font-size: 28px;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 16px;
+}
+
+.formDescription {
+  font-size: 16px;
+  color: #4a5568;
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+
+.socialContact {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.socialButton {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background: #f7fafc;
+  color: #2d3748;
+  text-decoration: none;
+  border-radius: 12px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.socialButton:hover {
+  background: #ec407a;
+  color: white;
+  border-color: #ec407a;
+}
+
+.form {
+  background: #f7fafc;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.formLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: #2d3748;
+  margin-bottom: 8px;
+}
+
+.formInput,
+.formSelect,
+.formTextarea {
+  padding: 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.3s ease;
+  background: white;
+}
+
+.formInput:focus,
+.formSelect:focus,
+.formTextarea:focus {
+  outline: none;
+  border-color: #ec407a;
+}
+
+.formTextarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.formButton {
+  background: #ec407a;
+  color: white;
+  border: none;
+  padding: 16px 32px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  transition: background 0.3s ease;
+  width: 100%;
+  justify-content: center;
+}
+
+.formButton:hover {
+  background: #ad1457;
+}
+
+/* Animations */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .heroContent,
+  .faqGrid,
+  .locationGrid,
+  .formGrid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    text-align: center;
+  }
+  
+  .contactGrid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  
+  .faqImage,
+  .formContent {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    padding: 100px 0 60px;
+  }
+  
+  .heroTitle {
+    font-size: 32px;
+  }
+  
+  .sectionTitle {
+    font-size: 28px;
+  }
+  
+  .quickContact,
+  .faq,
+  .location,
+  .contactForm {
+    padding: 60px 0;
+  }
+  
+  .container {
+    padding: 0 16px;
+  }
+  
+  .formRow {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .form {
+    padding: 24px;
+  }
+  
+  .contactCard {
+    padding: 32px 24px;
+  }
+} 

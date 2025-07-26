@@ -1,0 +1,402 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.modal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.modalTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  color: #6c757d;
+}
+
+.closeBtn:hover {
+  background-color: #f8f9fa;
+}
+
+.scheduleSection {
+  padding: 24px;
+}
+
+.serviceInfo {
+  margin-bottom: 24px;
+}
+
+.serviceDescription {
+  font-size: 16px;
+  color: #4a5568;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.serviceDetails {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.detailItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.detailIcon {
+  color: #ec407a;
+}
+
+.includesSection {
+  margin-bottom: 32px;
+}
+
+.includesTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 16px 0;
+}
+
+.includesList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 8px;
+}
+
+.includesItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #4a5568;
+}
+
+.checkIcon {
+  color: #22c55e;
+  flex-shrink: 0;
+}
+
+.scheduleList {
+  margin-bottom: 24px;
+}
+
+.scheduleListTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 16px 0;
+}
+
+.scheduleItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  transition: all 0.2s;
+}
+
+.scheduleEnabled {
+  cursor: pointer;
+}
+
+.scheduleEnabled:hover {
+  border-color: #ec407a;
+  background-color: #fef7f0;
+}
+
+.scheduleDisabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #f8f9fa;
+}
+
+.scheduleInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scheduleDate {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  text-transform: capitalize;
+}
+
+.scheduleTime {
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.scheduleStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.availableIcon {
+  color: #22c55e;
+}
+
+.limitedIcon {
+  color: #f59e0b;
+}
+
+.fullIcon {
+  color: #ef4444;
+}
+
+.bookingSection {
+  padding: 24px;
+}
+
+.selectedSchedule {
+  background-color: #f0f9ff;
+  border: 1px solid #0ea5e9;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.scheduleTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0369a1;
+  margin: 0 0 8px 0;
+}
+
+.bookingForm {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.formTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: #34495e;
+}
+
+.formInput {
+  padding: 12px 16px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: #ec407a;
+  box-shadow: 0 0 0 3px rgba(236, 64, 122, 0.1);
+}
+
+.formActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.cancelBtn {
+  background: none;
+  border: 1px solid #dee2e6;
+  color: #6c757d;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancelBtn:hover {
+  border-color: #adb5bd;
+  background-color: #f8f9fa;
+}
+
+.submitBtn {
+  background: #ec407a;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: #ad1457;
+}
+
+.submitBtn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.confirmationSection {
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.successIcon {
+  margin-bottom: 24px;
+}
+
+.confirmIcon {
+  color: #22c55e;
+}
+
+.confirmTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0 0 16px 0;
+}
+
+.confirmMessage {
+  font-size: 16px;
+  color: #4a5568;
+  margin: 0 0 24px 0;
+}
+
+.confirmDetails {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 32px;
+  text-align: left;
+}
+
+.confirmDetails p {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #4a5568;
+}
+
+.confirmDetails p:last-child {
+  margin-bottom: 0;
+}
+
+.closeConfirmBtn {
+  background: #ec407a;
+  color: white;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.closeConfirmBtn:hover {
+  background: #ad1457;
+}
+
+@media (max-width: 768px) {
+  .modalOverlay {
+    padding: 8px;
+  }
+  
+  .modal {
+    max-height: 95vh;
+  }
+  
+  .modalHeader {
+    padding: 16px 16px 12px;
+  }
+  
+  .modalTitle {
+    font-size: 20px;
+  }
+  
+  .scheduleSection,
+  .bookingSection,
+  .confirmationSection {
+    padding: 16px;
+  }
+  
+  .serviceDetails {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .includesList {
+    grid-template-columns: 1fr;
+  }
+  
+  .scheduleItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .formActions {
+    flex-direction: column;
+  }
+  
+  .confirmationSection {
+    padding: 32px 16px;
+  }
+} 

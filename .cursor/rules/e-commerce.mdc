@@ -1,0 +1,39 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+{
+    "name": "E-commerce site",
+    "description": "Next.js 14 e-commerce using App Router and plain JavaScript with CSS Modules.",
+    "context": [
+      "This is an e-commerce site that will allow clients to browse throug products filtering by categories",
+      "Administrators will be able to add their product stock, with images, descriptions and tags for each products",
+      "This is a e-commerce site built with Next.js 14+ using the App Router.",
+      "Use JavaScript instead of TypeScript.",
+      "Use Server Components by default unless interactivity is required.",
+      "Only add 'use client' to components that need client-side behavior (e.g., forms, modals).",
+      "Use CSS Modules or global CSS — TailwindCSS is not used in this project.",
+      "Follow App Router best practices: use nested layouts, loading.tsx, error.tsx, and co-located data fetching.",
+      "Use the 'app/' directory structure with route groups where needed, like (auth), (dashboard), (vendor), etc.",
+      "Protect dashboard and vendor routes using middleware.ts and role-based logic.",
+      "Organize components in a components/ directory, and reuse layouts for consistency.",
+      "Use fetch() inside Server Components for data fetching with proper caching strategy (cache: 'no-store' for dynamic content).",
+      "Use searchParams for query-based filtering and pagination."
+    ],
+    "rules": [
+      "Do not use the pages/ directory.",
+      "Do not use TypeScript.",
+      "Do not use TailwindCSS or any utility-based CSS framework.",
+      "Use CSS Modules for styling components or global CSS if needed.",
+      "Avoid putting business logic inside components — abstract it to lib/ or services/ folders.",
+      "Prefer Server Components unless interactivity is absolutely required.",
+      "Use loading.tsx and error.tsx in all route folders to improve UX.",
+      "Use the rule of 8px, only use multiples of 8 for sizing, paddings, margins, etc."
+    ],
+    "dependencies": {
+      "next": "^14.0.0",
+      "react": "^18.2.0",
+      "react-dom": "^18.2.0"
+    }
+  }

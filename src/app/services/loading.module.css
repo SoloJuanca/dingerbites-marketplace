@@ -1,0 +1,97 @@
+.loadingMain {
+  min-height: 80vh;
+  background-color: #f8f9fa;
+  padding: 32px 0;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.loadingHeader {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.titleSkeleton {
+  height: 56px;
+  width: 400px;
+  background: linear-gradient(90deg, #e3e3e3 25%, #f0f0f0 50%, #e3e3e3 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 8px;
+  margin: 0 auto 16px;
+}
+
+.subtitleSkeleton {
+  height: 48px;
+  width: 600px;
+  background: linear-gradient(90deg, #e3e3e3 25%, #f0f0f0 50%, #e3e3e3 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 8px;
+  margin: 0 auto;
+}
+
+.loadingContent {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+.sidebarSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.filterSkeleton {
+  height: 120px;
+  background: linear-gradient(90deg, #e3e3e3 25%, #f0f0f0 50%, #e3e3e3 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 8px;
+}
+
+.mainContentSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.gridSkeleton {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 24px;
+}
+
+.cardSkeleton {
+  height: 400px;
+  background: linear-gradient(90deg, #e3e3e3 25%, #f0f0f0 50%, #e3e3e3 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 12px;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .loadingContent {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  
+  .gridSkeleton {
+    grid-template-columns: 1fr;
+  }
+} 

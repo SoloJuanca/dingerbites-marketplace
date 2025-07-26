@@ -1,0 +1,199 @@
+.contactInfo {
+  padding: 80px 0;
+  background: #ffffff;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: start;
+}
+
+.textContent {
+  max-width: 500px;
+}
+
+.title {
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #2d3748;
+  margin-bottom: 24px;
+}
+
+.subtitle {
+  font-size: 18px;
+  color: #4a5568;
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+
+.contactDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.contactItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.contactIcon {
+  color: #ec407a;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.contactText {
+  font-size: 14px;
+  color: #4a5568;
+  line-height: 1.5;
+}
+
+.contactText strong {
+  color: #2d3748;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.contactBtn {
+  background: #ec407a;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.contactBtn:hover {
+  background: #ad1457;
+}
+
+.emailBtn {
+  background: #f8f9fa;
+  color: #2d3748;
+  border: 1px solid #dee2e6;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.emailBtn:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.mapContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mapContainer {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.map {
+  border-radius: 16px;
+}
+
+.mapFooter {
+  text-align: center;
+}
+
+.directionsBtn {
+  background: #f8f9fa;
+  color: #2d3748;
+  border: 1px solid #dee2e6;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.directionsBtn:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+@media (max-width: 768px) {
+  .contactInfo {
+    padding: 60px 0;
+  }
+  
+  .content {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    text-align: left;
+  }
+  
+  .title {
+    font-size: 32px;
+  }
+  
+  .container {
+    padding: 0 16px;
+  }
+  
+  .mapContainer {
+    height: 300px;
+  }
+  
+  .actions {
+    flex-direction: column;
+  }
+  
+  .contactBtn,
+  .emailBtn {
+    justify-content: center;
+    width: 100%;
+  }
+  
+  .contactDetails {
+    gap: 20px;
+  }
+  
+  .contactItem {
+    gap: 10px;
+  }
+} 
