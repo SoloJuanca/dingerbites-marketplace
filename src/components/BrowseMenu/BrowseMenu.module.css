@@ -106,21 +106,107 @@
   background: #ad1457;
 }
 
+/* Tablet Design */
+@media (max-width: 1024px) {
+  .title {
+    font-size: 36px;
+  }
+  
+  .products {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+  
+  .header {
+    margin-bottom: 48px;
+  }
+}
+
+/* Mobile Design */
 @media (max-width: 768px) {
   .browseMenu {
     padding: 60px 0;
   }
   
   .title {
-    font-size: 32px;
+    font-size: 28px;
+    margin-bottom: 12px;
+  }
+  
+  .subtitle {
+    font-size: 16px;
+    margin-bottom: 24px;
   }
   
   .products {
     grid-template-columns: 1fr;
     gap: 24px;
+    margin-bottom: 32px;
+  }
+  
+  .buttons {
+    gap: 12px;
+  }
+  
+  .burgerBtn,
+  .sidesBtn,
+  .drinksBtn {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+  
+  .seeFullBtn {
+    padding: 14px 28px;
+    font-size: 15px;
+    width: 100%;
+    max-width: 280px;
   }
   
   .container {
     padding: 0 16px;
+  }
+}
+
+/* Small Mobile Design */
+@media (max-width: 480px) {
+  .browseMenu {
+    padding: 40px 0;
+  }
+  
+  .title {
+    font-size: 24px;
+  }
+  
+  .subtitle {
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+  
+  .header {
+    margin-bottom: 32px;
+  }
+  
+  .buttons {
+    flex-direction: column;
+    gap: 8px;
+    max-width: 200px;
+    margin: 0 auto 24px;
+  }
+  
+  .burgerBtn,
+  .sidesBtn,
+  .drinksBtn {
+    padding: 8px 16px;
+    font-size: 13px;
+    width: 100%;
+  }
+  
+  .seeFullBtn {
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+  
+  .container {
+    padding: 0 12px;
   }
 } 

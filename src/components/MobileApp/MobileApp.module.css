@@ -109,6 +109,22 @@
   box-shadow: 0 8px 25px rgba(236, 64, 122, 0.35);
 }
 
+/* Tablet Design */
+@media (max-width: 1024px) {
+  .content {
+    gap: 48px;
+  }
+  
+  .title {
+    font-size: 36px;
+  }
+  
+  .phoneWrapper {
+    transform: rotate(-2deg);
+  }
+}
+
+/* Mobile Design */
 @media (max-width: 768px) {
   .mobileApp {
     padding: 60px 0;
@@ -116,12 +132,42 @@
   
   .content {
     grid-template-columns: 1fr;
-    gap: 40px;
+    gap: 32px;
     text-align: center;
   }
   
   .title {
-    font-size: 32px;
+    font-size: 28px;
+    margin-bottom: 16px;
+  }
+  
+  .subtitle {
+    font-size: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .highlights {
+    gap: 12px;
+    margin-bottom: 24px;
+    align-items: center;
+  }
+  
+  .highlight {
+    font-size: 15px;
+    justify-content: center;
+  }
+  
+  .highlightIcon {
+    width: 32px;
+    height: 32px;
+    padding: 6px;
+  }
+  
+  .downloadBtn {
+    padding: 14px 28px;
+    font-size: 15px;
+    width: 100%;
+    max-width: 280px;
   }
   
   .container {
@@ -130,17 +176,65 @@
   
   .phoneWrapper {
     transform: rotate(0deg);
+    max-width: 300px;
+    margin: 0 auto;
   }
   
   .phoneWrapper:hover {
     transform: scale(1.02);
   }
   
+  .phoneImage {
+    max-height: 350px;
+    object-fit: cover;
+  }
+}
+
+/* Small Mobile Design */
+@media (max-width: 480px) {
+  .mobileApp {
+    padding: 40px 0;
+  }
+  
+  .title {
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+  
+  .subtitle {
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+  
   .highlights {
-    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
   }
   
   .highlight {
-    justify-content: center;
+    font-size: 14px;
+  }
+  
+  .highlightIcon {
+    width: 28px;
+    height: 28px;
+    padding: 4px;
+  }
+  
+  .downloadBtn {
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+  
+  .container {
+    padding: 0 12px;
+  }
+  
+  .phoneWrapper {
+    max-width: 250px;
+  }
+  
+  .phoneImage {
+    max-height: 300px;
   }
 } 

@@ -497,7 +497,7 @@
   }
   
   .contactGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
     gap: 24px;
   }
   
@@ -509,15 +509,22 @@
 
 @media (max-width: 768px) {
   .hero {
-    padding: 100px 0 60px;
+    padding: 80px 0 40px;
+    min-height: auto;
   }
   
   .heroTitle {
-    font-size: 32px;
+    font-size: 28px;
+    margin-bottom: 16px;
+  }
+  
+  .heroSubtitle {
+    font-size: 16px;
   }
   
   .sectionTitle {
     font-size: 28px;
+    margin-bottom: 32px;
   }
   
   .quickContact,
@@ -531,6 +538,16 @@
     padding: 0 16px;
   }
   
+  .contactGrid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .contactImage {
+    max-height: 250px;
+    object-fit: cover;
+  }
+  
   .formRow {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -541,6 +558,92 @@
   }
   
   .contactCard {
+    padding: 24px 20px;
+  }
+  
+  .locationCard {
     padding: 32px 24px;
+  }
+  
+  .faqImg {
+    max-height: 300px;
+    object-fit: cover;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero {
+    padding: 60px 0 32px;
+  }
+  
+  .heroTitle {
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+  
+  .heroSubtitle {
+    font-size: 14px;
+  }
+  
+  .sectionTitle {
+    font-size: 24px;
+    margin-bottom: 24px;
+  }
+  
+  .quickContact,
+  .faq,
+  .location,
+  .contactForm {
+    padding: 40px 0;
+  }
+  
+  .container {
+    padding: 0 12px;
+  }
+  
+  .contactCard {
+    padding: 20px 16px;
+  }
+  
+  .contactTitle {
+    font-size: 18px;
+  }
+  
+  .contactText {
+    font-size: 16px;
+  }
+  
+  .form {
+    padding: 20px;
+  }
+  
+  .formInput,
+  .formSelect,
+  .formTextarea {
+    padding: 12px;
+    font-size: 16px;
+  }
+  
+  .formButton {
+    padding: 14px 24px;
+    font-size: 15px;
+  }
+  
+  .faqQuestion {
+    padding: 16px;
+    font-size: 15px;
+  }
+  
+  .faqAnswer p {
+    padding: 16px;
+    font-size: 14px;
+  }
+  
+  .locationCard {
+    padding: 24px 16px;
+  }
+  
+  .mapPlaceholder {
+    padding: 40px 20px;
   }
 } 

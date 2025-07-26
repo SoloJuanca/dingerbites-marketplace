@@ -105,22 +105,120 @@
   object-fit: cover;
 }
 
+/* Tablet Design */
+@media (max-width: 1024px) {
+  .hero {
+    padding: 80px 0 60px;
+    min-height: 500px;
+  }
+  
+  .content {
+    gap: 48px;
+  }
+  
+  .title {
+    font-size: 40px;
+  }
+  
+  .subtitle {
+    font-size: 16px;
+  }
+}
+
+/* Mobile Design */
 @media (max-width: 768px) {
   .hero {
-    padding: 100px 0 60px;
+    padding: 80px 0 40px;
+    min-height: auto;
   }
   
   .content {
     grid-template-columns: 1fr;
-    gap: 40px;
+    gap: 32px;
     text-align: center;
   }
   
+  .textContent {
+    max-width: 100%;
+  }
+  
   .title {
-    font-size: 32px;
+    font-size: 28px;
+    margin-bottom: 16px;
+    line-height: 1.3;
+  }
+  
+  .subtitle {
+    font-size: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .orderBtn {
+    padding: 14px 28px;
+    font-size: 15px;
+    margin-bottom: 24px;
+    width: 100%;
+    max-width: 280px;
+  }
+  
+  .stats {
+    justify-content: center;
+    gap: 16px;
   }
   
   .container {
     padding: 0 16px;
+  }
+  
+  .heroImage {
+    max-width: 100%;
+    width: 100%;
+  }
+  
+  .foodImage {
+    width: 100%;
+    height: auto;
+    max-height: 280px;
+    object-fit: cover;
+  }
+}
+
+/* Small Mobile Design */
+@media (max-width: 480px) {
+  .hero {
+    padding: 60px 0 32px;
+  }
+  
+  .title {
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+  
+  .subtitle {
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+  
+  .orderBtn {
+    padding: 12px 24px;
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+  
+  .stats {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .statNumber {
+    font-size: 18px;
+  }
+  
+  .statText {
+    font-size: 13px;
+  }
+  
+  .container {
+    padding: 0 12px;
   }
 } 

@@ -72,6 +72,18 @@
   background: #ad1457;
 }
 
+/* Tablet Design */
+@media (max-width: 1024px) {
+  .content {
+    gap: 48px;
+  }
+  
+  .title {
+    font-size: 36px;
+  }
+}
+
+/* Mobile Design */
 @media (max-width: 768px) {
   .freshProducts {
     padding: 60px 0;
@@ -79,15 +91,63 @@
   
   .content {
     grid-template-columns: 1fr;
-    gap: 40px;
+    gap: 32px;
     text-align: center;
   }
   
   .title {
-    font-size: 32px;
+    font-size: 28px;
+    margin-bottom: 16px;
+  }
+  
+  .subtitle {
+    font-size: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .learnBtn {
+    padding: 14px 28px;
+    font-size: 15px;
+    width: 100%;
+    max-width: 280px;
   }
   
   .container {
     padding: 0 16px;
+  }
+  
+  .image {
+    max-height: 250px;
+    object-fit: cover;
+  }
+}
+
+/* Small Mobile Design */
+@media (max-width: 480px) {
+  .freshProducts {
+    padding: 40px 0;
+  }
+  
+  .title {
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+  
+  .subtitle {
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+  
+  .learnBtn {
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+  
+  .container {
+    padding: 0 12px;
+  }
+  
+  .image {
+    max-height: 200px;
   }
 } 

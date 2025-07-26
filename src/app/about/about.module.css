@@ -518,15 +518,22 @@
 
 @media (max-width: 768px) {
   .hero {
-    padding: 100px 0 60px;
+    padding: 80px 0 40px;
+    min-height: auto;
   }
   
   .heroTitle {
-    font-size: 32px;
+    font-size: 28px;
+    margin-bottom: 16px;
+  }
+  
+  .heroSubtitle {
+    font-size: 16px;
   }
   
   .sectionTitle {
     font-size: 28px;
+    margin-bottom: 32px;
   }
   
   .story,
@@ -541,8 +548,14 @@
     padding: 0 16px;
   }
   
+  .storeImage {
+    max-height: 250px;
+    object-fit: cover;
+  }
+  
   .storyStats {
     flex-direction: column;
+    gap: 20px;
   }
   
   .missionGrid,
@@ -553,5 +566,89 @@
     gap: 24px;
   }
   
+  .galleryImage {
+    height: 220px;
+  }
+  
+  .teamImage {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .teamImageWrapper {
+    width: 100px;
+    height: 100px;
+  }
+}
 
+@media (max-width: 480px) {
+  .hero {
+    padding: 60px 0 32px;
+  }
+  
+  .heroTitle {
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+  
+  .heroSubtitle {
+    font-size: 14px;
+  }
+  
+  .sectionTitle {
+    font-size: 24px;
+    margin-bottom: 24px;
+  }
+  
+  .story,
+  .mission,
+  .team,
+  .gallery,
+  .reviews {
+    padding: 40px 0;
+  }
+  
+  .container {
+    padding: 0 12px;
+  }
+  
+  .storyParagraph {
+    font-size: 16px;
+  }
+  
+  .stat {
+    padding: 20px 16px;
+  }
+  
+  .statNumber {
+    font-size: 28px;
+  }
+  
+  .missionCard,
+  .teamCard {
+    padding: 24px 16px;
+  }
+  
+  .missionTitle,
+  .teamName {
+    font-size: 18px;
+  }
+  
+  .reviewCard {
+    padding: 20px;
+  }
+  
+  .galleryImage {
+    height: 200px;
+  }
+  
+  .teamImage {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .teamImageWrapper {
+    width: 80px;
+    height: 80px;
+  }
 } 

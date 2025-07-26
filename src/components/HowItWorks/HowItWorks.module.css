@@ -68,6 +68,23 @@
   line-height: 1.6;
 }
 
+/* Tablet Design */
+@media (max-width: 1024px) {
+  .steps {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 32px;
+  }
+  
+  .title {
+    font-size: 36px;
+  }
+  
+  .header {
+    margin-bottom: 48px;
+  }
+}
+
+/* Mobile Design */
 @media (max-width: 768px) {
   .howItWorks {
     padding: 60px 0;
@@ -75,14 +92,71 @@
   
   .steps {
     grid-template-columns: 1fr;
-    gap: 32px;
+    gap: 24px;
   }
   
   .title {
-    font-size: 32px;
+    font-size: 28px;
+  }
+  
+  .step {
+    padding: 24px 20px;
+  }
+  
+  .stepIcon {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 20px;
+  }
+  
+  .stepTitle {
+    font-size: 18px;
+    margin-bottom: 12px;
+  }
+  
+  .stepDescription {
+    font-size: 15px;
   }
   
   .container {
     padding: 0 16px;
+  }
+}
+
+/* Small Mobile Design */
+@media (max-width: 480px) {
+  .howItWorks {
+    padding: 40px 0;
+  }
+  
+  .title {
+    font-size: 24px;
+  }
+  
+  .header {
+    margin-bottom: 32px;
+  }
+  
+  .step {
+    padding: 20px 16px;
+  }
+  
+  .stepIcon {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 16px;
+  }
+  
+  .stepTitle {
+    font-size: 16px;
+    margin-bottom: 8px;
+  }
+  
+  .stepDescription {
+    font-size: 14px;
+  }
+  
+  .container {
+    padding: 0 12px;
   }
 } 

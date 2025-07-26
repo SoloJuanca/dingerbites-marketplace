@@ -72,12 +72,78 @@
   background: #ad1457;
 }
 
-@media (max-width: 768px) {
+/* Tablet Design */
+@media (max-width: 1024px) {
   .nav {
-    display: none;
+    gap: 24px;
+  }
+  
+  .logoText {
+    font-size: 22px;
+  }
+  
+  .orderBtn {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+}
+
+/* Mobile Design */
+@media (max-width: 768px) {
+  .header {
+    padding: 12px 0;
   }
   
   .container {
     padding: 0 16px;
+  }
+  
+  .logoText {
+    font-size: 20px;
+  }
+  
+  .nav {
+    gap: 16px;
+  }
+  
+  .navLink {
+    font-size: 14px;
+  }
+  
+  .orderBtn {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+}
+
+/* Small Mobile Design */
+@media (max-width: 640px) {
+  .nav {
+    display: none;
+  }
+  
+  .logoText {
+    font-size: 18px;
+  }
+  
+  .orderBtn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+}
+
+/* Very Small Mobile Design */
+@media (max-width: 480px) {
+  .container {
+    padding: 0 12px;
+  }
+  
+  .logoText {
+    font-size: 16px;
+  }
+  
+  .logoIcon {
+    width: 20px;
+    height: 20px;
   }
 } 
