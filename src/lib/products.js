@@ -1,124 +1,241 @@
-// Datos de muestra para productos
+// Datos de muestra para productos de uñas
 export const sampleProducts = [
+  // Esmaltes clásicos
   {
     id: 1,
-    name: "Burger Dreams",
-    description: "Una deliciosa hamburguesa con carne jugosa y verduras frescas",
-    price: 12.99,
-    image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=300&fit=crop&crop=center",
-    category: "burgers",
-    brand: "Gourmet Burgers",
+    slug: "esmalte-rojo-clasico",
+    name: "Esmalte Rojo Clásico",
+    description: "Esmalte tradicional de color rojo intenso, larga duración",
+    price: 89.00,
+    image: "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=300&fit=crop&crop=center",
+    images: [
+      "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=600&h=400&fit=crop&crop=center",
+      "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=600&h=400&fit=crop&crop=center",
+      "https://images.unsplash.com/photo-1607779097040-26e80aa78e66?w=600&h=400&fit=crop&crop=center"
+    ],
+    category: "esmaltes",
+    brand: "Glamour Nails",
     createdAt: "2024-01-15"
   },
   {
     id: 2,
-    name: "Burger Waldo",
-    description: "Hamburguesa especial con ingredientes premium",
-    price: 15.50,
-    image: "https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?w=400&h=300&fit=crop&crop=center",
-    category: "burgers",
-    brand: "Premium Eats",
+    slug: "esmalte-gel-azul-oceano",
+    name: "Esmalte Gel Azul Océano",
+    description: "Esmalte gel de alta calidad color azul océano",
+    price: 125.00,
+    image: "https://images.unsplash.com/photo-1610992015732-2449b76344bc?w=400&h=300&fit=crop&crop=center",
+    category: "esmaltes",
+    brand: "Sea Beauty",
     createdAt: "2024-01-20"
   },
   {
     id: 3,
-    name: "Classic Burger",
-    description: "La hamburguesa clásica que nunca pasa de moda",
-    price: 9.99,
-    image: "https://images.unsplash.com/photo-1551782450-17144efb9c50?w=400&h=300&fit=crop&crop=center",
-    category: "burgers",
-    brand: "Classic Food",
+    slug: "esmalte-semipermanente-rosa",
+    name: "Esmalte Semipermanente Rosa",
+    description: "Esmalte semipermanente rosa suave, hasta 3 semanas de duración",
+    price: 149.00,
+    image: "https://images.unsplash.com/photo-1607779097040-26e80aa78e66?w=400&h=300&fit=crop&crop=center",
+    category: "esmaltes",
+    brand: "Sweet Colors",
     createdAt: "2024-01-10"
   },
   {
     id: 4,
-    name: "BBQ Burger",
-    description: "Hamburguesa con salsa BBQ y cebolla caramelizada",
-    price: 13.75,
-    image: "https://images.unsplash.com/photo-1553979459-d2229ba7433a?w=400&h=300&fit=crop&crop=center",
-    category: "burgers",
-    brand: "Gourmet Burgers",
+    slug: "esmalte-mate-negro",
+    name: "Esmalte Mate Negro",
+    description: "Esmalte con acabado mate color negro elegante",
+    price: 99.00,
+    image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=300&fit=crop&crop=center",
+    category: "esmaltes",
+    brand: "Luxury Cosmetics",
     createdAt: "2024-01-25"
   },
   {
     id: 5,
-    name: "Veggie Burger",
-    description: "Hamburguesa vegetariana llena de sabor",
-    price: 11.25,
-    image: "https://images.unsplash.com/photo-1525059696034-4967a729002e?w=400&h=300&fit=crop&crop=center",
-    category: "burgers",
-    brand: "Green Bites",
+    slug: "set-esmaltes-dorados",
+    name: "Set Esmaltes Dorados",
+    description: "Colección de esmaltes dorados con brillo espectacular",
+    price: 299.00,
+    image: "https://images.unsplash.com/photo-1582747652673-603191058c91?w=400&h=300&fit=crop&crop=center",
+    category: "esmaltes",
+    brand: "Glamour Nails",
     createdAt: "2024-01-18"
   },
   {
     id: 6,
-    name: "Double Burger",
-    description: "Doble carne para los más hambrientos",
-    price: 18.99,
-    image: "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?w=400&h=300&fit=crop&crop=center",
-    category: "burgers",
-    brand: "Premium Eats",
+    slug: "set-coleccion-arcoiris",
+    name: "Set Colección Arcoíris",
+    description: "Set completo de esmaltes con todos los colores del arcoíris",
+    price: 399.00,
+    image: "https://images.unsplash.com/photo-1515688594390-b649af70d282?w=400&h=300&fit=crop&crop=center",
+    category: "esmaltes",
+    brand: "Rainbow Beauty",
     createdAt: "2024-01-30"
   },
+
+  // Herramientas
   {
     id: 7,
-    name: "Red Velvet Polish",
-    description: "Esmalte de uñas color rojo intenso",
-    price: 8.99,
-    image: "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=300&fit=crop&crop=center",
-    category: "beauty",
-    brand: "Glamour Nails",
+    slug: "lima-cristal-profesional",
+    name: "Lima de Cristal Profesional",
+    description: "Lima de cristal de alta calidad para acabado perfecto",
+    price: 79.00,
+    image: "https://images.unsplash.com/photo-1607962837359-5e7e89f86776?w=400&h=300&fit=crop&crop=center",
+    images: [
+      "https://images.unsplash.com/photo-1607962837359-5e7e89f86776?w=600&h=400&fit=crop&crop=center",
+      "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600&h=400&fit=crop&crop=center",
+      "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=600&h=400&fit=crop&crop=center"
+    ],
+    category: "herramientas",
+    brand: "Pro Tools",
     createdAt: "2024-01-12"
   },
   {
     id: 8,
-    name: "Ocean Blue Polish",
-    description: "Esmalte azul como el océano",
-    price: 9.50,
-    image: "https://images.unsplash.com/photo-1610992015732-2449b76344bc?w=400&h=300&fit=crop&crop=center",
-    category: "beauty",
-    brand: "Sea Beauty",
+    slug: "empujador-cuticula-metalico",
+    name: "Empujador de Cutícula Metálico",
+    description: "Empujador de cutícula de acero inoxidable, doble punta",
+    price: 45.00,
+    image: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop&crop=center",
+    category: "herramientas",
+    brand: "Nail Craft",
     createdAt: "2024-01-22"
   },
   {
     id: 9,
-    name: "Golden Shine Polish",
-    description: "Esmalte dorado con brillo espectacular",
-    price: 12.99,
-    image: "https://images.unsplash.com/photo-1582747652673-603191058c91?w=400&h=300&fit=crop&crop=center",
-    category: "beauty",
-    brand: "Luxury Cosmetics",
+    slug: "set-cepillos-arte",
+    name: "Set de Cepillos para Arte",
+    description: "Juego de 5 cepillos especiales para nail art",
+    price: 129.00,
+    image: "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=400&h=300&fit=crop&crop=center",
+    category: "herramientas",
+    brand: "Art Nails",
     createdAt: "2024-01-14"
   },
   {
     id: 10,
-    name: "Pink Dream Polish",
-    description: "Esmalte rosa suave y elegante",
-    price: 7.75,
-    image: "https://images.unsplash.com/photo-1607779097040-26e80aa78e66?w=400&h=300&fit=crop&crop=center",
-    category: "beauty",
-    brand: "Sweet Colors",
+    slug: "kit-limas-profesional",
+    name: "Kit de Limas Profesional",
+    description: "Set completo de limas de diferentes granos para manicure profesional",
+    price: 159.00,
+    image: "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=400&h=300&fit=crop&crop=center",
+    category: "herramientas",
+    brand: "Pro Tools",
     createdAt: "2024-01-28"
   },
+
+  // Productos para uñas artificiales
   {
     id: 11,
-    name: "Black Pearl Polish",
-    description: "Esmalte negro con efecto perla",
-    price: 11.50,
-    image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=300&fit=crop&crop=center",
-    category: "beauty",
-    brand: "Glamour Nails",
+    slug: "polvo-acrilico-transparente",
+    name: "Polvo Acrílico Transparente",
+    description: "Polvo acrílico de alta calidad para extensiones transparentes",
+    price: 199.00,
+    image: "https://images.unsplash.com/photo-1619451334792-150bdee7563d?w=400&h=300&fit=crop&crop=center",
+    category: "productos-artificiales",
+    brand: "Acrylic Pro",
     createdAt: "2024-01-16"
   },
   {
     id: 12,
-    name: "Rainbow Polish Set",
-    description: "Set de esmaltes con todos los colores del arcoíris",
-    price: 25.99,
-    image: "https://images.unsplash.com/photo-1515688594390-b649af70d282?w=400&h=300&fit=crop&crop=center",
-    category: "beauty",
-    brand: "Rainbow Beauty",
+    slug: "gel-constructor-uv",
+    name: "Gel Constructor UV",
+    description: "Gel constructor para extensiones, curado UV/LED",
+    price: 249.00,
+    image: "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=400&h=300&fit=crop&crop=center",
+    category: "productos-artificiales",
+    brand: "Gel Master",
     createdAt: "2024-01-08"
+  },
+  {
+    id: 13,
+    slug: "tips-francesas-naturales",
+    name: "Tips Francesas Naturales",
+    description: "Tips para uñas francesas, acabado natural, 500 piezas",
+    price: 99.00,
+    image: "https://images.unsplash.com/photo-1607962837359-5e7e89f86776?w=400&h=300&fit=crop&crop=center",
+    category: "productos-artificiales",
+    brand: "Nail Craft",
+    createdAt: "2024-01-05"
+  },
+  {
+    id: 14,
+    slug: "moldes-extensiones",
+    name: "Moldes para Extensiones",
+    description: "Moldes reutilizables para extensiones de gel y acrílico",
+    price: 79.00,
+    image: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop&crop=center",
+    category: "productos-artificiales",
+    brand: "Art Nails",
+    createdAt: "2024-01-03"
+  },
+  {
+    id: 15,
+    slug: "pegamento-tips-premium",
+    name: "Pegamento para Tips Premium",
+    description: "Pegamento profesional de secado rápido para tips",
+    price: 69.00,
+    image: "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=400&h=300&fit=crop&crop=center",
+    category: "productos-artificiales",
+    brand: "Acrylic Pro",
+    createdAt: "2024-01-01"
+  },
+
+  // Productos para cuidado de uñas
+  {
+    id: 16,
+    slug: "aceite-cuticula-vitamin-e",
+    name: "Aceite de Cutícula Vitamin E",
+    description: "Aceite nutritivo con vitamina E para cutículas saludables",
+    price: 89.00,
+    image: "https://images.unsplash.com/photo-1571875257727-256c39da42af?w=400&h=300&fit=crop&crop=center",
+    category: "cuidado-unas",
+    brand: "Nail Care",
+    createdAt: "2024-01-26"
+  },
+  {
+    id: 17,
+    slug: "base-fortalecedora",
+    name: "Base Fortalecedora",
+    description: "Base coat fortalecedora con calcio y vitaminas",
+    price: 119.00,
+    image: "https://images.unsplash.com/photo-1607779097040-26e80aa78e66?w=400&h=300&fit=crop&crop=center",
+    category: "cuidado-unas",
+    brand: "Strong Nails",
+    createdAt: "2024-01-24"
+  },
+  {
+    id: 18,
+    slug: "top-coat-secado-rapido",
+    name: "Top Coat Secado Rápido",
+    description: "Top coat de acabado brillante con secado rápido",
+    price: 99.00,
+    image: "https://images.unsplash.com/photo-1582747652673-603191058c91?w=400&h=300&fit=crop&crop=center",
+    category: "cuidado-unas",
+    brand: "Quick Dry",
+    createdAt: "2024-01-21"
+  },
+  {
+    id: 19,
+    slug: "crema-reparadora-unas",
+    name: "Crema Reparadora de Uñas",
+    description: "Tratamiento intensivo para uñas dañadas y débiles",
+    price: 149.00,
+    image: "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=400&h=300&fit=crop&crop=center",
+    category: "cuidado-unas",
+    brand: "Nail Care",
+    createdAt: "2024-01-19"
+  },
+  {
+    id: 20,
+    slug: "kit-cuidado-completo",
+    name: "Kit Cuidado Completo",
+    description: "Kit completo con aceite, base, fortalecedor y tratamiento",
+    price: 299.00,
+    image: "https://images.unsplash.com/photo-1515688594390-b649af70d282?w=400&h=300&fit=crop&crop=center",
+    category: "cuidado-unas",
+    brand: "Complete Care",
+    createdAt: "2024-01-17"
   }
 ];
 
@@ -136,18 +253,24 @@ export function getProducts(filters = {}) {
 
   let filteredProducts = [...sampleProducts];
 
-  // Filtro por categoría
+  // Filtro por categoría (puede ser string o array)
   if (category) {
-    filteredProducts = filteredProducts.filter(product => 
-      product.category.toLowerCase() === category.toLowerCase()
-    );
+    const categories = Array.isArray(category) ? category : [category];
+    if (categories.length > 0 && categories[0] !== '') {
+      filteredProducts = filteredProducts.filter(product => 
+        categories.some(cat => product.category.toLowerCase() === cat.toLowerCase())
+      );
+    }
   }
 
-  // Filtro por marca
+  // Filtro por marca (puede ser string o array)
   if (brand) {
-    filteredProducts = filteredProducts.filter(product => 
-      product.brand.toLowerCase().includes(brand.toLowerCase())
-    );
+    const brands = Array.isArray(brand) ? brand : [brand];
+    if (brands.length > 0 && brands[0] !== '') {
+      filteredProducts = filteredProducts.filter(product => 
+        brands.some(b => product.brand.toLowerCase().includes(b.toLowerCase()))
+      );
+    }
   }
 
   // Filtro por rango de precios
@@ -198,10 +321,17 @@ export function getProducts(filters = {}) {
 
 // Obtener todas las categorías únicas
 export function getCategories() {
+  const categoryLabels = {
+    'esmaltes': 'Esmaltes',
+    'herramientas': 'Herramientas',
+    'productos-artificiales': 'Productos para Uñas Artificiales',
+    'cuidado-unas': 'Cuidado de Uñas'
+  };
+  
   const categories = [...new Set(sampleProducts.map(product => product.category))];
   return categories.map(category => ({
     value: category,
-    label: category.charAt(0).toUpperCase() + category.slice(1)
+    label: categoryLabels[category] || category.charAt(0).toUpperCase() + category.slice(1)
   }));
 }
 
@@ -218,4 +348,20 @@ export function getPriceRange() {
     min: Math.min(...prices),
     max: Math.max(...prices)
   };
+}
+
+// Obtener producto por slug
+export function getProductBySlug(slug) {
+  return sampleProducts.find(product => product.slug === slug);
+}
+
+// Función para generar slug desde nombre (útil para productos futuros)
+export function generateSlug(name) {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remover acentos
+    .replace(/[^a-z0-9\s]/g, '') // Remover caracteres especiales
+    .trim()
+    .replace(/\s+/g, '-'); // Reemplazar espacios con guiones
 } 

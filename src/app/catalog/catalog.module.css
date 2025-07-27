@@ -7,7 +7,7 @@
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 24px;
 }
 
 .catalogHeader {
@@ -48,8 +48,29 @@
 
 .sortSection {
   display: flex;
-  justify-content: flex-end;
+  flex-wrap: wrap;
+  justify-content: space-between;
   align-items: center;
+  gap: 16px;
+}
+
+.filterButton {
+  display: none;
+  background-color: #ec407a;
+  color: white;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  align-items: center;
+  gap: 8px;
+}
+
+.filterButton:hover {
+  background-color: #ad1457;
 }
 
 @media (max-width: 768px) {
@@ -59,7 +80,15 @@
   }
   
   .sidebar {
-    position: static;
+    display: none;
+  }
+  
+  .filterButton {
+    display: flex;
+  }
+  
+  .sortSection {
+    justify-content: space-between;
   }
   
   .title {

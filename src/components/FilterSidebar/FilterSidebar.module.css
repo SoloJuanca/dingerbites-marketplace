@@ -41,23 +41,84 @@
 
 .filterSection {
   margin-bottom: 32px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .filterSection:last-child {
   margin-bottom: 0;
 }
 
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background-color: #f8f9fa;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+
+.sectionHeader:hover {
+  background-color: #e9ecef;
+}
+
 .sectionTitle {
   font-size: 16px;
   font-weight: 600;
   color: #34495e;
-  margin: 0 0 16px 0;
+  margin: 0;
+}
+
+.collapseIcon {
+  transition: transform 0.2s;
+  color: #6c757d;
+  font-size: 18px;
+}
+
+.collapseIcon.expanded {
+  transform: rotate(180deg);
+}
+
+.sectionContent {
+  padding: 20px;
+  background-color: white;
+}
+
+.sectionContent.collapsed {
+  display: none;
 }
 
 .categoryList {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+}
+
+.checkboxItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #ec407a;
+  cursor: pointer;
+}
+
+.checkboxLabel {
+  font-size: 14px;
+  color: #495057;
+  cursor: pointer;
+  user-select: none;
+  flex: 1;
 }
 
 .categoryBtn {
@@ -155,6 +216,32 @@
   background-color: #ad1457;
 }
 
+.brandList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.brandList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.brandList::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.brandList::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.brandList::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
 @media (max-width: 768px) {
   .sidebar {
     margin-bottom: 24px;
@@ -168,6 +255,14 @@
     align-items: stretch;
   }
   
+  .sectionHeader {
+    padding: 12px 16px;
+  }
+  
+  .sectionContent {
+    padding: 16px;
+  }
+  
   .priceInputs {
     flex-direction: column;
     gap: 12px;
@@ -179,5 +274,9 @@
   
   .priceSeparator {
     display: none;
+  }
+  
+  .brandList {
+    max-height: 150px;
   }
 } 

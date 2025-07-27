@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { getCategories, getBrands, getPriceRange } from '../../lib/products';
+import Icon from '../Icon/Icon';
 import styles from './FilterSidebar.module.css';
 
 export default function FilterSidebar({ 
@@ -18,6 +19,17 @@ export default function FilterSidebar({
   const [priceRange] = useState(getPriceRange());
   const [minPrice, setMinPrice] = useState(currentMinPrice || '');
   const [maxPrice, setMaxPrice] = useState(currentMaxPrice || '');
+  
+  // Estados para secciones colapsables
+  const [collapsedSections, setCollapsedSections] = useState({
+    categories: false,
+    brands: false,
+    price: false
+  });
+  
+  // Convertir strings de URL a arrays
+  const selectedCategories = currentCategory ? currentCategory.split(',') : [];
+  const selectedBrands = currentBrand ? currentBrand.split(',') : [];
 
   const updateFilters = (newFilters) => {
     const params = new URLSearchParams(searchParams);
@@ -26,8 +38,10 @@ export default function FilterSidebar({
     params.delete('page');
     
     Object.entries(newFilters).forEach(([key, value]) => {
-      if (value) {
-        params.set(key, value);
+      if (value && value.length > 0) {
+        // Si es array, convertir a string separado por comas
+        const stringValue = Array.isArray(value) ? value.join(',') : value;
+        params.set(key, stringValue);
       } else {
         params.delete(key);
       }
@@ -36,19 +50,39 @@ export default function FilterSidebar({
     router.push(`/catalog?${params.toString()}`);
   };
 
-  const handleCategoryChange = (category) => {
-    updateFilters({ 
-      category: category === currentCategory ? '' : category,
-      brand: currentBrand,
+  const handleCategoryChange = (categoryValue) => {
+    let newCategories = [...selectedCategories];
+    
+    if (newCategories.includes(categoryValue)) {
+      // Remover categoría si ya está seleccionada
+      newCategories = newCategories.filter(cat => cat !== categoryValue);
+    } else {
+      // Agregar nueva categoría
+      newCategories.push(categoryValue);
+    }
+    
+    updateFilters({
+      category: newCategories,
+      brand: selectedBrands,
       minPrice: currentMinPrice,
       maxPrice: currentMaxPrice
     });
   };
 
-  const handleBrandChange = (e) => {
+  const handleBrandChange = (brandValue) => {
+    let newBrands = [...selectedBrands];
+    
+    if (newBrands.includes(brandValue)) {
+      // Remover marca si ya está seleccionada
+      newBrands = newBrands.filter(brand => brand !== brandValue);
+    } else {
+      // Agregar nueva marca
+      newBrands.push(brandValue);
+    }
+    
     updateFilters({
-      category: currentCategory,
-      brand: e.target.value,
+      category: selectedCategories,
+      brand: newBrands,
       minPrice: currentMinPrice,
       maxPrice: currentMaxPrice
     });
@@ -57,8 +91,8 @@ export default function FilterSidebar({
   const handlePriceSubmit = (e) => {
     e.preventDefault();
     updateFilters({
-      category: currentCategory,
-      brand: currentBrand,
+      category: selectedCategories,
+      brand: selectedBrands,
       minPrice: minPrice,
       maxPrice: maxPrice
     });
@@ -68,6 +102,13 @@ export default function FilterSidebar({
     setMinPrice('');
     setMaxPrice('');
     router.push('/catalog');
+  };
+
+  const toggleSection = (section) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
   };
 
   return (
@@ -81,70 +122,111 @@ export default function FilterSidebar({
 
       {/* Categorías */}
       <div className={styles.filterSection}>
-        <h4 className={styles.sectionTitle}>Categorías</h4>
-        <div className={styles.categoryList}>
-          {categories.map((category) => (
-            <button
-              key={category.value}
-              onClick={() => handleCategoryChange(category.value)}
-              className={`${styles.categoryBtn} ${
-                currentCategory === category.value ? styles.active : ''
-              }`}
-            >
-              {category.label}
-            </button>
-          ))}
+        <button 
+          className={styles.sectionHeader}
+          onClick={() => toggleSection('categories')}
+        >
+          <h4 className={styles.sectionTitle}>Categorías</h4>
+          <Icon 
+            name="keyboard_arrow_down" 
+            size={20}
+            className={`${styles.collapseIcon} ${!collapsedSections.categories ? styles.expanded : ''}`}
+          />
+        </button>
+        <div className={`${styles.sectionContent} ${collapsedSections.categories ? styles.collapsed : ''}`}>
+          <div className={styles.categoryList}>
+            {categories.map((category) => (
+              <label key={category.value} className={styles.checkboxItem}>
+                <input
+                  type="checkbox"
+                  className={styles.checkbox}
+                  checked={selectedCategories.includes(category.value)}
+                  onChange={() => handleCategoryChange(category.value)}
+                />
+                <span className={styles.checkboxLabel}>
+                  {category.label}
+                </span>
+              </label>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Marcas */}
       <div className={styles.filterSection}>
-        <h4 className={styles.sectionTitle}>Marca</h4>
-        <select 
-          value={currentBrand || ''} 
-          onChange={handleBrandChange}
-          className={styles.brandSelect}
+        <button 
+          className={styles.sectionHeader}
+          onClick={() => toggleSection('brands')}
         >
-          <option value="">Todas las marcas</option>
-          {brands.map((brand) => (
-            <option key={brand} value={brand}>
-              {brand}
-            </option>
-          ))}
-        </select>
+          <h4 className={styles.sectionTitle}>Marcas</h4>
+          <Icon 
+            name="keyboard_arrow_down" 
+            size={20}
+            className={`${styles.collapseIcon} ${!collapsedSections.brands ? styles.expanded : ''}`}
+          />
+        </button>
+        <div className={`${styles.sectionContent} ${collapsedSections.brands ? styles.collapsed : ''}`}>
+          <div className={styles.brandList}>
+            {brands.map((brand) => (
+              <label key={brand} className={styles.checkboxItem}>
+                <input
+                  type="checkbox"
+                  className={styles.checkbox}
+                  checked={selectedBrands.includes(brand)}
+                  onChange={() => handleBrandChange(brand)}
+                />
+                <span className={styles.checkboxLabel}>
+                  {brand}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Rango de precios */}
       <div className={styles.filterSection}>
-        <h4 className={styles.sectionTitle}>Rango de precios</h4>
-        <form onSubmit={handlePriceSubmit} className={styles.priceForm}>
-          <div className={styles.priceInputs}>
-            <input
-              type="number"
-              placeholder={`Min $${priceRange.min}`}
-              value={minPrice}
-              onChange={(e) => setMinPrice(e.target.value)}
-              className={styles.priceInput}
-              min={priceRange.min}
-              max={priceRange.max}
-              step="0.01"
-            />
-            <span className={styles.priceSeparator}>-</span>
-            <input
-              type="number"
-              placeholder={`Max $${priceRange.max}`}
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(e.target.value)}
-              className={styles.priceInput}
-              min={priceRange.min}
-              max={priceRange.max}
-              step="0.01"
-            />
-          </div>
-          <button type="submit" className={styles.priceBtn}>
-            Aplicar
-          </button>
-        </form>
+        <button 
+          className={styles.sectionHeader}
+          onClick={() => toggleSection('price')}
+        >
+          <h4 className={styles.sectionTitle}>Rango de precios</h4>
+          <Icon 
+            name="keyboard_arrow_down" 
+            size={20}
+            className={`${styles.collapseIcon} ${!collapsedSections.price ? styles.expanded : ''}`}
+          />
+        </button>
+        <div className={`${styles.sectionContent} ${collapsedSections.price ? styles.collapsed : ''}`}>
+          <form onSubmit={handlePriceSubmit} className={styles.priceForm}>
+            <div className={styles.priceInputs}>
+              <input
+                type="number"
+                placeholder={`Min $${priceRange.min}`}
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+                className={styles.priceInput}
+                min={priceRange.min}
+                max={priceRange.max}
+                step="0.01"
+              />
+              <span className={styles.priceSeparator}>-</span>
+              <input
+                type="number"
+                placeholder={`Max $${priceRange.max}`}
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                className={styles.priceInput}
+                min={priceRange.min}
+                max={priceRange.max}
+                step="0.01"
+              />
+            </div>
+            <button type="submit" className={styles.priceBtn}>
+              Aplicar
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

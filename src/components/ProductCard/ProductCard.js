@@ -1,15 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useCart } from '../../lib/CartContext';
 import styles from './ProductCard.module.css';
 
 export default function ProductCard({ product }) {
   const { addToCart } = useCart();
   const [isAdding, setIsAdding] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const formatPrice = (price) => {
+    if (!isClient) return `$${price.toFixed(2)}`;
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
       currency: 'MXN',
@@ -37,7 +44,7 @@ export default function ProductCard({ product }) {
 
   return (
     <div className={styles.card}>
-      <div className={styles.imageWrapper}>
+      <Link href={`/catalog/${product.slug}`} className={styles.imageWrapper}>
         <Image
           src={product.image}
           alt={product.name}
@@ -45,9 +52,11 @@ export default function ProductCard({ product }) {
           height={200}
           className={styles.image}
         />
-      </div>
+      </Link>
       <div className={styles.content}>
-        <h3 className={styles.name}>{product.name}</h3>
+        <Link href={`/catalog/${product.slug}`} className={styles.nameLink}>
+          <h3 className={styles.name}>{product.name}</h3>
+        </Link>
         <p className={styles.description}>{product.description}</p>
         <div className={styles.footer}>
           <span className={styles.price}>{formatPrice(product.price)}</span>
