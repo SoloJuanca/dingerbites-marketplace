@@ -95,7 +95,7 @@
   background: #f8f9fa;
   color: #2d3748;
   border: 1px solid #dee2e6;
-  padding: 12px 24px;
+  padding: 24px 24px;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
@@ -172,7 +172,7 @@
   }
   
   .container {
-    padding: 0 16px;
+    padding: 0 24px;
   }
   
   .mapContainer {

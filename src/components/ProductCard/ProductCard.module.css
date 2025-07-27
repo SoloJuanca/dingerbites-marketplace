@@ -66,6 +66,31 @@
   transition: background 0.2s ease;
 }
 
-.addBtn:hover {
+.addBtn:hover:not(:disabled) {
   background: #ad1457;
+}
+
+.addBtn:disabled {
+  cursor: not-allowed;
+}
+
+.addBtn.adding {
+  background: #38a169;
+  animation: pulse 0.6s ease-in-out;
+}
+
+.addBtn.adding:hover {
+  background: #38a169;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
 } 

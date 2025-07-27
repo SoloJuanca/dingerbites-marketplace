@@ -1,5 +1,10 @@
 .hero {
-  background: linear-gradient(135deg, #fce4ec 0%, #f8bbd9 100%);
+  background: 
+    linear-gradient(135deg, rgba(252, 228, 236, 0.2) 0%, rgba(248, 187, 217, 0.2) 100%),
+    url('/herobg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   padding: 120px 0 80px;
   min-height: 600px;
   display: flex;
@@ -128,6 +133,12 @@
 /* Mobile Design */
 @media (max-width: 768px) {
   .hero {
+    background: 
+    linear-gradient(135deg, rgba(252, 228, 236, 0.9) 0%, rgba(248, 187, 217, 0.9) 100%),
+    url('/herobg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
     padding: 80px 0 40px;
     min-height: auto;
   }
@@ -219,6 +230,6 @@
   }
   
   .container {
-    padding: 0 12px;
+    padding: 0 24px;
   }
 } 

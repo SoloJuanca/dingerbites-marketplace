@@ -58,19 +58,39 @@
   gap: 16px;
 }
 
-.orderBtn {
+.cartBtn {
   background: #ec407a;
   color: white;
-  border: none;
-  padding: 12px 24px;
+  padding: 12px;
   border-radius: 8px;
-  font-weight: 600;
   cursor: pointer;
   transition: background 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  text-decoration: none;
 }
 
-.orderBtn:hover {
+.cartBtn:hover {
   background: #ad1457;
+}
+
+.cartBadge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #f44336;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
 }
 
 /* Hamburger Menu */
@@ -160,9 +180,8 @@
     font-size: 22px;
   }
   
-  .orderBtn {
-    padding: 10px 20px;
-    font-size: 14px;
+  .cartBtn {
+    padding: 10px;
   }
 }
 
@@ -188,9 +207,8 @@
     font-size: 14px;
   }
   
-  .orderBtn {
-    padding: 8px 16px;
-    font-size: 13px;
+  .cartBtn {
+    padding: 8px;
   }
   
   .hamburger {
@@ -217,16 +235,15 @@
     font-size: 18px;
   }
   
-  .orderBtn {
-    padding: 8px 12px;
-    font-size: 12px;
+  .cartBtn {
+    padding: 8px;
   }
 }
 
 /* Very Small Mobile Design */
 @media (max-width: 480px) {
   .container {
-    padding: 0 12px;
+    padding: 0 24px;
   }
   
   .logoText {
@@ -238,7 +255,7 @@
     height: 20px;
   }
   
-  .orderBtn {
+  .cartBtn {
     display: none;
   }
 } 

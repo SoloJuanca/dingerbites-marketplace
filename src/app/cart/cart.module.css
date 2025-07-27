@@ -1,0 +1,179 @@
+.main {
+  min-height: 100vh;
+  padding-top: 96px; /* Header height + padding */
+  background: #f8fafc;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.title {
+  font-size: 36px;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  font-size: 18px;
+  color: #718096;
+  margin: 0;
+}
+
+.emptyCart {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.emptyCartContent {
+  text-align: center;
+  background: white;
+  padding: 48px;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.emptyCartContent h2 {
+  font-size: 24px;
+  color: #2d3748;
+  margin-bottom: 16px;
+}
+
+.emptyCartContent p {
+  font-size: 16px;
+  color: #718096;
+  margin-bottom: 32px;
+}
+
+.continueShopping {
+  background: #ec407a;
+  color: white;
+  padding: 16px 32px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background 0.2s ease;
+  display: inline-block;
+}
+
+.continueShopping:hover {
+  background: #ad1457;
+}
+
+.cartContent {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 32px;
+  align-items: start;
+}
+
+.cartLeft {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.cartRight {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  padding: 24px;
+  position: sticky;
+  top: 120px;
+}
+
+/* Tablet Design */
+@media (max-width: 1024px) {
+  .cartContent {
+    grid-template-columns: 1fr 350px;
+    gap: 24px;
+  }
+  
+  .title {
+    font-size: 32px;
+  }
+  
+  .subtitle {
+    font-size: 16px;
+  }
+}
+
+/* Mobile Design */
+@media (max-width: 768px) {
+  .main {
+    padding-top: 80px;
+  }
+  
+  .container {
+    padding: 24px 16px;
+  }
+  
+  .header {
+    margin-bottom: 32px;
+  }
+  
+  .title {
+    font-size: 28px;
+  }
+  
+  .subtitle {
+    font-size: 14px;
+  }
+  
+  .cartContent {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  
+  .cartRight {
+    position: static;
+    order: 2;
+  }
+  
+  .emptyCartContent {
+    padding: 32px 24px;
+  }
+  
+  .emptyCartContent h2 {
+    font-size: 20px;
+  }
+  
+  .continueShopping {
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+}
+
+/* Small Mobile Design */
+@media (max-width: 480px) {
+  .header {
+    margin-bottom: 24px;
+  }
+  
+  .title {
+    font-size: 24px;
+  }
+  
+  .emptyCartContent {
+    padding: 24px 16px;
+  }
+  
+  .emptyCartContent h2 {
+    font-size: 18px;
+  }
+  
+  .emptyCartContent p {
+    font-size: 14px;
+  }
+} 

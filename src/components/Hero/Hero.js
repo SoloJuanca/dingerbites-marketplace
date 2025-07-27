@@ -26,17 +26,6 @@ export default function Hero() {
               </div>
             </div>
           </div>
-          <div className={styles.imageContent}>
-            <div className={styles.heroImage}>
-              <Image
-                src="https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=500&h=400&fit=crop&crop=center"
-                alt="Productos de belleza"
-                width={500}
-                height={400}
-                className={styles.foodImage}
-              />
-            </div>
-          </div>
         </div>
       </div>
     </section>

@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Icon from '../Icon/Icon';
+import { useCart } from '../../lib/CartContext';
 import styles from './Header.module.css';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { getTotalItems } = useCart();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -36,7 +38,12 @@ export default function Header() {
         </nav>
 
         <div className={styles.actions}>
-          <button className={styles.orderBtn}>Comprar Ahora</button>
+          <Link href="/cart" className={styles.cartBtn}>
+            <Icon name="shopping_cart" size={24} />
+            {getTotalItems() > 0 && (
+              <span className={styles.cartBadge}>{getTotalItems()}</span>
+            )}
+          </Link>
           {/* Hamburger menu button */}
           <button 
             className={styles.hamburger}

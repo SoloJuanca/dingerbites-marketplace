@@ -59,12 +59,13 @@
 }
 
 .burgerBtn {
-  background: #ec407a;
-  color: white;
+  background: #f7fafc;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
 }
 
 .burgerBtn:hover {
-  background: #ad1457;
+  background: #edf2f7;
 }
 
 .sidesBtn,
@@ -77,6 +78,22 @@
 .sidesBtn:hover,
 .drinksBtn:hover {
   background: #edf2f7;
+}
+
+/* Active state for all buttons */
+.burgerBtn.active,
+.sidesBtn.active,
+.drinksBtn.active {
+  background: #ec407a;
+  color: white;
+  border: 1px solid #ec407a;
+}
+
+.burgerBtn.active:hover,
+.sidesBtn.active:hover,
+.drinksBtn.active:hover {
+  background: #ad1457;
+  border: 1px solid #ad1457;
 }
 
 .products {
@@ -207,6 +224,6 @@
   }
   
   .container {
-    padding: 0 12px;
+    padding: 0 24px;
   }
 } 
