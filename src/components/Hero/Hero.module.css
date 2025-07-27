@@ -48,6 +48,7 @@
 }
 
 .orderBtn {
+  display: inline-block;
   background: #ec407a;
   color: white;
   border: none;

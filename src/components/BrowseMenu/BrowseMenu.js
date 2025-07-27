@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import ProductCard from '../ProductCard/ProductCard';
 import styles from './BrowseMenu.module.css';
 
@@ -182,7 +183,7 @@ export default function BrowseMenu() {
           ))}
         </div>
         <div className={styles.footer}>
-          <button className={styles.seeFullBtn}>Ver Colección Completa</button>
+          <Link href="/catalog" className={styles.seeFullBtn}>Ver Colección Completa</Link>
         </div>
       </div>
     </section>

@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import Icon from '../Icon/Icon';
 import styles from './Hero.module.css';
 
@@ -15,7 +16,7 @@ export default function Hero() {
               Descubre nuestra colección premium de esmaltes de uñas, herramientas de belleza y productos para el cuidado de la piel. 
               Todo lo que necesitas para la manicura perfecta y rutina de belleza, entregado fresco a ti.
             </p>
-            <button className={styles.orderBtn}>Ver Colección</button>
+            <Link href="/catalog" className={styles.orderBtn}>Ver Colección</Link>
             <div className={styles.stats}>
               <div className={styles.stat}>
                 <span className={styles.statNumber}>4.9</span>

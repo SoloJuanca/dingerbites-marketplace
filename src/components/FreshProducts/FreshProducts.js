@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import styles from './FreshProducts.module.css';
 
 export default function FreshProducts() {
@@ -25,7 +26,7 @@ export default function FreshProducts() {
               Desde lacas de uñas lujosas hasta herramientas de belleza profesionales, seleccionamos solo los mejores productos 
               para tu rutina de belleza. Descubre marcas que amas y nuevos favoritos que adorarás.
             </p>
-            <button className={styles.learnBtn}>Conoce más</button>
+            <Link href="/about" className={styles.learnBtn}>Conoce más</Link>
           </div>
         </div>
       </div>
