@@ -20,6 +20,8 @@
   display: flex;
   flex-direction: column;
   animation: slideUp 0.3s ease-out;
+  /* Prevenir modo oscuro automático */
+  color-scheme: light;
 }
 
 @keyframes slideUp {
@@ -38,6 +40,7 @@
   padding: 20px 24px;
   border-bottom: 1px solid #e9ecef;
   flex-shrink: 0;
+  background-color: white;
 }
 
 .title {
@@ -67,6 +70,9 @@
   flex: 1;
   overflow-y: auto;
   padding: 0 24px;
+  background-color: white;
+  /* Prevenir modo oscuro automático */
+  color-scheme: light;
 }
 
 .content::-webkit-scrollbar {
@@ -92,6 +98,9 @@
   border: 1px solid #e9ecef;
   border-radius: 8px;
   overflow: hidden;
+  /* Prevenir modo oscuro automático */
+  color-scheme: light;
+  background-color: white;
 }
 
 .filterSection:last-child {
@@ -135,6 +144,8 @@
 .sectionContent {
   padding: 20px;
   background-color: white;
+  /* Prevenir modo oscuro automático */
+  color-scheme: light;
 }
 
 .sectionContent.collapsed {
@@ -157,6 +168,7 @@
   font-size: 14px;
   color: #495057;
   transition: all 0.2s;
+  background-color: white;
 }
 
 .categoryBtn:hover {
@@ -186,6 +198,7 @@
   font-size: 14px;
   color: #495057;
   transition: all 0.2s;
+  background-color: white;
 }
 
 .levelBtn:hover {
@@ -220,6 +233,10 @@
   font-size: 14px;
   transition: border-color 0.2s;
   min-width: 0;
+  /* Prevenir modo oscuro automático */
+  color-scheme: light;
+  background-color: white;
+  color: #495057;
 }
 
 .priceInput:focus {
@@ -258,6 +275,7 @@
   padding: 20px 24px;
   border-top: 1px solid #e9ecef;
   flex-shrink: 0;
+  background-color: white;
 }
 
 .clearAllBtn {
@@ -271,6 +289,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  background-color: white;
 }
 
 .clearAllBtn:hover {

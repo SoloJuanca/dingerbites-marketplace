@@ -6,6 +6,8 @@
   height: fit-content;
   width: 100%;
   max-width: 280px;
+  /* Prevenir modo oscuro automático */
+  color-scheme: light;
 }
 
 .filterHeader {
@@ -44,6 +46,8 @@
   border: 1px solid #e9ecef;
   border-radius: 8px;
   overflow: hidden;
+  /* Prevenir modo oscuro automático */
+  color-scheme: light;
 }
 
 .filterSection:last-child {
@@ -87,6 +91,8 @@
 .sectionContent {
   padding: 20px;
   background-color: white;
+  /* Prevenir modo oscuro automático */
+  color-scheme: light;
 }
 
 .sectionContent.collapsed {
@@ -111,6 +117,29 @@
   height: 18px;
   accent-color: #ec407a;
   cursor: pointer;
+  /* Prevenir modo oscuro automático en checkboxes */
+  color-scheme: light;
+  background-color: white;
+  appearance: none;
+  border: 2px solid #dee2e6;
+  border-radius: 3px;
+  position: relative;
+}
+
+.checkbox:checked {
+  background-color: #ec407a;
+  border-color: #ec407a;
+}
+
+.checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
 }
 
 .checkboxLabel {
@@ -153,6 +182,9 @@
   background-color: white;
   cursor: pointer;
   transition: border-color 0.2s;
+  /* Prevenir modo oscuro automático */
+  color-scheme: light;
+  color: #495057;
 }
 
 .brandSelect:focus {
@@ -184,6 +216,10 @@
   min-width: 0;
   width: 100%;
   box-sizing: border-box;
+  /* Prevenir modo oscuro automático */
+  color-scheme: light;
+  background-color: white;
+  color: #495057;
 }
 
 .priceInput:focus {
