@@ -50,6 +50,33 @@
   gap: 24px;
 }
 
+.sortSection {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.filterButton {
+  display: none;
+  background-color: #ec407a;
+  color: white;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  align-items: center;
+  gap: 8px;
+}
+
+.filterButton:hover {
+  background-color: #ad1457;
+}
+
 @media (max-width: 768px) {
   .servicesContent {
     grid-template-columns: 1fr;
@@ -57,7 +84,15 @@
   }
   
   .sidebar {
-    position: static;
+    display: none;
+  }
+  
+  .filterButton {
+    display: flex;
+  }
+  
+  .sortSection {
+    justify-content: space-between;
   }
   
   .title {

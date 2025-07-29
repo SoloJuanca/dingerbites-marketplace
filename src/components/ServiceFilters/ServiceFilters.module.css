@@ -41,17 +41,56 @@
 
 .filterSection {
   margin-bottom: 32px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .filterSection:last-child {
   margin-bottom: 0;
 }
 
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background-color: #f8f9fa;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+
+.sectionHeader:hover {
+  background-color: #e9ecef;
+}
+
 .sectionTitle {
   font-size: 16px;
   font-weight: 600;
   color: #34495e;
-  margin: 0 0 16px 0;
+  margin: 0;
+}
+
+.collapseIcon {
+  transition: transform 0.2s;
+  color: #6c757d;
+  font-size: 18px;
+}
+
+.collapseIcon.expanded {
+  transform: rotate(180deg);
+}
+
+.sectionContent {
+  padding: 20px;
+  background-color: white;
+}
+
+.sectionContent.collapsed {
+  display: none;
 }
 
 .categoryList {
@@ -166,6 +205,14 @@
     flex-direction: column;
     gap: 12px;
     align-items: stretch;
+  }
+  
+  .sectionHeader {
+    padding: 12px 16px;
+  }
+  
+  .sectionContent {
+    padding: 16px;
   }
   
   .priceInputs {
