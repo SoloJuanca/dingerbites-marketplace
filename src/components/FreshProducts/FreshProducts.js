@@ -20,11 +20,10 @@ export default function FreshProducts() {
           </div>
           <div className={styles.textContent}>
             <h2 className={styles.title}>
-              El hogar de la <span className={styles.highlight}>belleza premium</span>
+              Tu tienda en línea de <span className={styles.highlight}>material para uñas</span> donde la calidad y confianza son nuestra prioridad
             </h2>
             <p className={styles.subtitle}>
-              Desde lacas de uñas lujosas hasta herramientas de belleza profesionales, seleccionamos solo los mejores productos 
-              para tu rutina de belleza. Descubre marcas que amas y nuevos favoritos que adorarás.
+              Descubre una amplia variedad de productos profesionales diseñados para que las uñas luzcan perfectas. ¡Únete a nuestra comunidad de clientes satisfechos y dale a tus uñas el cuidado que se merecen.
             </p>
             <Link href="/about" className={styles.learnBtn}>Conoce más</Link>
           </div>

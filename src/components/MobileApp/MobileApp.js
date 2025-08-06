@@ -11,7 +11,7 @@ export default function MobileApp() {
           <div className={styles.imageContent}>
             <div className={styles.phoneWrapper}>
               <Image
-                src="https://images.unsplash.com/photo-1604654894610-df63bc536371?w=300&h=500&fit=crop&crop=center"
+                src="/talleres.jpeg"
                 alt="Taller de uñas profesional"
                 width={300}
                 height={500}
@@ -24,7 +24,7 @@ export default function MobileApp() {
               Aprende con nuestros talleres profesionales de uñas.
             </h2>
             <p className={styles.subtitle}>
-              Descubre nuestros cursos y talleres especializados en técnicas de uñas, nail art y tratamientos de belleza. 
+              Descubre nuestros cursos y talleres especializados en técnicas de uñas. 
               Impartidos por profesionales certificados con cupos limitados. ¡Mantente atenta a nuestras próximas fechas!
             </p>
             

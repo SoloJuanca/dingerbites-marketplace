@@ -5,18 +5,18 @@ export default function HowItWorks() {
   const steps = [
     {
       icon: 'palette',
-      title: 'Explora nuestra colección de belleza',
-      description: 'Explora nuestra selección curada de esmaltes de uñas premium, herramientas de belleza y esenciales para el cuidado de la piel.'
+      title: 'Explora y dejate inspirar',
+      description: 'Explora y dejate inspirar por nuestra selección de materiales profesionales para uñas. Navega y sorprendete con todo lo nuevo que traemos para ti.'
     },
     {
       icon: 'shopping_cart',
-      title: 'Agrega al carrito y personaliza',
-      description: 'Selecciona tus tonos favoritos y productos de belleza. Mezcla y combina para crear tu colección perfecta.'
+      title: 'Agrega tus favoritos',
+      description: '¡Agrega tus favoritos al carrito y empieza a disfrutar de la mejor calidad!'
     },
     {
       icon: 'local_shipping',
-      title: 'Entrega rápida y segura',
-      description: 'Disfruta de envío rápido con empaques hermosos. Tus esenciales de belleza entregados directo a tu puerta.'
+      title: 'Envíos seguros y puntuales',
+      description: 'Reciba sus productos con embalaje profesional y atención dedicada. Comprometidos con la calidad hasta tu puerta.'
     }
   ];
 

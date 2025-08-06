@@ -21,11 +21,10 @@ export default function ContactInfo() {
         <div className={styles.content}>
           <div className={styles.textContent}>
             <h2 className={styles.title}>
-              Visita nuestro salón de belleza o reserva una cita en línea.
+              ¡Visitanos en persona!
             </h2>
             <p className={styles.subtitle}>
-              Experimenta servicios profesionales de uñas y tratamientos de belleza en nuestro salón lujoso. 
-              Reserva en línea para conveniencia o llegadas sin cita bienvenidas durante horarios de negocio.
+              Descubre todos nuestros productos en nuestra tienda fisica y recibe atención personalizada.
             </p>
             
             <div className={styles.contactDetails}>

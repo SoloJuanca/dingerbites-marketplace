@@ -12,7 +12,7 @@ export default function Footer() {
               <div className={styles.foodSection}>
                 <h3 className={styles.sectionTitle}>
                   <Icon name="palette" size={32} className={styles.sectionIcon} />
-                  Apoyando la belleza y el bienestar del cuidado personal.
+                  ¡Explora, elige y has brillar tu creatividad!
                 </h3>
               </div>
             </div>

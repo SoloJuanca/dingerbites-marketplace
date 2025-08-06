@@ -11,6 +11,9 @@ export default function Pagination({ currentPage, totalPages, hasNextPage, hasPr
     const params = new URLSearchParams(searchParams);
     params.set('page', newPage.toString());
     router.push(`/catalog?${params.toString()}`);
+    
+    // Scroll to top when pagination is clicked
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const generatePageNumbers = () => {
