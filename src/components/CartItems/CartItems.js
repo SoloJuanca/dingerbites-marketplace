@@ -1,17 +1,19 @@
 'use client';
 
 import { useCart } from '../../lib/CartContext';
+import { useAuth } from '../../lib/AuthContext';
 import Icon from '../Icon/Icon';
 import styles from './CartItems.module.css';
 
 export default function CartItems() {
-  const { items, updateQuantity, removeFromCart } = useCart();
+  const { items, updateQuantityWithSync, removeFromCartWithSync } = useCart();
+  const { user, apiRequest } = useAuth();
 
   const handleQuantityChange = (productId, newQuantity) => {
     if (newQuantity < 1) {
-      removeFromCart(productId);
+      removeFromCartWithSync(productId, user, apiRequest);
     } else {
-      updateQuantity(productId, newQuantity);
+      updateQuantityWithSync(productId, newQuantity, user, apiRequest);
     }
   };
 
@@ -66,7 +68,7 @@ export default function CartItems() {
               
               <button 
                 className={styles.removeBtn}
-                onClick={() => removeFromCart(item.id)}
+                onClick={() => removeFromCartWithSync(item.id, user, apiRequest)}
                 title="Eliminar producto"
               >
                 <Icon name="delete" size={20} />

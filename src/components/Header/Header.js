@@ -4,11 +4,13 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Icon from '../Icon/Icon';
 import { useCart } from '../../lib/CartContext';
+import { useAuth } from '../../lib/AuthContext';
 import styles from './Header.module.css';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { getTotalItems } = useCart();
+  const { user, isAuthenticated, logout } = useAuth();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -38,6 +40,28 @@ export default function Header() {
         </nav>
 
         <div className={styles.actions}>
+          {isAuthenticated ? (
+            <div className={styles.userActions}>
+              <Link href="/profile" className={styles.userBtn} title={`Hola, ${user?.first_name}`}>
+                <Icon name="person" size={24} />
+                <span className={styles.userName}>{user?.first_name}</span>
+              </Link>
+              <button 
+                onClick={logout} 
+                className={styles.logoutBtn}
+                title="Cerrar sesión"
+              >
+                <Icon name="logout" size={20} />
+              </button>
+            </div>
+          ) : (
+            <div className={styles.authActions}>
+              <Link href="/auth/login" className={styles.authBtn}>
+                <Icon name="person" size={20} />
+                <span>Iniciar Sesión</span>
+              </Link>
+            </div>
+          )}
           <Link href="/cart" className={styles.cartBtn}>
             <Icon name="shopping_cart" size={24} />
             {getTotalItems() > 0 && (
@@ -64,6 +88,23 @@ export default function Header() {
         <Link href="/services" className={styles.mobileNavLink} onClick={closeMenu}>Servicios</Link>
         <Link href="/about" className={styles.mobileNavLink} onClick={closeMenu}>Nosotros</Link>
         <Link href="/contact" className={styles.mobileNavLink} onClick={closeMenu}>Contacto</Link>
+        {isAuthenticated ? (
+          <>
+            <Link href="/profile" className={styles.mobileNavLink} onClick={closeMenu}>
+              Mi Perfil
+            </Link>
+            <button 
+              onClick={() => { logout(); closeMenu(); }} 
+              className={styles.mobileNavLink}
+            >
+              Cerrar Sesión
+            </button>
+          </>
+        ) : (
+          <Link href="/auth/login" className={styles.mobileNavLink} onClick={closeMenu}>
+            Iniciar Sesión
+          </Link>
+        )}
       </nav>
     </header>
   );

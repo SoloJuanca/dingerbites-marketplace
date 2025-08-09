@@ -58,6 +58,87 @@
   gap: 16px;
 }
 
+/* Authentication Actions */
+.authActions {
+  display: flex;
+  align-items: center;
+}
+
+.authBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #4a5568;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.authBtn:hover {
+  color: #ec407a;
+  background: #ffffff;
+  border-color: #ec407a;
+}
+
+.authBtn span {
+  font-size: 14px;
+}
+
+/* User Actions */
+.userActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.userBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #4a5568;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.userBtn:hover {
+  color: #ec407a;
+  background: #ffffff;
+  border-color: #ec407a;
+}
+
+.userName {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.logoutBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid #e2e8f0;
+  color: #718096;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logoutBtn:hover {
+  color: #f56565;
+  border-color: #f56565;
+  background: #fed7d7;
+}
+
 .cartBtn {
   background: #ec407a;
   color: white;

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Icon from '../Icon/Icon';
 import { useCart } from '../../lib/CartContext';
+import { useAuth } from '../../lib/AuthContext';
 import { getProductRatingStats } from '../../lib/reviews';
 import styles from './ProductSummary.module.css';
 
@@ -10,7 +11,8 @@ export default function ProductSummary({ product }) {
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  const { addToCart } = useCart();
+  const { addToCartWithSync } = useCart();
+  const { user, apiRequest } = useAuth();
   
   const ratingStats = getProductRatingStats(product.id);
 
@@ -32,9 +34,19 @@ export default function ProductSummary({ product }) {
     }
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     setIsAddingToCart(true);
-    addToCart(product, quantity);
+    
+    // Add the quantity as individual items
+    for (let i = 0; i < quantity; i++) {
+      await addToCartWithSync({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        image: product.image
+      }, user, apiRequest);
+    }
     
     // Simular feedback visual
     setTimeout(() => {
@@ -42,8 +54,17 @@ export default function ProductSummary({ product }) {
     }, 1000);
   };
 
-  const handleBuyNow = () => {
-    addToCart(product, quantity);
+  const handleBuyNow = async () => {
+    // Add the quantity as individual items
+    for (let i = 0; i < quantity; i++) {
+      await addToCartWithSync({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        image: product.image
+      }, user, apiRequest);
+    }
     // Aquí iría la navegación al checkout
     window.location.href = '/cart';
   };

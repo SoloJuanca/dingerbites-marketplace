@@ -1,5 +1,10 @@
 import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from 'react-hot-toast';
 import { CartProvider } from "../lib/CartContext";
+import { AuthProvider } from "../lib/AuthContext";
+import { WishlistProvider } from "../lib/WishlistContext";
+import CartSync from "../components/CartSync/CartSync";
+import WishlistSync from "../components/WishlistSync/WishlistSync";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,9 +32,43 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body suppressHydrationWarning={true}>
-        <CartProvider>
-          {children}
-        </CartProvider>
+        <AuthProvider>
+          <WishlistProvider>
+            <CartProvider>
+              <CartSync />
+              <WishlistSync />
+              {children}
+              <Toaster 
+                position="top-right"
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: '#ffffff',
+                    color: '#2d3748',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+                    padding: '16px',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  },
+                  success: {
+                    iconTheme: {
+                      primary: '#48bb78',
+                      secondary: '#ffffff'
+                    }
+                  },
+                  error: {
+                    iconTheme: {
+                      primary: '#f56565',
+                      secondary: '#ffffff'
+                    }
+                  }
+                }}
+              />
+            </CartProvider>
+          </WishlistProvider>
+        </AuthProvider>
       </body>
     </html>
   );

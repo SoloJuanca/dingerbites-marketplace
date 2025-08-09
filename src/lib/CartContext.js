@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useReducer, useEffect } from 'react';
+import { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 
 const CartContext = createContext();
 
@@ -109,6 +109,146 @@ export function CartProvider({ children }) {
     return state.items.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
+  // Sync cart with database (for authenticated users)
+  const syncCartWithDatabase = useCallback(async (user, apiRequest) => {
+    if (!user || !apiRequest) return;
+
+    try {
+      // Get current cart from localStorage
+      const localCart = state.items;
+      
+      if (localCart.length > 0) {
+        // Sync local cart items to database
+        for (const item of localCart) {
+          await apiRequest('/api/cart', {
+            method: 'POST',
+            body: JSON.stringify({
+              productId: item.id,
+              quantity: item.quantity,
+              variantId: item.variantId || null
+            })
+          });
+        }
+        
+        // Clear local cart after syncing
+        localStorage.removeItem('cart');
+      }
+
+      // Load cart from database
+      const response = await apiRequest(`/api/cart?userId=${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        const dbCartItems = data.items.map(item => ({
+          id: item.product_id,
+          name: item.name,
+          price: item.variant_price || item.price,
+          quantity: item.quantity,
+          image: item.image_url,
+          variantId: item.variant_id
+        }));
+        
+        dispatch({ type: 'LOAD_CART', payload: dbCartItems });
+      }
+    } catch (error) {
+      console.error('Error syncing cart:', error);
+    }
+  }, [state.items]);
+
+  // Add item to cart with database sync
+  const addToCartWithSync = useCallback(async (product, user, apiRequest) => {
+    if (user && apiRequest) {
+      try {
+        const response = await apiRequest('/api/cart', {
+          method: 'POST',
+          body: JSON.stringify({
+            productId: product.id,
+            quantity: 1,
+            variantId: product.variantId || null
+          })
+        });
+        
+        if (response.ok) {
+          // Update local state
+          addToCart(product);
+        }
+      } catch (error) {
+        console.error('Error adding to cart:', error);
+        // Fallback to local storage
+        addToCart(product);
+      }
+    } else {
+      // Guest user - use local storage
+      addToCart(product);
+    }
+  }, [addToCart]);
+
+  // Remove item from cart with database sync
+  const removeFromCartWithSync = useCallback(async (productId, user, apiRequest) => {
+    if (user && apiRequest) {
+      try {
+        // First find the cart item by product ID
+        const cartResponse = await apiRequest(`/api/cart?userId=${user.id}`);
+        if (cartResponse.ok) {
+          const cartData = await cartResponse.json();
+          const cartItem = cartData.items.find(item => item.product_id === productId);
+          
+          if (cartItem) {
+            const response = await apiRequest(`/api/cart?cartItemId=${cartItem.id}&userId=${user.id}`, {
+              method: 'DELETE'
+            });
+            
+            if (response.ok) {
+              removeFromCart(productId);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error removing from cart:', error);
+        // Fallback to local storage
+        removeFromCart(productId);
+      }
+    } else {
+      // Guest user - use local storage
+      removeFromCart(productId);
+    }
+  }, [removeFromCart]);
+
+  // Update quantity with database sync
+  const updateQuantityWithSync = useCallback(async (productId, quantity, user, apiRequest) => {
+    if (user && apiRequest) {
+      try {
+        // First find the cart item by product ID
+        const cartResponse = await apiRequest(`/api/cart?userId=${user.id}`);
+        if (cartResponse.ok) {
+          const cartData = await cartResponse.json();
+          const cartItem = cartData.items.find(item => item.product_id === productId);
+          
+          if (cartItem) {
+            const response = await apiRequest('/api/cart', {
+              method: 'PUT',
+              body: JSON.stringify({ 
+                cartItemId: cartItem.id, 
+                quantity, 
+                userId: user.id 
+              })
+            });
+            
+            if (response.ok) {
+              updateQuantity(productId, quantity);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error updating quantity:', error);
+        // Fallback to local storage
+        updateQuantity(productId, quantity);
+      }
+    } else {
+      // Guest user - use local storage
+      updateQuantity(productId, quantity);
+    }
+  }, [updateQuantity]);
+
   const value = {
     items: state.items,
     addToCart,
@@ -116,7 +256,11 @@ export function CartProvider({ children }) {
     updateQuantity,
     clearCart,
     getTotalItems,
-    getTotalPrice
+    getTotalPrice,
+    syncCartWithDatabase,
+    addToCartWithSync,
+    removeFromCartWithSync,
+    updateQuantityWithSync
   };
 
   return (
