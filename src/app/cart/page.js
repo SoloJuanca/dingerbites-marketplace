@@ -30,9 +30,11 @@ export default function CartPage() {
               <div className={styles.emptyCartContent}>
                 <h2>Tu carrito está vacío</h2>
                 <p>¡Agrega algunos productos para comenzar!</p>
-                <a href="/catalog" className={styles.continueShopping}>
-                  Continuar Comprando
-                </a>
+                <Link href="/catalog">
+                  <span className={styles.continueShopping}>
+                    Continuar Comprando
+                  </span>
+                </Link>
               </div>
             </div>
           ) : (

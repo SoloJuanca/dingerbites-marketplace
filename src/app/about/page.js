@@ -205,7 +205,7 @@ export default function AboutPage() {
                       ))}
                     </div>
                   </div>
-                  <p className={styles.reviewText}>"{review.comment}"</p>
+                  <p className={styles.reviewText}>{'"' + review.comment + '"'}</p>
                   <div className={styles.reviewAuthor}>
                     <strong className={styles.authorName}>{review.name}</strong>
                     <span className={styles.authorLocation}>{review.location}</span>

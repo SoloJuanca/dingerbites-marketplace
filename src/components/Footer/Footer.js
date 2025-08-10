@@ -39,19 +39,47 @@ export default function Footer() {
             <div className={styles.links}>
               <div className={styles.linkGroup}>
                 <h4 className={styles.linkTitle}>Empresa</h4>
-                <a href="#about" className={styles.link}>Sobre Nosotros</a>
-                <a href="#contact" className={styles.link}>Contacto</a>
+                <Link href="/about">
+                <span className={styles.link}>
+                  Sobre Nosotros
+                  </span>
+                </Link>
+                <Link href="/contact">
+                <span className={styles.link}>
+                  Contacto
+                  </span>
+                </Link>
               </div>
               <div className={styles.linkGroup}>
                 <h4 className={styles.linkTitle}>Productos</h4>
-                <a href="/catalog" className={styles.link}>Marca 1</a>
-                <a href="/catalog" className={styles.link}>Marca 2</a>
-                <a href="/catalog" className={styles.link}>Marca 3</a>
+                <Link href="/catalog">  
+                <span className={styles.link}>
+                  Marca 1
+                  </span>
+                </Link>
+                <Link href="/catalog">
+                <span className={styles.link}>
+                  Marca 2
+                  </span>
+                </Link>
+                <Link href="/catalog">
+                <span className={styles.link}>
+                  Marca 3
+                  </span>
+                </Link>
               </div>
               <div className={styles.linkGroup}>
                 <h4 className={styles.linkTitle}>Servicios</h4>
-                <a href="/services" className={styles.link}>Cursos</a>
-                <a href="/services" className={styles.link}>Talleres</a>
+                <Link href="/services">
+                <span className={styles.link}>
+                  Cursos
+                  </span>
+                </Link>
+                <Link href="/services">
+                <span className={styles.link}>
+                  Talleres
+                  </span>
+                </Link>
               </div>
             </div>
           </div>

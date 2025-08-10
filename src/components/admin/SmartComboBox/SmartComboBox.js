@@ -229,7 +229,7 @@ export default function SmartComboBox({
                     <svg width="16" height="16" viewBox="0 0 16 16" className={styles.plusIcon}>
                       <path d="M8 1v14M1 8h14" stroke="currentColor" strokeWidth="2"/>
                     </svg>
-                    Crear "{searchTerm}"
+                    Crear &quot;{searchTerm}&quot;
                   </>
                 )}
               </button>
