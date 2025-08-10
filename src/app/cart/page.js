@@ -1,6 +1,7 @@
 'use client';
 
 import { useCart } from '../../lib/CartContext';
+import Link from 'next/link';
 import Header from '../../components/Header/Header';
 import Footer from '../../components/Footer/Footer';
 import CartItems from '../../components/CartItems/CartItems';
