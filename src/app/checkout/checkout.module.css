@@ -1,0 +1,28 @@
+.checkoutPage {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding: 0;
+}
+
+.container {
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Mobile Design */
+@media (max-width: 768px) {
+  .checkoutPage {
+    padding: 0;
+  }
+  
+  .container {
+    padding: 0 16px;
+  }
+}
+
+/* Small Mobile Design */
+@media (max-width: 480px) {
+  .checkoutPage {
+    padding: 16px 0;
+  }
+}

@@ -50,7 +50,7 @@ export default function ProductSummary({ product }) {
         name: product.name,
         description: product.description,
         price: product.price,
-        image: product.image
+        image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null)
       }, user, apiRequest);
     }
     
@@ -68,7 +68,7 @@ export default function ProductSummary({ product }) {
         name: product.name,
         description: product.description,
         price: product.price,
-        image: product.image
+        image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null)
       }, user, apiRequest);
     }
     // Aquí iría la navegación al checkout

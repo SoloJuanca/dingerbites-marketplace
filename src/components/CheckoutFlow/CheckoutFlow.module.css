@@ -1,0 +1,117 @@
+.checkoutFlow {
+  width: 100%;
+}
+
+.progressBar {
+  margin-bottom: 40px;
+}
+
+.progressSteps {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+}
+
+.progressSteps::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #e2e8f0;
+  z-index: 1;
+}
+
+.progressStep {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 2;
+  flex: 1;
+}
+
+.stepNumber {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #718096;
+  transition: all 0.3s ease;
+}
+
+.stepLabel {
+  font-size: 12px;
+  color: #718096;
+  text-align: center;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.progressStep.active .stepNumber {
+  background: #ec407a;
+  border-color: #ec407a;
+  color: white;
+  transform: scale(1.1);
+}
+
+.progressStep.active .stepLabel {
+  color: #ec407a;
+  font-weight: 600;
+}
+
+.stepContent {
+  min-height: 400px;
+}
+
+/* Mobile Design */
+@media (max-width: 768px) {
+  .progressSteps {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .progressSteps::before {
+    display: none;
+  }
+  
+  .progressStep {
+    flex-direction: row;
+    gap: 12px;
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .stepLabel {
+    font-size: 14px;
+  }
+  
+  .stepContent {
+    min-height: 300px;
+  }
+}
+
+/* Small Mobile Design */
+@media (max-width: 480px) {
+  .progressBar {
+    margin-bottom: 24px;
+  }
+  
+  .stepNumber {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+  
+  .stepLabel {
+    font-size: 12px;
+  }
+}

@@ -125,7 +125,8 @@ export function CartProvider({ children }) {
             body: JSON.stringify({
               productId: item.id,
               quantity: item.quantity,
-              variantId: item.variantId || null
+              variantId: item.variantId || null,
+              userId: user.id
             })
           });
         }
@@ -163,7 +164,8 @@ export function CartProvider({ children }) {
           body: JSON.stringify({
             productId: product.id,
             quantity: 1,
-            variantId: product.variantId || null
+            variantId: product.variantId || null,
+            userId: user.id
           })
         });
         

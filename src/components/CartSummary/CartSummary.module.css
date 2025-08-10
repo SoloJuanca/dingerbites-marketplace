@@ -41,125 +41,7 @@
   color: #2d3748;
 }
 
-.section {
-  margin-bottom: 32px;
-}
-
-.section h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: #2d3748;
-  margin: 0 0 16px 0;
-}
-
-.radioGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.radioOption {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.radioOption:hover {
-  border-color: #ec407a;
-  background: #fef7f7;
-}
-
-.radioOption input[type="radio"] {
-  width: 20px;
-  height: 20px;
-  accent-color: #ec407a;
-}
-
-.radioOption input[type="radio"]:checked + span {
-  color: #ec407a;
-  font-weight: 600;
-}
-
-.radioOption span {
-  font-size: 16px;
-  color: #4a5568;
-  transition: color 0.2s ease;
-}
-
-.formGroup {
-  margin-bottom: 16px;
-}
-
-.input,
-.textarea {
-  width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 16px;
-  color: #2d3748;
-  background: white;
-  transition: border-color 0.2s ease;
-  font-family: inherit;
-  box-sizing: border-box;
-}
-
-.input:focus,
-.textarea:focus {
-  outline: none;
-  border-color: #ec407a;
-  box-shadow: 0 0 0 3px rgba(236, 64, 122, 0.1);
-}
-
-.input::placeholder,
-.textarea::placeholder {
-  color: #a0aec0;
-}
-
-.textarea {
-  resize: vertical;
-  min-height: 80px;
-  line-height: 1.5;
-}
-
-.orderButton {
-  width: 100%;
-  background: #ec407a;
-  color: white;
-  border: none;
-  padding: 16px 24px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-top: 8px;
-}
-
-.orderButton:hover:not(:disabled) {
-  background: #ad1457;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(236, 64, 122, 0.3);
-}
-
-.orderButton:disabled {
-  background: #cbd5e0;
-  color: #a0aec0;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.orderButtonLoading {
-  background: #a0aec0;
-}
-
-.guestNotice {
+.shippingNote {
   background: #e6f7ff;
   border: 1px solid #91d5ff;
   border-radius: 8px;
@@ -167,51 +49,54 @@
   margin-bottom: 24px;
 }
 
-.guestNotice p {
+.shippingNote p {
   margin: 0;
   font-size: 14px;
   color: #1890ff;
+  text-align: center;
 }
 
-.guestNotice a {
-  color: #ec407a;
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.guestNotice a:hover {
-  text-decoration: underline;
-}
-
-.label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #4a5568;
-  margin-bottom: 8px;
+.checkoutButton {
   display: block;
-}
-
-.select {
   width: 100%;
-  padding: 12px;
-  border: 2px solid #e2e8f0;
+  background: #ec407a;
+  color: white;
+  text-decoration: none;
+  text-align: center;
+  padding: 16px 24px;
   border-radius: 8px;
-  font-size: 14px;
-  background: white;
-  color: #2d3748;
-  transition: border-color 0.2s ease;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 24px;
   box-sizing: border-box;
 }
 
-.select:focus {
-  outline: none;
-  border-color: #ec407a;
+.checkoutButton:hover {
+  background: #ad1457;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(236, 64, 122, 0.3);
 }
 
-.input:disabled {
-  background: #f7fafc;
-  color: #718096;
-  cursor: not-allowed;
+.additionalInfo {
+  background: #f0fff4;
+  border: 1px solid #9ae6b4;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.additionalInfo p {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #22543d;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.additionalInfo p:last-child {
+  margin-bottom: 0;
 }
 
 /* Mobile Design */
@@ -219,15 +104,6 @@
   .title {
     font-size: 20px;
     margin-bottom: 16px;
-  }
-  
-  .section {
-    margin-bottom: 24px;
-  }
-  
-  .section h3 {
-    font-size: 16px;
-    margin-bottom: 12px;
   }
   
   .priceRow,
@@ -239,42 +115,26 @@
     font-size: 16px;
   }
   
-  .radioOption {
-    padding: 8px;
-  }
-  
-  .radioOption span {
-    font-size: 14px;
-  }
-  
-  .input,
-  .textarea {
-    padding: 10px 12px;
-    font-size: 14px;
-  }
-  
-  .orderButton {
+  .checkoutButton {
     padding: 12px 16px;
     font-size: 14px;
+  }
+  
+  .shippingNote,
+  .additionalInfo {
+    padding: 12px;
+  }
+  
+  .shippingNote p,
+  .additionalInfo p {
+    font-size: 13px;
   }
 }
 
 /* Small Mobile Design */
 @media (max-width: 480px) {
-  .radioGroup {
-    gap: 8px;
-  }
-  
-  .radioOption {
-    padding: 8px;
-  }
-  
-  .radioOption input[type="radio"] {
-    width: 16px;
-    height: 16px;
-  }
-  
-  .formGroup {
-    margin-bottom: 12px;
+  .checkoutButton {
+    padding: 12px 16px;
+    font-size: 14px;
   }
 } 

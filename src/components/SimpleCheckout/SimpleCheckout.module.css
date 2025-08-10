@@ -1,0 +1,472 @@
+.simpleCheckout {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-top: 45px;
+}
+
+.checkoutHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  margin-bottom: 24px;
+  border-bottom: 2px solid #e2e8f0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background-color: white;
+}
+
+.logo {
+  text-decoration: none;
+}
+
+.logoText {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2d3748;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.backToCart {
+  color: #ec407a;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 8px 16px;
+  border: 2px solid #ec407a;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.backToCart:hover {
+  background: #ec407a;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(236, 64, 122, 0.2);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #2d3748;
+  margin: 0 0 8px 0;
+}
+
+.header p {
+  font-size: 16px;
+  color: #718096;
+  margin: 0;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+.formSection {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.summarySection {
+  position: sticky;
+  top: 32px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.section h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inputGroup label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.inputGroup input,
+.inputGroup textarea {
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #2d3748;
+  background: white;
+  transition: border-color 0.2s ease;
+}
+
+.inputGroup input:focus,
+.inputGroup textarea:focus {
+  outline: none;
+  border-color: #ec407a;
+}
+
+.inputGroup input.error,
+.inputGroup textarea.error {
+  border-color: #e53e3e;
+}
+
+.inputGroup input::placeholder,
+.inputGroup textarea::placeholder {
+  color: #a0aec0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.addressSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.addressSection h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Responsive grid for address fields */
+.addressSection .row:nth-child(3) {
+  grid-template-columns: 2fr 2fr 1fr;
+}
+
+.radioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.radioOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.radioOption:hover {
+  border-color: #ec407a;
+  background: #fef7f7;
+}
+
+.radioOption input[type="radio"] {
+  margin: 0;
+  width: 20px;
+  height: 20px;
+  accent-color: #ec407a;
+}
+
+.radioOption input[type="radio"]:checked + .radioLabel {
+  color: #2d3748;
+}
+
+.radioOption:has(input[type="radio"]:checked) {
+  border-color: #ec407a;
+  background: #fef7f7;
+}
+
+.radioLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #4a5568;
+}
+
+.radioLabel strong {
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.radioLabel small {
+  font-size: 12px;
+  color: #718096;
+}
+
+.errorText {
+  font-size: 12px;
+  color: #e53e3e;
+  font-weight: 500;
+}
+
+.submitButton {
+  background: #ec407a;
+  color: white;
+  border: none;
+  padding: 16px 32px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 16px;
+}
+
+.submitButton:hover:not(:disabled) {
+  background: #ad1457;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(236, 64, 122, 0.3);
+}
+
+.submitButton:disabled {
+  background: #cbd5e0;
+  color: #a0aec0;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.orderSummary {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.orderSummary h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0 0 20px 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.items {
+  margin-bottom: 20px;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.itemName {
+  font-size: 14px;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.itemPrice {
+  font-size: 14px;
+  color: #2d3748;
+  font-weight: 600;
+}
+
+.totals {
+  border-top: 2px solid #e2e8f0;
+  padding-top: 16px;
+}
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 14px;
+  color: #4a5568;
+}
+
+.discount {
+  color: #38a169;
+  font-weight: 600;
+}
+
+.finalTotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0 0 0;
+  margin-top: 12px;
+  border-top: 2px solid #e2e8f0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #2d3748;
+}
+
+/* Mobile Design */
+@media (max-width: 768px) {
+  .checkoutHeader {
+    padding: 12px 0;
+    margin-bottom: 20px;
+  }
+  
+  .logoText {
+    font-size: 20px;
+  }
+  
+  .backToCart {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  
+  .header h1 {
+    font-size: 28px;
+  }
+  
+  .header p {
+    font-size: 14px;
+  }
+  
+  .content {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  
+  .formSection {
+    padding: 24px;
+  }
+  
+  .summarySection {
+    position: static;
+    order: -1;
+  }
+  
+  .row {
+    grid-template-columns: 1fr;
+  }
+  
+  .radioOption {
+    padding: 12px;
+  }
+  
+  .orderSummary {
+    padding: 20px;
+  }
+}
+
+/* Small Mobile Design */
+@media (max-width: 480px) {
+  .checkoutHeader {
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 0;
+    text-align: center;
+  }
+  
+  .logoText {
+    font-size: 18px;
+  }
+  
+  .backToCart {
+    font-size: 12px;
+    padding: 8px 16px;
+  }
+  
+  .header h1 {
+    font-size: 24px;
+  }
+  
+  .formSection {
+    padding: 20px;
+  }
+  
+  .form {
+    gap: 24px;
+  }
+  
+  .section {
+    gap: 12px;
+  }
+  
+  .section h2 {
+    font-size: 18px;
+  }
+  
+  .inputGroup input,
+  .inputGroup textarea {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+  
+  .radioOption {
+    padding: 12px;
+  }
+  
+  .submitButton {
+    padding: 14px 24px;
+    font-size: 14px;
+  }
+  
+  .orderSummary {
+    padding: 16px;
+  }
+  
+  .orderSummary h2 {
+    font-size: 18px;
+  }
+  
+  .row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .addressSection {
+    padding: 12px;
+  }
+  
+  .addressSection h3 {
+    font-size: 14px;
+  }
+  
+  /* Override the responsive grid for mobile */
+  .addressSection .row:nth-child(3) {
+    grid-template-columns: 1fr;
+  }
+}

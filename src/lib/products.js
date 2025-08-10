@@ -290,6 +290,7 @@ export async function getProductBySlug(slug) {
       brand: product.brand_name, // Added this line
       category: product.category_slug, // Added this line
       images: Array.isArray(product.images) ? product.images : [],
+      image: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : null,
       features: Array.isArray(product.features) ? product.features : [],
       price: parseFloat(product.price),
       compare_price: product.compare_price ? parseFloat(product.compare_price) : null

@@ -1,0 +1,310 @@
+.deliveryTypeSelection {
+  text-align: center;
+}
+
+.header {
+  margin-bottom: 32px;
+}
+
+.header h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #2d3748;
+  margin: 0 0 8px 0;
+}
+
+.header p {
+  font-size: 16px;
+  color: #718096;
+  margin: 0;
+}
+
+.options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.option {
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+  background: white;
+}
+
+.option:hover {
+  border-color: #ec407a;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(236, 64, 122, 0.15);
+}
+
+.option.selected {
+  border-color: #ec407a;
+  background: #fef7f7;
+  box-shadow: 0 8px 25px rgba(236, 64, 122, 0.15);
+}
+
+.optionIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.optionContent h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0 0 8px 0;
+}
+
+.optionContent p {
+  font-size: 14px;
+  color: #718096;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.deliveryInfo,
+.pickupInfo {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.infoItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.infoItem:last-child {
+  margin-bottom: 0;
+}
+
+.infoLabel {
+  font-size: 13px;
+  color: #718096;
+  font-weight: 500;
+}
+
+.infoValue {
+  font-size: 13px;
+  color: #2d3748;
+  font-weight: 600;
+}
+
+.optionContent ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.optionContent li {
+  font-size: 13px;
+  color: #4a5568;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.optionContent li:last-child {
+  margin-bottom: 0;
+}
+
+.storeInfo {
+  background: #e6f7ff;
+  border: 1px solid #91d5ff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.storeInfo h4 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1890ff;
+  margin: 0 0 12px 0;
+}
+
+.storeInfo p {
+  font-size: 14px;
+  color: #1890ff;
+  margin: 0 0 4px 0;
+}
+
+.storeInfo p:last-child {
+  margin-bottom: 0;
+}
+
+.actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.backButton {
+  background: white;
+  color: #718096;
+  border: 2px solid #e2e8f0;
+  padding: 16px 32px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 140px;
+}
+
+.backButton:hover {
+  border-color: #cbd5e0;
+  background: #f7fafc;
+  transform: translateY(-1px);
+}
+
+.nextButton {
+  background: #ec407a;
+  color: white;
+  border: none;
+  padding: 16px 32px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 160px;
+}
+
+.nextButton:hover:not(:disabled) {
+  background: #ad1457;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(236, 64, 122, 0.3);
+}
+
+.nextButton.disabled {
+  background: #cbd5e0;
+  color: #a0aec0;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Mobile Design */
+@media (max-width: 768px) {
+  .header h2 {
+    font-size: 24px;
+  }
+  
+  .header p {
+    font-size: 14px;
+  }
+  
+  .options {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .option {
+    padding: 20px;
+  }
+  
+  .optionIcon {
+    font-size: 40px;
+    margin-bottom: 12px;
+  }
+  
+  .optionContent h3 {
+    font-size: 18px;
+  }
+  
+  .optionContent p {
+    font-size: 13px;
+  }
+  
+  .deliveryInfo,
+  .pickupInfo {
+    padding: 12px;
+  }
+  
+  .infoItem {
+    margin-bottom: 6px;
+  }
+  
+  .infoLabel,
+  .infoValue {
+    font-size: 12px;
+  }
+  
+  .storeInfo {
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .storeInfo h4 {
+    font-size: 16px;
+  }
+  
+  .storeInfo p {
+    font-size: 13px;
+  }
+  
+  .actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .backButton,
+  .nextButton {
+    padding: 14px 24px;
+    font-size: 14px;
+    min-width: 100%;
+  }
+}
+
+/* Small Mobile Design */
+@media (max-width: 480px) {
+  .header {
+    margin-bottom: 24px;
+  }
+  
+  .header h2 {
+    font-size: 20px;
+  }
+  
+  .options {
+    margin-bottom: 24px;
+  }
+  
+  .option {
+    padding: 16px;
+  }
+  
+  .optionIcon {
+    font-size: 36px;
+  }
+  
+  .deliveryInfo,
+  .pickupInfo {
+    padding: 12px;
+  }
+  
+  .storeInfo {
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .storeInfo h4 {
+    font-size: 15px;
+  }
+  
+  .storeInfo p {
+    font-size: 12px;
+  }
+}

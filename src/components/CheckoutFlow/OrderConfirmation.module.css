@@ -1,0 +1,416 @@
+.orderConfirmation {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.header h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #2d3748;
+  margin: 0 0 8px 0;
+}
+
+.header p {
+  font-size: 16px;
+  color: #718096;
+  margin: 0;
+}
+
+.confirmationContent {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  margin-bottom: 32px;
+}
+
+.section {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.section h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0 0 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.productsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.productItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.productInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.productName {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.productQuantity {
+  font-size: 14px;
+  color: #718096;
+  font-weight: 500;
+}
+
+.productPrice {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ec407a;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.infoLabel {
+  font-size: 14px;
+  color: #718096;
+  font-weight: 500;
+}
+
+.infoValue {
+  font-size: 16px;
+  color: #2d3748;
+  font-weight: 600;
+}
+
+.priceSummary {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.priceRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 16px;
+  color: #4a5568;
+}
+
+.discountRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 16px;
+  color: #38a169;
+  font-weight: 600;
+}
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0 8px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #2d3748;
+  border-top: 2px solid #e2e8f0;
+}
+
+.importantInfo {
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.importantInfo h4 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #c53030;
+  margin: 0 0 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.importantInfo ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.importantInfo li {
+  font-size: 14px;
+  color: #4a5568;
+  margin-bottom: 8px;
+  line-height: 1.5;
+  padding-left: 20px;
+  position: relative;
+}
+
+.importantInfo li:last-child {
+  margin-bottom: 0;
+}
+
+.importantInfo li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #c53030;
+  font-weight: bold;
+}
+
+.importantInfo strong {
+  color: #2d3748;
+}
+
+.actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.backButton {
+  background: white;
+  color: #718096;
+  border: 2px solid #e2e8f0;
+  padding: 16px 32px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 140px;
+}
+
+.backButton:hover {
+  border-color: #cbd5e0;
+  background: #f7fafc;
+  transform: translateY(-1px);
+}
+
+.confirmButton {
+  background: #38a169;
+  color: white;
+  border: none;
+  padding: 16px 32px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 180px;
+}
+
+.confirmButton:hover {
+  background: #2f855a;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(56, 161, 105, 0.3);
+}
+
+/* Mobile Design */
+@media (max-width: 768px) {
+  .header h2 {
+    font-size: 24px;
+  }
+  
+  .header p {
+    font-size: 14px;
+  }
+  
+  .confirmationContent {
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  
+  .section {
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+  }
+  
+  .section h3 {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+  
+  .productItem {
+    padding: 12px;
+  }
+  
+  .productName {
+    font-size: 14px;
+  }
+  
+  .productQuantity {
+    font-size: 12px;
+  }
+  
+  .productPrice {
+    font-size: 14px;
+  }
+  
+  .infoGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .infoLabel,
+  .infoValue {
+    font-size: 14px;
+  }
+  
+  .priceSummary {
+    padding: 16px;
+  }
+  
+  .priceRow,
+  .discountRow {
+    font-size: 14px;
+    padding: 6px 0;
+  }
+  
+  .totalRow {
+    font-size: 18px;
+    padding: 12px 0 6px 0;
+  }
+  
+  .importantInfo {
+    padding: 16px;
+  }
+  
+  .importantInfo h4 {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+  
+  .importantInfo li {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+  
+  .actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .backButton,
+  .confirmButton {
+    padding: 14px 24px;
+    font-size: 14px;
+    min-width: 100%;
+  }
+}
+
+/* Small Mobile Design */
+@media (max-width: 480px) {
+  .header {
+    margin-bottom: 24px;
+  }
+  
+  .header h2 {
+    font-size: 20px;
+  }
+  
+  .confirmationContent {
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .section {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+  }
+  
+  .section h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+  
+  .productItem {
+    padding: 10px;
+  }
+  
+  .productName {
+    font-size: 13px;
+  }
+  
+  .productQuantity {
+    font-size: 11px;
+  }
+  
+  .productPrice {
+    font-size: 13px;
+  }
+  
+  .infoGrid {
+    gap: 10px;
+  }
+  
+  .infoLabel,
+  .infoValue {
+    font-size: 13px;
+  }
+  
+  .priceSummary {
+    padding: 12px;
+  }
+  
+  .priceRow,
+  .discountRow {
+    font-size: 13px;
+    padding: 5px 0;
+  }
+  
+  .totalRow {
+    font-size: 16px;
+    padding: 10px 0 5px 0;
+  }
+  
+  .importantInfo {
+    padding: 12px;
+  }
+  
+  .importantInfo h4 {
+    font-size: 15px;
+  }
+  
+  .importantInfo li {
+    font-size: 12px;
+    margin-bottom: 5px;
+  }
+}
