@@ -1,7 +1,4 @@
-'use client';
-
-import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { Suspense } from 'react';
 import Header from '../../../components/Header/Header';
 import Footer from '../../../components/Footer/Footer';
 import ImageCarousel from '../../../components/ImageCarousel/ImageCarousel';
@@ -11,9 +8,9 @@ import ProductSummary from '../../../components/ProductSummary/ProductSummary';
 import { getProductBySlug } from '../../../lib/products';
 import styles from './product.module.css';
 
-export default function ProductPage() {
-  const params = useParams();
-  const product = getProductBySlug(params.slug);
+// Server Component para obtener datos del producto
+async function ProductData({ slug }) {
+  const product = await getProductBySlug(slug);
 
   if (!product) {
     return (
@@ -59,5 +56,25 @@ export default function ProductPage() {
       </main>
       <Footer />
     </>
+  );
+}
+
+export default function ProductPage({ params }) {
+  return (
+    <Suspense fallback={
+      <div>
+        <Header />
+        <main className={styles.main}>
+          <div className={styles.container}>
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              Cargando producto...
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    }>
+      <ProductData slug={params.slug} />
+    </Suspense>
   );
 } 

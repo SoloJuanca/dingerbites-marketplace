@@ -1,0 +1,145 @@
+.errorMain {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.errorContent {
+  background: white;
+  border-radius: 16px;
+  padding: 48px 32px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.errorIcon {
+  color: #dc3545;
+  margin-bottom: 24px;
+}
+
+.errorTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #212529;
+  margin-bottom: 16px;
+}
+
+.errorMessage {
+  font-size: 1.1rem;
+  color: #6c757d;
+  line-height: 1.6;
+  margin-bottom: 32px;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.errorActions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.retryButton,
+.homeButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.retryButton {
+  background-color: #007bff;
+  color: white;
+}
+
+.retryButton:hover {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+.homeButton {
+  background-color: #6c757d;
+  color: white;
+}
+
+.homeButton:hover {
+  background-color: #545b62;
+  transform: translateY(-1px);
+}
+
+.errorDetails {
+  border-top: 1px solid #dee2e6;
+  padding-top: 24px;
+}
+
+.errorDetails summary {
+  color: #6c757d;
+  font-size: 0.9rem;
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 12px;
+}
+
+.errorDetails summary:hover {
+  color: #495057;
+}
+
+.errorStack {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 0.85rem;
+  color: #6c757d;
+  text-align: left;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .errorContent {
+    padding: 32px 24px;
+  }
+  
+  .errorTitle {
+    font-size: 1.75rem;
+  }
+  
+  .errorMessage {
+    font-size: 1rem;
+  }
+  
+  .errorActions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .retryButton,
+  .homeButton {
+    width: 100%;
+    max-width: 250px;
+    justify-content: center;
+  }
+}

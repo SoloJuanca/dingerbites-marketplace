@@ -6,9 +6,11 @@ import styles from './ProductInfo.module.css';
 
 export default function ProductInfo({ product }) {
   const [isClient, setIsClient] = useState(false);
+  const [features, setFeatures] = useState([]);
 
   useEffect(() => {
     setIsClient(true);
+    setFeatures(getFeatures());
   }, []);
 
   const formatPrice = (price) => {
@@ -17,6 +19,17 @@ export default function ProductInfo({ product }) {
       style: 'currency',
       currency: 'MXN'
     }).format(price);
+  };
+
+  // Get features from database or fallback to default features
+  const getFeatures = () => {
+    // If we have features from the database, use them
+    if (product.features && Array.isArray(product.features) && product.features.length > 0) {
+      return product.features;
+    }
+    
+    // Fallback to default features based on category
+    return []
   };
 
   return (
@@ -43,17 +56,17 @@ export default function ProductInfo({ product }) {
         </p>
       </div>
 
-      <div className={styles.features}>
+      {features.length > 0 && <div className={styles.features}>
         <h3 className={styles.sectionTitle}>Características</h3>
         <div className={styles.featuresList}>
-          {getProductFeatures(product).map((feature, index) => (
+          {features?.map((feature, index) => (
             <div key={index} className={styles.featureItem}>
               <Icon name="check_circle" size={20} className={styles.featureIcon} />
-              <span>{feature}</span>
+              <span>{typeof feature === 'string' ? feature : feature.feature_text}</span>
             </div>
           ))}
         </div>
-      </div>
+      </div>}
 
       <div className={styles.details}>
         <h3 className={styles.sectionTitle}>Detalles del producto</h3>
@@ -68,11 +81,7 @@ export default function ProductInfo({ product }) {
           </div>
           <div className={styles.detailItem}>
             <span className={styles.detailLabel}>Fecha de agregado:</span>
-            <span className={styles.detailValue}>{formatDate(product.createdAt, isClient)}</span>
-          </div>
-          <div className={styles.detailItem}>
-            <span className={styles.detailLabel}>ID del producto:</span>
-            <span className={styles.detailValue}>#{product.id.toString().padStart(6, '0')}</span>
+            <span className={styles.detailValue}>{formatDate(product.created_at, isClient)}</span>
           </div>
         </div>
       </div>
@@ -90,14 +99,14 @@ function getCategoryLabel(category) {
   return categoryLabels[category] || category;
 }
 
-function getProductFeatures(product) {
+function getDefaultFeatures(category) {
   const baseFeatures = [
     'Producto de alta calidad',
     'Fácil aplicación',
     'Larga duración'
   ];
 
-  switch (product.category) {
+  switch (category) {
     case 'esmaltes':
       return [
         ...baseFeatures,
@@ -136,6 +145,7 @@ function getProductFeatures(product) {
 }
 
 function formatDate(dateString, isClient = true) {
+  console.log(dateString);
   if (!isClient) return new Date(dateString).toLocaleDateString();
   return new Date(dateString).toLocaleDateString('es-MX', {
     year: 'numeric',

@@ -129,6 +129,15 @@ CREATE TABLE product_images (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Product features
+CREATE TABLE product_features (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    feature_text VARCHAR(255) NOT NULL,
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Product variants (for different sizes, colors, etc.)
 CREATE TABLE product_variants (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -400,6 +409,10 @@ CREATE INDEX idx_wishlist_items_product_id ON wishlist_items(product_id);
 CREATE INDEX idx_product_reviews_product_id ON product_reviews(product_id);
 CREATE INDEX idx_product_reviews_user_id ON product_reviews(user_id);
 CREATE INDEX idx_product_reviews_rating ON product_reviews(rating);
+
+-- Product features indexes
+CREATE INDEX idx_product_features_product_id ON product_features(product_id);
+CREATE INDEX idx_product_features_sort_order ON product_features(sort_order);
 
 -- =====================================================
 -- TRIGGERS FOR UPDATED_AT

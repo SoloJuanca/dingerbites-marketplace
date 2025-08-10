@@ -9,15 +9,22 @@ export default function ProductReviews({ productId }) {
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
+  const [reviews, setReviews] = useState([]);
+  const [averageRating, setAverageRating] = useState(0);
+
   useEffect(() => {
     setIsClient(true);
-  }, []);
-  const reviews = getProductReviews(productId);
+    if (productId) {
+      const productReviews = getProductReviews(productId);
+      setReviews(productReviews);
+      if (productReviews.length > 0) {
+        const avg = productReviews.reduce((sum, review) => sum + review.rating, 0) / productReviews.length;
+        setAverageRating(avg);
+      }
+    }
+  }, [productId]);
   
   const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 3);
-  const averageRating = reviews.length > 0 
-    ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
-    : 0;
 
   const ratingDistribution = [5, 4, 3, 2, 1].map(rating => ({
     rating,

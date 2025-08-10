@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../../lib/auth';
 import { query, getRow } from '../../../../../lib/database';
+import { updateProductFeatures } from '../../../../../lib/products';
 
 // GET /api/admin/products/[id] - Get single product
 export async function GET(request, { params }) {
@@ -21,27 +22,40 @@ export async function GET(request, { params }) {
         p.*,
         pc.name as category_name,
         pb.name as brand_name,
-        array_agg(
-          CASE WHEN pi.id IS NOT NULL THEN
+        COALESCE(
+          (SELECT json_agg(
             json_build_object(
               'id', pi.id,
               'image_url', pi.image_url,
               'alt_text', pi.alt_text,
               'is_primary', pi.is_primary,
               'sort_order', pi.sort_order
-            )
-          END
-        ) FILTER (WHERE pi.id IS NOT NULL) as images
+            ) ORDER BY pi.sort_order ASC, pi.created_at ASC
+          )
+          FROM product_images pi 
+          WHERE pi.product_id = p.id), 
+          '[]'::json
+        ) as images,
+        COALESCE(
+          (SELECT json_agg(
+            json_build_object(
+              'id', pf.id,
+              'feature_text', pf.feature_text,
+              'sort_order', pf.sort_order
+            ) ORDER BY pf.sort_order ASC, pf.created_at ASC
+          )
+          FROM product_features pf 
+          WHERE pf.product_id = p.id), 
+          '[]'::json
+        ) as features
       FROM products p
       LEFT JOIN product_categories pc ON p.category_id = pc.id
       LEFT JOIN product_brands pb ON p.brand_id = pb.id
-      LEFT JOIN product_images pi ON p.id = pi.product_id
       WHERE p.id = $1
-      GROUP BY p.id, pc.name, pb.name
     `;
 
     const product = await getRow(productQuery, [id]);
-
+    console.log("product-images", product);
     if (!product) {
       return NextResponse.json(
         { error: 'Product not found' },
@@ -76,6 +90,7 @@ export async function PUT(request, { params }) {
     }
 
     const { id } = params;
+    console.log('PUT /api/admin/products/[id] called for product ID:', id, 'Type:', typeof id);
     const body = await request.json();
 
     // Check if product exists
@@ -114,8 +129,11 @@ export async function PUT(request, { params }) {
       meta_title,
       meta_description,
       meta_keywords,
-      images
+      images,
+      features
     } = body;
+
+    console.log('Features received in request:', features, 'Type:', typeof features);
 
     // Validate required fields
     if (!name || !slug) {
@@ -191,35 +209,54 @@ export async function PUT(request, { params }) {
 
     const updatedProduct = await getRow(updateQuery, updateParams);
 
-    // Handle product images if provided
-    if (images && Array.isArray(images)) {
+    // Handle product images if explicitly provided
+    if (images !== undefined) {
       try {
-        // First, delete existing images for this product
-        await query('DELETE FROM product_images WHERE product_id = $1', [id]);
-        
-        // Then insert new images
-        if (images.length > 0) {
-          for (let i = 0; i < images.length; i++) {
-            const image = images[i];
-            if (image.url) {
-              const imageInsertQuery = `
-                INSERT INTO product_images (product_id, image_url, alt_text, is_primary, sort_order)
-                VALUES ($1, $2, $3, $4, $5)
-              `;
-              const imageParams = [
-                id,
-                image.url,
-                image.alt || image.name || '',
-                i === 0, // First image is primary
-                i
-              ];
-              await query(imageInsertQuery, imageParams);
+        if (Array.isArray(images)) {
+          // Only delete existing images if we're actually replacing them with new ones
+          if (images.length > 0) {
+            // First, delete existing images for this product
+            await query('DELETE FROM product_images WHERE product_id = $1', [id]);
+            
+            // Then insert new images
+            for (let i = 0; i < images.length; i++) {
+              const image = images[i];
+              if (image.url) {
+                const imageInsertQuery = `
+                  INSERT INTO product_images (product_id, image_url, alt_text, is_primary, sort_order)
+                  VALUES ($1, $2, $3, $4, $5)
+                `;
+                const imageParams = [
+                  id,
+                  image.url,
+                  image.alt || image.alt_text || image.name || '',
+                  image.is_primary || i === 0, // Use existing is_primary or default to first
+                  image.sort_order || i
+                ];
+                await query(imageInsertQuery, imageParams);
+              }
             }
+          } else if (images.length === 0) {
+            // If images array is empty, clear all images
+            await query('DELETE FROM product_images WHERE product_id = $1', [id]);
           }
+          // If images is undefined, don't touch existing images
         }
       } catch (imageError) {
         console.error('Error updating product images:', imageError);
         // Don't fail the entire request if images fail, but log the error
+      }
+    }
+    // If images is undefined, don't touch existing images at all
+
+    // Handle product features if provided
+    if (features !== undefined) {
+      try {
+        console.log('Calling updateProductFeatures with id:', id, 'and features:', features);
+        await updateProductFeatures(id, features || []);
+      } catch (featuresError) {
+        console.error('Error updating product features:', featuresError);
+        // Don't fail the entire request if features fail, but log the error
       }
     }
 

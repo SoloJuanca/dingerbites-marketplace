@@ -1,10 +1,10 @@
-import { getProducts } from '../../lib/products';
 import ProductCard from '../ProductCard/ProductCard';
 import Pagination from '../Pagination/Pagination';
 import Icon from '../Icon/Icon';
 import styles from './ProductGrid.module.css';
+import { getProducts } from '../../lib/products';
 
-export default function ProductGrid({
+export default async function ProductGrid({
   currentPage,
   category,
   brand,
@@ -22,7 +22,7 @@ export default function ProductGrid({
     limit: 8
   };
 
-  const { products, total, totalPages, hasNextPage, hasPrevPage } = getProducts(filters);
+  const { products, total, totalPages, hasNextPage, hasPrevPage } = await getProducts(filters);
 
   if (products.length === 0) {
     return (

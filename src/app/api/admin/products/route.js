@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../lib/auth';
 import { query, getRow } from '../../../../lib/database';
+import { createProductFeatures } from '../../../../lib/products';
 
 // GET /api/admin/products - Get all products with filters
 export async function GET(request) {
@@ -175,7 +176,8 @@ export async function POST(request) {
       meta_title,
       meta_description,
       meta_keywords,
-      images
+      images,
+      features
     } = body;
 
     // Validate required fields
@@ -256,6 +258,16 @@ export async function POST(request) {
       } catch (imageError) {
         console.error('Error inserting product images:', imageError);
         // Don't fail the entire request if images fail, but log the error
+      }
+    }
+
+    // Handle product features if provided
+    if (features && Array.isArray(features) && features.length > 0) {
+      try {
+        await createProductFeatures(newProduct.id, features);
+      } catch (featuresError) {
+        console.error('Error inserting product features:', featuresError);
+        // Don't fail the entire request if features fail, but log the error
       }
     }
 

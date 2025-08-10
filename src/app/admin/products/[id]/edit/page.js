@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '../../../../../lib/AuthContext';
 import AdminLayout from '../../../../../components/admin/AdminLayout/AdminLayout';
 import Tooltip from '../../../../../components/admin/Tooltip/Tooltip';
 import SmartComboBox from '../../../../../components/admin/SmartComboBox/SmartComboBox';
 import TagInput from '../../../../../components/admin/TagInput/TagInput';
+import FeatureInput from '../../../../../components/admin/FeatureInput/FeatureInput';
 import toast from 'react-hot-toast';
 import { loadingToast } from '../../../../../lib/toastHelpers';
 import styles from '../../create/create.module.css';
@@ -51,14 +52,17 @@ export default function EditProductPage() {
     width_cm: '',
     height_cm: '',
     tags: '',
+    features: '',
     is_featured: false,
     is_active: false,
     meta_title: '',
     meta_description: '',
     images: []
   });
+  const [originalImages, setOriginalImages] = useState([]);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
+  const [originalFeatures, setOriginalFeatures] = useState('');
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -67,6 +71,8 @@ export default function EditProductPage() {
       loadBrands();
     }
   }, [productId, user]);
+  
+  console.log("formData", formData);
 
   const loadProduct = async () => {
     setLoadingProduct(true);
@@ -110,6 +116,7 @@ export default function EditProductPage() {
           width_cm: width_cm,
           height_cm: height_cm,
           tags: Array.isArray(product.tags) ? product.tags.join(', ') : '',
+          features: Array.isArray(product.features) ? product.features.map(f => typeof f === 'string' ? f : f.feature_text).join('\n') : '',
           is_featured: product.is_featured || false,
           is_active: product.is_active !== false,
           meta_title: product.meta_title || '',
@@ -117,6 +124,13 @@ export default function EditProductPage() {
           images: product.images || []
         });
         
+        // Save original images for comparison
+        setOriginalImages(product.images || []);
+        
+        // Save original features for comparison
+        const originalFeaturesText = Array.isArray(product.features) ? product.features.map(f => typeof f === 'string' ? f : f.feature_text).join('\n') : '';
+        setOriginalFeatures(originalFeaturesText);
+
         setOriginalStatus(product.is_active ? 'published' : 'draft');
         
         // Marcar pasos como completados basándose en los datos existentes
@@ -257,15 +271,29 @@ export default function EditProductPage() {
     return Object.keys(errors).length === 0;
   };
 
-  const autoSaveDraft = async () => {
-    if (!formData.name.trim() || !formData.slug.trim()) return;
+  const nextStep = async () => {
+    if (validateStep(currentStep)) {
+      setCompletedSteps(prev => new Set([...prev, currentStep]));
+      setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
+    }
+  };
 
-    setAutoSaving(true);
+  const handleSave = async () => {
+    if (!validateStep(currentStep)) return;
+
+    setLoading(true);
     try {
       const productData = {
-        ...formData,
+        name: formData.name,
+        slug: formData.slug,
+        description: formData.description || null,
+        short_description: formData.short_description || null,
+        sku: formData.sku || null,
+        barcode: formData.barcode || null,
         price: formData.price ? parseFloat(formData.price) : 0,
         cost_price: formData.cost_price ? parseFloat(formData.cost_price) : null,
+        category_id: formData.category_id || null,
+        brand_id: formData.brand_id || null,
         stock_quantity: parseInt(formData.stock_quantity) || 0,
         low_stock_threshold: parseInt(formData.low_stock_threshold) || 5,
         weight_grams: formData.weight_grams && formData.weight_grams.trim() ? parseFloat(formData.weight_grams) : null,
@@ -275,11 +303,21 @@ export default function EditProductPage() {
           height: formData.height_cm ? parseFloat(formData.height_cm) : null
         } : null,
         tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : [],
-        brand_id: formData.brand_id || null,
+        is_featured: formData.is_featured || false,
         is_active: originalStatus === 'published' ? true : false,
         status: originalStatus === 'published' ? 'published' : 'draft'
       };
-
+      // Only send images if they have been modified from the original
+      const imagesChanged = JSON.stringify(formData.images) !== JSON.stringify(originalImages);
+      if (imagesChanged) {
+        productData.images = formData.images;
+      }
+      // Only send features if they have been modified from the original
+      const featuresChanged = formData.features.trim() !== originalFeatures.trim();
+      if (featuresChanged) {
+        productData.features = formData.features.split('\n').map(feature => feature.trim()).filter(feature => feature);
+      }
+      console.log("productData", productData);
       const response = await apiRequest(`/api/admin/products/${productId}`, {
         method: 'PUT',
         headers: {
@@ -287,22 +325,18 @@ export default function EditProductPage() {
         },
         body: JSON.stringify(productData)
       });
-
+      console.log("response", response);
       if (response.ok) {
-        toast.success('Cambios guardados automáticamente', { duration: 2000 });
+        toast.success('Cambios guardados exitosamente');
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al guardar los cambios');
       }
     } catch (error) {
-      console.error('Error auto-saving:', error);
+      console.error('Error saving changes:', error);
+      toast.error(error.message || 'Error al guardar los cambios');
     } finally {
-      setAutoSaving(false);
-    }
-  };
-
-  const nextStep = async () => {
-    if (validateStep(currentStep)) {
-      setCompletedSteps(prev => new Set([...prev, currentStep]));
-      await autoSaveDraft();
-      setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
+      setLoading(false);
     }
   };
 
@@ -369,6 +403,12 @@ export default function EditProductPage() {
   };
 
   const handlePublish = async () => {
+    // Prevent publishing while product is still loading
+    if (loadingProduct) {
+      toast.error('Espera a que se cargue completamente el producto');
+      return;
+    }
+
     const allStepsValid = STEPS.every(step => validateStep(step.id));
     
     if (!allStepsValid) {
@@ -392,10 +432,14 @@ export default function EditProductPage() {
           height: formData.height_cm ? parseFloat(formData.height_cm) : null
         } : null,
         tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : [],
+        features: formData.features && formData.features.trim() ? formData.features.split('\n').map(feature => feature.trim()).filter(feature => feature) : [],
         brand_id: formData.brand_id || null,
         is_active: true,
         status: 'published'
       };
+
+      // Always include images to preserve them
+      productData.images = formData.images;
 
       const response = await apiRequest(`/api/admin/products/${productId}`, {
         method: 'PUT',
@@ -429,6 +473,12 @@ export default function EditProductPage() {
   };
 
   const handleHide = async () => {
+    // Prevent hiding while product is still loading
+    if (loadingProduct) {
+      toast.error('Espera a que se cargue completamente el producto');
+      return;
+    }
+
     const submitPromise = async () => {
       setLoading(true);
       
@@ -445,10 +495,14 @@ export default function EditProductPage() {
           height: formData.height_cm ? parseFloat(formData.height_cm) : null
         } : null,
         tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : [],
+        features: formData.features && formData.features.trim() ? formData.features.split('\n').map(feature => feature.trim()).filter(feature => feature) : [],
         brand_id: formData.brand_id || null,
         is_active: false,
         status: 'hidden'
       };
+
+      // Always include images to preserve them
+      productData.images = formData.images;
 
       const response = await apiRequest(`/api/admin/products/${productId}`, {
         method: 'PUT',
@@ -631,6 +685,21 @@ export default function EditProductPage() {
                   onChange={(value) => setFormData(prev => ({ ...prev, tags: value }))}
                   placeholder="Ej: nuevo, oferta, popular, tendencia..."
                   maxTags={15}
+                />
+              </div>
+
+              <div className={styles.field}>
+                <label htmlFor="features">
+                  Características del Producto
+                  <Tooltip content="Detalles adicionales que describen las características del producto. Ej: Secado rápido, Color vibrante, Sin formaldehído">
+                    <span className={styles.helpIcon}>?</span>
+                  </Tooltip>
+                </label>
+                <FeatureInput
+                  value={formData.features}
+                  onChange={(value) => setFormData(prev => ({ ...prev, features: value }))}
+                  placeholder="Ej: Secado rápido, Color vibrante, Sin formaldehído..."
+                  maxFeatures={50}
                 />
               </div>
             </div>
@@ -1006,8 +1075,8 @@ export default function EditProductPage() {
                   {formData.images.map((image, index) => (
                     <div key={index} className={styles.imageItem}>
                       <img 
-                        src={image.url} 
-                        alt={image.alt || `Imagen ${index + 1}`}
+                        src={image.image_url} 
+                        alt={image.alt_text || `Imagen ${index + 1}`}
                         className={styles.productImage}
                       />
                       <button
@@ -1221,13 +1290,6 @@ export default function EditProductPage() {
           {renderStepContent()}
         </div>
 
-        {autoSaving && (
-          <div className={styles.autoSaveIndicator}>
-            <div className={styles.spinner}></div>
-            Guardando cambios...
-          </div>
-        )}
-
         {currentStep < 5 && (
           <div className={styles.navigation}>
             <button
@@ -1245,10 +1307,11 @@ export default function EditProductPage() {
             
             <button
               type="button"
-              onClick={nextStep}
+              onClick={handleSave}
+              disabled={loading || loadingProduct}
               className={styles.nextButton}
             >
-              Siguiente →
+              {loading ? 'Guardando...' : loadingProduct ? 'Cargando...' : 'Guardar'}
             </button>
           </div>
         )}
@@ -1258,19 +1321,19 @@ export default function EditProductPage() {
             <button
               type="button"
               onClick={handleHide}
-              disabled={loading}
+              disabled={loading || loadingProduct}
               className={styles.hideButton}
             >
-              {loading ? 'Procesando...' : 'Ocultar Producto'}
+              {loading ? 'Procesando...' : loadingProduct ? 'Cargando...' : 'Ocultar Producto'}
             </button>
             
             <button
               type="button"
               onClick={handlePublish}
-              disabled={loading}
+              disabled={loading || loadingProduct}
               className={styles.publishButton}
             >
-              {loading ? 'Publicando...' : 'Publicar Producto'}
+              {loading ? 'Publicando...' : loadingProduct ? 'Cargando...' : 'Publicar Producto'}
             </button>
           </div>
         )}

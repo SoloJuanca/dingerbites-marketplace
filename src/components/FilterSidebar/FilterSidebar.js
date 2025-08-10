@@ -1,12 +1,14 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { getCategories, getBrands, getPriceRange } from '../../lib/products';
+import { useState } from 'react';
 import Icon from '../Icon/Icon';
 import styles from './FilterSidebar.module.css';
 
 export default function FilterSidebar({ 
+  categories = [],
+  brands = [],
+  priceRange = { min: 0, max: 1000 },
   currentCategory, 
   currentBrand, 
   currentMinPrice, 
@@ -14,9 +16,6 @@ export default function FilterSidebar({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [categories] = useState(getCategories());
-  const [brands] = useState(getBrands());
-  const [priceRange] = useState(getPriceRange());
   const [minPrice, setMinPrice] = useState(currentMinPrice || '');
   const [maxPrice, setMaxPrice] = useState(currentMaxPrice || '');
   
@@ -98,12 +97,6 @@ export default function FilterSidebar({
     });
   };
 
-  const clearAllFilters = () => {
-    setMinPrice('');
-    setMaxPrice('');
-    router.push('/catalog');
-  };
-
   const toggleSection = (section) => {
     setCollapsedSections(prev => ({
       ...prev,
@@ -112,122 +105,119 @@ export default function FilterSidebar({
   };
 
   return (
-    <div className={styles.sidebar}>
-      <div className={styles.filterHeader}>
-        <h3 className={styles.title}>Filtros</h3>
-        <button onClick={clearAllFilters} className={styles.clearBtn}>
-          Limpiar todo
-        </button>
-      </div>
-
-      {/* Categorías */}
-      <div className={styles.filterSection}>
-        <button 
-          className={styles.sectionHeader}
-          onClick={() => toggleSection('categories')}
-        >
-          <h4 className={styles.sectionTitle}>Categorías</h4>
-          <Icon 
-            name="keyboard_arrow_down" 
-            size={20}
-            className={`${styles.collapseIcon} ${!collapsedSections.categories ? styles.expanded : ''}`}
-          />
-        </button>
-        <div className={`${styles.sectionContent} ${collapsedSections.categories ? styles.collapsed : ''}`}>
-          <div className={styles.categoryList}>
-            {categories.map((category) => (
-              <label key={category.value} className={styles.checkboxItem}>
-                <input
-                  type="checkbox"
-                  className={styles.checkbox}
-                  checked={selectedCategories.includes(category.value)}
-                  onChange={() => handleCategoryChange(category.value)}
-                />
-                <span className={styles.checkboxLabel}>
-                  {category.label}
-                </span>
-              </label>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Marcas */}
-      <div className={styles.filterSection}>
-        <button 
-          className={styles.sectionHeader}
-          onClick={() => toggleSection('brands')}
-        >
-          <h4 className={styles.sectionTitle}>Marcas</h4>
-          <Icon 
-            name="keyboard_arrow_down" 
-            size={20}
-            className={`${styles.collapseIcon} ${!collapsedSections.brands ? styles.expanded : ''}`}
-          />
-        </button>
-        <div className={`${styles.sectionContent} ${collapsedSections.brands ? styles.collapsed : ''}`}>
-          <div className={styles.brandList}>
-            {brands.map((brand) => (
-              <label key={brand} className={styles.checkboxItem}>
-                <input
-                  type="checkbox"
-                  className={styles.checkbox}
-                  checked={selectedBrands.includes(brand)}
-                  onChange={() => handleBrandChange(brand)}
-                />
-                <span className={styles.checkboxLabel}>
-                  {brand}
-                </span>
-              </label>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Rango de precios */}
-      <div className={styles.filterSection}>
-        <button 
-          className={styles.sectionHeader}
-          onClick={() => toggleSection('price')}
-        >
-          <h4 className={styles.sectionTitle}>Rango de precios</h4>
-          <Icon 
-            name="keyboard_arrow_down" 
-            size={20}
-            className={`${styles.collapseIcon} ${!collapsedSections.price ? styles.expanded : ''}`}
-          />
-        </button>
-        <div className={`${styles.sectionContent} ${collapsedSections.price ? styles.collapsed : ''}`}>
-          <form onSubmit={handlePriceSubmit} className={styles.priceForm}>
-            <div className={styles.priceInputs}>
-              <input
-                type="number"
-                placeholder={`Min $${priceRange.min}`}
-                value={minPrice}
-                onChange={(e) => setMinPrice(e.target.value)}
-                className={styles.priceInput}
-                min={priceRange.min}
-                max={priceRange.max}
-                step="0.01"
-              />
-              <span className={styles.priceSeparator}>-</span>
-              <input
-                type="number"
-                placeholder={`Max $${priceRange.max}`}
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
-                className={styles.priceInput}
-                min={priceRange.min}
-                max={priceRange.max}
-                step="0.01"
-              />
+    <aside className={styles.sidebar}>
+      <div className={styles.sidebarContent}>
+        <h3 className={styles.sidebarTitle}>Filtros</h3>
+        
+        {/* Categorías */}
+        <div className={styles.filterSection}>
+          <button 
+            className={styles.sectionHeader}
+            onClick={() => toggleSection('categories')}
+          >
+            <h4 className={styles.sectionTitle}>Categorías</h4>
+            <Icon 
+              name="keyboard_arrow_down" 
+              size={20}
+              className={`${styles.collapseIcon} ${!collapsedSections.categories ? styles.expanded : ''}`}
+            />
+          </button>
+          <div className={`${styles.sectionContent} ${collapsedSections.categories ? styles.collapsed : ''}`}>
+            <div className={styles.categoryList}>
+              {categories.map((category) => (
+                <label key={category.id} className={styles.checkboxItem}>
+                  <input
+                    type="checkbox"
+                    className={styles.checkbox}
+                    checked={selectedCategories.includes(category.slug)}
+                    onChange={() => handleCategoryChange(category.slug)}
+                  />
+                  <span className={styles.checkboxLabel}>
+                    {category.name}
+                  </span>
+                </label>
+              ))}
             </div>
-            <button type="submit" className={styles.priceBtn}>
-              Aplicar
-            </button>
-          </form>
+          </div>
+        </div>
+
+        {/* Marcas */}
+        <div className={styles.filterSection}>
+          <button 
+            className={styles.sectionHeader}
+            onClick={() => toggleSection('brands')}
+          >
+            <h4 className={styles.sectionTitle}>Marcas</h4>
+            <Icon 
+              name="keyboard_arrow_down" 
+              size={20}
+              className={`${styles.collapseIcon} ${!collapsedSections.brands ? styles.expanded : ''}`}
+            />
+          </button>
+          <div className={`${styles.sectionContent} ${collapsedSections.brands ? styles.collapsed : ''}`}>
+            <div className={styles.brandList}>
+              {brands.map((brand) => (
+                <label key={brand.id} className={styles.checkboxItem}>
+                  <input
+                    type="checkbox"
+                    className={styles.checkbox}
+                    checked={selectedBrands.includes(brand.slug)}
+                    onChange={() => handleBrandChange(brand.slug)}
+                  />
+                  <span className={styles.checkboxLabel}>
+                    {brand.name}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Rango de precios */}
+        <div className={styles.filterSection}>
+          <button 
+            className={styles.sectionHeader}
+            onClick={() => toggleSection('price')}
+          >
+            <h4 className={styles.sectionTitle}>Rango de precios</h4>
+            <Icon 
+              name="keyboard_arrow_down" 
+              size={20}
+              className={`${styles.collapseIcon} ${!collapsedSections.price ? styles.expanded : ''}`}
+            />
+          </button>
+          <div className={`${styles.sectionContent} ${collapsedSections.price ? styles.collapsed : ''}`}>
+            <form onSubmit={handlePriceSubmit} className={styles.priceForm}>
+              <div className={styles.priceInputs}>
+                <input
+                  type="number"
+                  placeholder={`Min $${priceRange.min}`}
+                  value={minPrice}
+                  onChange={(e) => setMinPrice(e.target.value)}
+                  className={styles.priceInput}
+                  min={priceRange.min}
+                  max={priceRange.max}
+                  step="0.01"
+                />
+                <span className={styles.priceSeparator}>-</span>
+                <input
+                  type="number"
+                  placeholder={`Max $${priceRange.max}`}
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                  className={styles.priceInput}
+                  min={priceRange.min}
+                  max={priceRange.max}
+                  step="0.01"
+                />
+              </div>
+              <button type="submit" className={styles.priceBtn}>
+                Aplicar
+              </button>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
+    </aside>
   );
 } 

@@ -7,6 +7,7 @@ import AdminLayout from '../../../../components/admin/AdminLayout/AdminLayout';
 import Tooltip from '../../../../components/admin/Tooltip/Tooltip';
 import SmartComboBox from '../../../../components/admin/SmartComboBox/SmartComboBox';
 import TagInput from '../../../../components/admin/TagInput/TagInput';
+import FeatureInput from '../../../../components/admin/FeatureInput/FeatureInput';
 import toast from 'react-hot-toast';
 import { loadingToast } from '../../../../lib/toastHelpers';
 import styles from './create.module.css';
@@ -28,7 +29,6 @@ export default function CreateProductPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState(new Set());
   const [productStatus, setProductStatus] = useState('draft');
-  const [autoSaving, setAutoSaving] = useState(false);
   const [draftId, setDraftId] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -47,6 +47,7 @@ export default function CreateProductPage() {
     width_cm: '',
     height_cm: '',
     tags: '',
+    features: '',
     is_featured: false,
     is_active: false,
     meta_title: '',
@@ -127,7 +128,15 @@ export default function CreateProductPage() {
       [name]: newValue
     }));
 
-    // Clear validation error when user starts typing
+    // Auto-generate slug when name changes
+    if (name === 'name') {
+      const newSlug = generateSlug(newValue);
+      setFormData(prev => ({
+        ...prev,
+        slug: newSlug
+      }));
+    }
+
     if (validationErrors[name]) {
       setValidationErrors(prev => ({
         ...prev,
@@ -185,100 +194,21 @@ export default function CreateProductPage() {
   };
 
   const generateSlug = (name) => {
+    if (!name) return '';
     return name
       .toLowerCase()
-      .trim()
-      .replace(/[áàäâ]/g, 'a')
-      .replace(/[éèëê]/g, 'e')
-      .replace(/[íìïî]/g, 'i')
-      .replace(/[óòöô]/g, 'o')
-      .replace(/[úùüû]/g, 'u')
-      .replace(/[ñ]/g, 'n')
-      .replace(/[ç]/g, 'c')
-      .replace(/[^a-z0-9]/g, '-')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
-  };
-
-  const autoSaveDraft = async () => {
-    if (!formData.name || !formData.name.trim()) {
-      console.log('No saving draft: name is empty');
-      return; // Don't save if no name yet
-    }
-
-    setAutoSaving(true);
-    try {
-      const slug = generateSlug(formData.name) || `product-${Date.now()}`;
-      console.log('Saving draft with data:', { name: formData.name, slug });
-      const productData = {
-        name: formData.name,
-        slug: slug,
-        description: formData.description || null,
-        short_description: formData.short_description || null,
-        price: formData.price && parseFloat(formData.price) > 0 ? parseFloat(formData.price) : 0,
-        cost_price: formData.cost_price ? parseFloat(formData.cost_price) : null,
-        sku: formData.sku || null,
-        barcode: formData.barcode || null,
-        weight_grams: formData.weight_grams && formData.weight_grams.trim() ? parseFloat(formData.weight_grams) : null,
-        dimensions_cm: (formData.length_cm || formData.width_cm || formData.height_cm) ? {
-          length: formData.length_cm ? parseFloat(formData.length_cm) : null,
-          width: formData.width_cm ? parseFloat(formData.width_cm) : null,
-          height: formData.height_cm ? parseFloat(formData.height_cm) : null
-        } : null,
-        category_id: formData.category_id || null,
-        brand_id: formData.brand_id || null,
-        stock_quantity: parseInt(formData.stock_quantity) || 0,
-        low_stock_threshold: parseInt(formData.low_stock_threshold) || 5,
-        is_active: false,
-        is_featured: formData.is_featured || false,
-        meta_title: formData.meta_title || null,
-        meta_description: formData.meta_description || null,
-        meta_keywords: formData.tags && formData.tags.trim() ? formData.tags.split(',').map(tag => tag.trim()).join(', ') : null,
-        images: formData.images || []
-      };
-
-      let response;
-      if (draftId) {
-        // Update existing draft
-        response = await apiRequest(`/api/admin/products/${draftId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(productData)
-        });
-      } else {
-        // Create new draft
-        response = await apiRequest('/api/admin/products', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(productData)
-        });
-      }
-
-      if (response.ok) {
-        const data = await response.json();
-        if (!draftId) {
-          setDraftId(data.product?.id || data.id);
-        }
-        toast.success('Borrador guardado automáticamente', { duration: 2000 });
-      }
-    } catch (error) {
-      console.error('Error auto-saving draft:', error);
-    } finally {
-      setAutoSaving(false);
-    }
+      .trim('-');
   };
 
   const nextStep = async () => {
     if (validateStep(currentStep)) {
       // Mark current step as completed
       setCompletedSteps(prev => new Set([...prev, currentStep]));
-      
-      // Auto-save draft
-      await autoSaveDraft();
       
       // Move to next step
       setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
@@ -376,7 +306,8 @@ export default function CreateProductPage() {
         meta_title: formData.meta_title || null,
         meta_description: formData.meta_description || null,
         meta_keywords: formData.tags && formData.tags.trim() ? formData.tags.split(',').map(tag => tag.trim()).join(', ') : null,
-        images: formData.images || []
+        images: formData.images || [],
+        features: formData.features && formData.features.trim() ? formData.features.split('\n').map(feature => feature.trim()).filter(feature => feature) : []
       };
 
       let response;
@@ -465,7 +396,8 @@ export default function CreateProductPage() {
         meta_title: formData.meta_title || null,
         meta_description: formData.meta_description || null,
         meta_keywords: formData.tags && formData.tags.trim() ? formData.tags.split(',').map(tag => tag.trim()).join(', ') : null,
-        images: formData.images || []
+        images: formData.images || [],
+        features: formData.features && formData.features.trim() ? formData.features.split('\n').map(feature => feature.trim()).filter(feature => feature) : []
       };
 
       let response;
@@ -639,6 +571,21 @@ export default function CreateProductPage() {
                   onChange={(value) => setFormData(prev => ({ ...prev, tags: value }))}
                   placeholder="Ej: nuevo, oferta, popular, tendencia..."
                   maxTags={15}
+                />
+              </div>
+
+              <div className={styles.field}>
+                <label htmlFor="features">
+                  Características del Producto
+                  <Tooltip content="Detalles adicionales que describen las características del producto. Ej: Secado rápido, Color vibrante, Sin formaldehído">
+                    <span className={styles.helpIcon}>?</span>
+                  </Tooltip>
+                </label>
+                <FeatureInput
+                  value={formData.features}
+                  onChange={(value) => setFormData(prev => ({ ...prev, features: value }))}
+                  placeholder="Ej: Secado rápido, Color vibrante, Sin formaldehído..."
+                  maxFeatures={50}
                 />
               </div>
             </div>
@@ -1220,14 +1167,6 @@ export default function CreateProductPage() {
         <div className={styles.stepContainer}>
           {renderStepContent()}
         </div>
-
-        {/* Auto-save indicator */}
-        {autoSaving && (
-          <div className={styles.autoSaveIndicator}>
-            <div className={styles.spinner}></div>
-            Guardando borrador...
-          </div>
-        )}
 
         {/* Navigation */}
         {currentStep < 5 && (

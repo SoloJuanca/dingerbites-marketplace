@@ -13,12 +13,18 @@ export default function ProductSummary({ product }) {
   const [isClient, setIsClient] = useState(false);
   const { addToCartWithSync } = useCart();
   const { user, apiRequest } = useAuth();
-  
-  const ratingStats = getProductRatingStats(product.id);
+  const [ratingStats, setRatingStats] = useState({
+    averageRating: 0,
+    totalReviews: 0,
+    ratingDistribution: [0, 0, 0, 0, 0]
+  });
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    if (product.id) {
+      setRatingStats(getProductRatingStats(product.id));
+    }
+  }, [product.id]);
 
   const formatPrice = (price) => {
     if (!isClient) return `$${price.toFixed(2)}`;
@@ -199,6 +205,7 @@ export default function ProductSummary({ product }) {
         </div>
       </div>
 
+      {/*
       <div className={styles.help}>
         <h4 className={styles.helpTitle}>¿Necesitas ayuda?</h4>
         <div className={styles.helpOptions}>
@@ -212,6 +219,7 @@ export default function ProductSummary({ product }) {
           </button>
         </div>
       </div>
+      */}
     </div>
   );
 } 
