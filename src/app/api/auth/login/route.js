@@ -19,7 +19,7 @@ export async function POST(request) {
 
     // Get user by email
     const userQuery = `
-      SELECT id, email, password_hash, first_name, last_name, is_active, is_verified
+      SELECT id, email, password_hash, first_name, last_name, role, is_active, is_verified
       FROM users 
       WHERE email = $1
     `;
@@ -62,7 +62,8 @@ export async function POST(request) {
         userId: user.id,
         email: user.email,
         firstName: user.first_name,
-        lastName: user.last_name
+        lastName: user.last_name,
+        role: user.role || 'user'
       },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '7d' }

@@ -34,6 +34,12 @@ export async function middleware(request) {
     return NextResponse.next();
   }
 
+  // Admin routes that require admin authentication
+  const adminRoutes = [
+    '/admin',
+    '/api/admin'
+  ];
+
   // Protected routes that require authentication
   const protectedRoutes = [
     '/api/cart',
@@ -44,12 +50,17 @@ export async function middleware(request) {
     '/profile'
   ];
 
+  // Check if the current route is admin-only
+  const isAdminRoute = adminRoutes.some(route => 
+    pathname.startsWith(route)
+  );
+
   // Check if the current route is protected
   const isProtectedRoute = protectedRoutes.some(route => 
     pathname.startsWith(route)
   );
 
-  if (isProtectedRoute) {
+  if (isAdminRoute || isProtectedRoute) {
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
     
@@ -66,10 +77,22 @@ export async function middleware(request) {
       // Verify the JWT token
       const { payload } = await jwtVerify(token, secret);
       
+      // Check if admin access is required
+      if (isAdminRoute) {
+        const userRole = payload.role || 'user';
+        if (userRole !== 'admin' && userRole !== 'superadmin') {
+          return NextResponse.json(
+            { error: 'Admin access required' },
+            { status: 403 }
+          );
+        }
+      }
+      
       // Add user info to request headers for use in API routes
       const requestHeaders = new Headers(request.headers);
       requestHeaders.set('x-user-id', payload.userId);
       requestHeaders.set('x-user-email', payload.email);
+      requestHeaders.set('x-user-role', payload.role || 'user');
 
       return NextResponse.next({
         request: {

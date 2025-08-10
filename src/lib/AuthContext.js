@@ -160,9 +160,13 @@ export function AuthProvider({ children }) {
   // Helper function to make authenticated API requests
   const apiRequest = async (url, options = {}) => {
     const headers = {
-      'Content-Type': 'application/json',
       ...options.headers,
     };
+
+    // Only set Content-Type for JSON requests, not for FormData
+    if (!(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (state.token) {
       headers.Authorization = `Bearer ${state.token}`;

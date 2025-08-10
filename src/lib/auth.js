@@ -11,7 +11,8 @@ export function generateToken(user) {
     userId: user.id,
     email: user.email,
     firstName: user.first_name,
-    lastName: user.last_name
+    lastName: user.last_name,
+    role: user.role || 'user'
   };
 
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
@@ -40,14 +41,16 @@ export async function comparePassword(password, hashedPassword) {
 // Get user from token
 export async function getUserFromToken(token) {
   const decoded = verifyToken(token);
+  console.log('decoded', decoded);
   if (!decoded) {
     return null;
   }
 
   const user = await getRow(
-    'SELECT id, email, first_name, last_name, is_active FROM users WHERE id = $1',
+    'SELECT id, email, first_name, last_name, role, is_active FROM users WHERE id = $1',
     [decoded.userId]
   );
+  console.log('user', user);
 
   return user && user.is_active ? user : null;
 }
@@ -55,11 +58,33 @@ export async function getUserFromToken(token) {
 // Middleware helper for API routes
 export async function authenticateUser(request) {
   const authHeader = request.headers.get('authorization');
-  
+  console.log('authHeader', authHeader);
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null;
   }
 
   const token = authHeader.substring(7);
   return await getUserFromToken(token);
+}
+
+// Check if user is admin
+export function isAdmin(user) {
+  return user && (user.role === 'admin' || user.role === 'superadmin');
+}
+
+// Check if user is superadmin
+export function isSuperAdmin(user) {
+  return user && user.role === 'superadmin';
+}
+
+// Middleware helper for admin-only routes
+export async function authenticateAdmin(request) {
+  const user = await authenticateUser(request);
+  return isAdmin(user) ? user : null;
+}
+
+// Middleware helper for superadmin-only routes
+export async function authenticateSuperAdmin(request) {
+  const user = await authenticateUser(request);
+  return isSuperAdmin(user) ? user : null;
 } 

@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@vercel/blob": "^1.1.1",
     "bcryptjs": "^2.4.3",
     "csv-parser": "^3.2.0",
     "jose": "^5.2.0",

@@ -1,0 +1,175 @@
+/* Revenue Chart Component */
+
+.container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  padding: 24px 24px 0 24px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a202c;
+  margin: 0 0 4px 0;
+}
+
+.subtitle {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Summary */
+.summary {
+  display: flex;
+  gap: 24px;
+  padding: 0 24px;
+  margin-bottom: 24px;
+}
+
+.summaryItem {
+  flex: 1;
+  text-align: center;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.summaryLabel {
+  display: block;
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 4px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.summaryValue {
+  display: block;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+/* Chart Placeholder */
+.chartPlaceholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  color: #64748b;
+  background: #f8fafc;
+  margin: 0 24px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.chartIcon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.chartText {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #374151;
+}
+
+.chartSubtext {
+  font-size: 0.875rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Data Table */
+.dataTable {
+  padding: 0 24px 24px;
+}
+
+.tableTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.tableContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tableRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.tableDate {
+  font-weight: 500;
+  color: #374151;
+}
+
+.tableOrders {
+  color: #64748b;
+  text-align: center;
+}
+
+.tableRevenue {
+  font-weight: 600;
+  color: #059669;
+  text-align: right;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .summary {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .summaryItem {
+    padding: 12px;
+  }
+  
+  .summaryValue {
+    font-size: 1rem;
+  }
+  
+  .chartPlaceholder {
+    padding: 32px 16px;
+  }
+  
+  .chartIcon {
+    font-size: 2rem;
+  }
+  
+  .tableRow {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    text-align: center;
+  }
+  
+  .tableOrders,
+  .tableRevenue {
+    text-align: center;
+  }
+}
