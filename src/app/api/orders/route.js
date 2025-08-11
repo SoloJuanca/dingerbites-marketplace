@@ -108,13 +108,15 @@ export async function POST(request) {
       notes,
       customer_email,
       customer_phone,
+      customer_name,
       payment_method,
       shipping_method,
       subtotal,
       tax_amount = 0,
       shipping_amount = 0,
       discount_amount = 0,
-      total_amount
+      total_amount,
+      address // For guest users, we'll save this
     } = body;
 
     // Validate required fields
@@ -143,6 +145,67 @@ export async function POST(request) {
 
     // Create order using transaction
     const result = await transaction(async (client) => {
+      let finalUserId = user_id;
+      let finalShippingAddressId = shipping_address_id;
+
+      // For guest users, create a basic user record if they don't exist
+      if (!user_id && customer_email) {
+        // Check if user already exists by email
+        const existingUser = await client.query(
+          'SELECT id FROM users WHERE email = $1',
+          [customer_email]
+        );
+
+        if (existingUser.rows.length === 0) {
+          // Create a guest user (no password)
+          const nameParts = customer_name ? customer_name.split(' ') : ['', ''];
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
+
+          const createUserQuery = `
+            INSERT INTO users (
+              email, first_name, last_name, phone, role, is_guest,
+              email_verified, created_at, updated_at
+            )
+            VALUES ($1, $2, $3, $4, 'customer', true, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            RETURNING id
+          `;
+
+          const newUser = await client.query(createUserQuery, [
+            customer_email,
+            firstName,
+            lastName,
+            customer_phone || null
+          ]);
+
+          finalUserId = newUser.rows[0].id;
+
+          // If there's an address for delivery, create an address record for the guest user
+          if (address && shipping_method === 'Envío a domicilio') {
+            const createAddressQuery = `
+              INSERT INTO user_addresses (
+                user_id, address_type, is_default, first_name, last_name,
+                address_line_1, city, state, postal_code, country, phone
+              )
+              VALUES ($1, 'shipping', true, $2, $3, $4, 'Ciudad', 'Estado', '00000', 'Mexico', $5)
+              RETURNING id
+            `;
+
+            const newAddress = await client.query(createAddressQuery, [
+              finalUserId,
+              firstName,
+              lastName,
+              address,
+              customer_phone || null
+            ]);
+
+            finalShippingAddressId = newAddress.rows[0].id;
+          }
+        } else {
+          finalUserId = existingUser.rows[0].id;
+        }
+      }
+
       // Create the order
       const createOrderQuery = `
         INSERT INTO orders (
@@ -156,14 +219,14 @@ export async function POST(request) {
 
       const order = await client.query(createOrderQuery, [
         orderNumber,
-        user_id || null,
+        finalUserId,
         pendingStatus.id,
         subtotal || total_amount,
         tax_amount,
         shipping_amount,
         discount_amount,
         total_amount,
-        shipping_address_id || null,
+        finalShippingAddressId || null,
         billing_address_id || null,
         notes || null,
         customer_email,

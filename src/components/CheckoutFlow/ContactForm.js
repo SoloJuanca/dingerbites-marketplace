@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import AddressManager from '../AddressManager/AddressManager';
 import styles from './ContactForm.module.css';
 
 export default function ContactForm({ 
@@ -22,17 +23,22 @@ export default function ContactForm({
   });
 
   const [errors, setErrors] = useState({});
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [showAddressManager, setShowAddressManager] = useState(false);
+  const [isGuestUser, setIsGuestUser] = useState(false);
 
   // Pre-llenar datos si el usuario está autenticado
   useEffect(() => {
     if (isAuthenticated && user) {
       setFormData(prev => ({
         ...prev,
-        name: user.name || user.full_name || '',
+        name: user.name || user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim(),
         email: user.email || '',
-        phone: user.phone || '',
-        address: user.address || ''
+        phone: user.phone || ''
       }));
+      setIsGuestUser(false);
+    } else {
+      setIsGuestUser(true);
     }
   }, [isAuthenticated, user]);
 
@@ -53,6 +59,30 @@ export default function ContactForm({
 
     // Actualizar estado padre
     onContactInfoUpdate({ ...formData, [field]: value });
+  };
+
+  const handleAddressSelect = (address) => {
+    const fullAddress = [
+      address.address_line_1,
+      address.address_line_2,
+      address.city,
+      address.state,
+      address.postal_code
+    ].filter(part => part && part.trim()).join(', ');
+
+    const updatedFormData = {
+      ...formData,
+      name: `${address.first_name} ${address.last_name}`,
+      phone: address.phone || formData.phone,
+      address: fullAddress
+    };
+
+    setFormData(updatedFormData);
+    setSelectedAddress(address);
+    setShowAddressManager(false);
+
+    // Actualizar estado padre
+    onContactInfoUpdate(updatedFormData);
   };
 
   const validateForm = () => {
@@ -114,6 +144,7 @@ export default function ContactForm({
       </div>
 
       <div className={styles.form}>
+        {/* Información Personal */}
         <div className={styles.formRow}>
           <div className={styles.formGroup}>
             <label htmlFor="name" className={styles.label}>
@@ -165,7 +196,57 @@ export default function ContactForm({
           </div>
         </div>
 
-        {deliveryType === 'delivery' && (
+        {/* Gestión de Direcciones para usuarios autenticados */}
+        {deliveryType === 'delivery' && isAuthenticated && !isGuestUser && (
+          <div className={styles.addressSection}>
+            {!showAddressManager ? (
+              <div className={styles.addressSelection}>
+                <div className={styles.addressHeader}>
+                  <label className={styles.label}>Dirección de Envío *</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddressManager(true)}
+                    className={styles.manageAddressButton}
+                  >
+                    {selectedAddress ? 'Cambiar Dirección' : 'Gestionar Direcciones'}
+                  </button>
+                </div>
+                
+                {selectedAddress ? (
+                  <div className={styles.selectedAddress}>
+                    <p className={styles.addressText}>
+                      <strong>{selectedAddress.first_name} {selectedAddress.last_name}</strong><br />
+                      {[
+                        selectedAddress.address_line_1,
+                        selectedAddress.address_line_2,
+                        selectedAddress.city,
+                        selectedAddress.state,
+                        selectedAddress.postal_code
+                      ].filter(part => part && part.trim()).join(', ')}
+                    </p>
+                    {selectedAddress.phone && (
+                      <p className={styles.phoneText}>📞 {selectedAddress.phone}</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className={styles.noAddressSelected}>
+                    <p>No hay dirección seleccionada</p>
+                    <p className={styles.hint}>Haz clic en "Gestionar Direcciones" para seleccionar una dirección</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <AddressManager
+                onAddressSelect={handleAddressSelect}
+                selectedAddress={selectedAddress}
+                onCancel={() => setShowAddressManager(false)}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Dirección manual para invitados o cuando no hay dirección seleccionada */}
+        {deliveryType === 'delivery' && (isGuestUser || (!selectedAddress && !showAddressManager)) && (
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
               <label htmlFor="address" className={styles.label}>

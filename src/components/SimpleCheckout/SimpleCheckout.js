@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { useCart } from '../../lib/CartContext';
 import { useAuth } from '../../lib/AuthContext';
 import OrderConfirmation from '../OrderConfirmation/OrderConfirmation';
+import AddressManager from '../AddressManager/AddressManager';
 import styles from './SimpleCheckout.module.css';
 
 export default function SimpleCheckout() {
@@ -20,7 +21,7 @@ export default function SimpleCheckout() {
     city: '',
     postalCode: '',
     deliveryType: 'delivery',
-    paymentMethod: 'cash',
+    paymentMethod: 'transfer', // Default to transfer for deliveries
     notes: ''
   });
 
@@ -28,6 +29,10 @@ export default function SimpleCheckout() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderConfirmed, setOrderConfirmed] = useState(false);
   const [orderData, setOrderData] = useState(null);
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [showAddressManager, setShowAddressManager] = useState(false);
+  const [useNewAddress, setUseNewAddress] = useState(false);
+  const [userAddresses, setUserAddresses] = useState([]);
 
   const { items, clearCart, getTotalPrice } = useCart();
   const { user, isAuthenticated, apiRequest } = useAuth();
@@ -36,32 +41,94 @@ export default function SimpleCheckout() {
   // Pre-llenar datos si el usuario está autenticado
   useEffect(() => {
     if (isAuthenticated && user) {
-      // Intentar parsear la dirección existente si existe
-      let addressParts = {
-        street: '',
-        number: '',
-        neighborhood: '',
-        city: '',
-        postalCode: ''
-      };
-      
-      if (user.address) {
-        // Si existe una dirección, la ponemos en el campo street para no perder información
-        addressParts.street = user.address;
-      }
+      const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
       
       setFormData(prev => ({
         ...prev,
-        name: user.name || user.full_name || '',
+        name: fullName || user.name || user.full_name || '',
         email: user.email || '',
-        phone: user.phone || '',
-        ...addressParts
+        phone: user.phone || ''
       }));
+      
+      // Load user addresses
+      loadUserAddresses();
     }
   }, [isAuthenticated, user]);
 
+  // Load user addresses
+  const loadUserAddresses = async () => {
+    if (!isAuthenticated || !apiRequest) return;
+    
+    try {
+      const response = await apiRequest('/api/users/addresses');
+      if (response.ok) {
+        const data = await response.json();
+        const addresses = data.addresses || [];
+        setUserAddresses(addresses);
+        
+        // Auto-select default address if exists
+        const defaultAddress = addresses.find(addr => addr.is_default);
+        if (defaultAddress) {
+          setSelectedAddress(defaultAddress);
+          populateAddressFields(defaultAddress);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading addresses:', error);
+    }
+  };
+
+  // Populate address fields from selected address
+  const populateAddressFields = (address) => {
+    if (!address) return;
+    
+    // Parse address_line_1 to try to separate street and number
+    const addressParts = address.address_line_1.split(' ');
+    const lastPart = addressParts[addressParts.length - 1];
+    const isNumber = /^\d+/.test(lastPart);
+    
+    let street, number;
+    if (isNumber) {
+      number = lastPart;
+      street = addressParts.slice(0, -1).join(' ');
+    } else {
+      street = address.address_line_1;
+      number = '';
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      street: street,
+      number: number,
+      neighborhood: address.address_line_2 || '',
+      city: address.city,
+      postalCode: address.postal_code
+    }));
+  };
+
+  // Handle address selection
+  const handleAddressSelect = (address) => {
+    setSelectedAddress(address);
+    setUseNewAddress(false);
+    setShowAddressManager(false);
+    populateAddressFields(address);
+  };
+
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Force transfer payment for delivery
+    if (field === 'deliveryType' && value === 'delivery') {
+      setFormData(prev => ({ ...prev, [field]: value, paymentMethod: 'transfer' }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
+    
+    // Clear selected address if manually editing address fields
+    if (['street', 'number', 'neighborhood', 'city', 'postalCode'].includes(field)) {
+      setSelectedAddress(null);
+      setUseNewAddress(true);
+    }
     
     // Limpiar error del campo
     if (errors[field]) {
@@ -87,21 +154,26 @@ export default function SimpleCheckout() {
     }
     
     if (formData.deliveryType === 'delivery') {
-      if (!formData.street.trim()) {
-        newErrors.street = 'La calle es obligatoria';
+      // Check if using selected address or manual entry
+      if (!selectedAddress || useNewAddress) {
+        // Manual entry validation
+        if (!formData.street.trim()) {
+          newErrors.street = 'La calle es obligatoria';
+        }
+        if (!formData.number.trim()) {
+          newErrors.number = 'El número es obligatorio';
+        }
+        if (!formData.neighborhood.trim()) {
+          newErrors.neighborhood = 'La colonia es obligatoria';
+        }
+        if (!formData.city.trim()) {
+          newErrors.city = 'La ciudad es obligatoria';
+        }
+        if (!formData.postalCode.trim()) {
+          newErrors.postalCode = 'El código postal es obligatorio';
+        }
       }
-      if (!formData.number.trim()) {
-        newErrors.number = 'El número es obligatorio';
-      }
-      if (!formData.neighborhood.trim()) {
-        newErrors.neighborhood = 'La colonia es obligatoria';
-      }
-      if (!formData.city.trim()) {
-        newErrors.city = 'La ciudad es obligatoria';
-      }
-      if (!formData.postalCode.trim()) {
-        newErrors.postalCode = 'El código postal es obligatorio';
-      }
+      // If using selected address, no need to validate individual fields
     }
 
     setErrors(newErrors);
@@ -135,13 +207,27 @@ export default function SimpleCheckout() {
   const formatAddress = () => {
     if (formData.deliveryType === 'pickup') return null;
     
+    // If using selected address, format it properly
+    if (selectedAddress && !useNewAddress) {
+      const parts = [
+        selectedAddress.address_line_1,
+        selectedAddress.address_line_2,
+        selectedAddress.city,
+        selectedAddress.state,
+        selectedAddress.postal_code
+      ].filter(part => part && part.trim());
+      
+      return parts.join(', ');
+    }
+    
+    // Otherwise use manual entry
     const parts = [
       formData.street,
       formData.number,
       formData.neighborhood,
       formData.city,
       formData.postalCode
-    ].filter(part => part.trim());
+    ].filter(part => part && part.trim());
     
     return parts.join(', ');
   };
@@ -149,7 +235,15 @@ export default function SimpleCheckout() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Verificar que hay productos en el carrito
+    if (!items || items.length === 0) {
+      toast.error('No hay productos en el carrito');
+      return;
+    }
+    
+    // Validar formulario
     if (!validateForm()) {
+      toast.error('Por favor completa todos los campos obligatorios');
       return;
     }
 
@@ -350,77 +444,159 @@ export default function SimpleCheckout() {
 
               {formData.deliveryType === 'delivery' && (
                 <div className={styles.addressSection}>
-                  <h3>Dirección de Envío *</h3>
-                  
-                  <div className={styles.row}>
-                    <div className={styles.inputGroup}>
-                      <label htmlFor="street">Calle *</label>
-                      <input
-                        type="text"
-                        id="street"
-                        value={formData.street}
-                        onChange={(e) => handleInputChange('street', e.target.value)}
-                        className={errors.street ? styles.error : ''}
-                        placeholder="Nombre de la calle"
-                      />
-                      {errors.street && <span className={styles.errorText}>{errors.street}</span>}
-                    </div>
-
-                    <div className={styles.inputGroup}>
-                      <label htmlFor="number">Número *</label>
-                      <input
-                        type="text"
-                        id="number"
-                        value={formData.number}
-                        onChange={(e) => handleInputChange('number', e.target.value)}
-                        className={errors.number ? styles.error : ''}
-                        placeholder="Número exterior/interior"
-                      />
-                      {errors.number && <span className={styles.errorText}>{errors.number}</span>}
-                    </div>
+                  <div className={styles.addressSectionHeader}>
+                    <h3>Dirección de Envío *</h3>
+                    {isAuthenticated && userAddresses.length > 0 && !showAddressManager && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAddressManager(true)}
+                        className={styles.manageAddressButton}
+                      >
+                        Gestionar Direcciones
+                      </button>
+                    )}
                   </div>
 
-                  <div className={styles.row}>
-                    <div className={styles.inputGroup}>
-                      <label htmlFor="neighborhood">Colonia *</label>
-                      <input
-                        type="text"
-                        id="neighborhood"
-                        value={formData.neighborhood}
-                        onChange={(e) => handleInputChange('neighborhood', e.target.value)}
-                        className={errors.neighborhood ? styles.error : ''}
-                        placeholder="Nombre de la colonia"
-                      />
-                      {errors.neighborhood && <span className={styles.errorText}>{errors.neighborhood}</span>}
+                  {/* Address Manager Modal */}
+                  {showAddressManager && isAuthenticated && (
+                    <div className={styles.addressManagerModal}>
+                      <div className={styles.addressManagerContent}>
+                        <AddressManager
+                          onAddressSelect={handleAddressSelect}
+                          selectedAddress={selectedAddress}
+                          onCancel={() => setShowAddressManager(false)}
+                        />
+                      </div>
                     </div>
+                  )}
 
-                    <div className={styles.inputGroup}>
-                      <label htmlFor="city">Ciudad *</label>
-                      <input
-                        type="text"
-                        id="city"
-                        value={formData.city}
-                        onChange={(e) => handleInputChange('city', e.target.value)}
-                        className={errors.city ? styles.error : ''}
-                        placeholder="Ciudad"
-                      />
-                      {errors.city && <span className={styles.errorText}>{errors.city}</span>}
+                  {/* Selected Address Display */}
+                  {selectedAddress && !useNewAddress && (
+                    <div className={styles.selectedAddressCard}>
+                      <div className={styles.selectedAddressInfo}>
+                        <h4>Dirección Seleccionada:</h4>
+                        <p><strong>{selectedAddress.first_name} {selectedAddress.last_name}</strong></p>
+                        <p>{selectedAddress.address_line_1}</p>
+                        {selectedAddress.address_line_2 && <p>{selectedAddress.address_line_2}</p>}
+                        <p>{selectedAddress.city}, {selectedAddress.state} {selectedAddress.postal_code}</p>
+                        {selectedAddress.phone && <p>📞 {selectedAddress.phone}</p>}
+                      </div>
+                      <div className={styles.selectedAddressActions}>
+                        <button
+                          type="button"
+                          onClick={() => setShowAddressManager(true)}
+                          className={styles.changeAddressButton}
+                        >
+                          Cambiar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedAddress(null);
+                            setUseNewAddress(true);
+                            setFormData(prev => ({
+                              ...prev,
+                              street: '',
+                              number: '',
+                              neighborhood: '',
+                              city: '',
+                              postalCode: ''
+                            }));
+                          }}
+                          className={styles.newAddressButton}
+                        >
+                          Nueva Dirección
+                        </button>
+                      </div>
                     </div>
+                  )}
 
-                    <div className={styles.inputGroup}>
-                      <label htmlFor="postalCode">Código Postal *</label>
-                      <input
-                        type="text"
-                        id="postalCode"
-                        value={formData.postalCode}
-                        onChange={(e) => handleInputChange('postalCode', e.target.value)}
-                        className={errors.postalCode ? styles.error : ''}
-                        placeholder="CP"
-                        maxLength="5"
-                      />
-                      {errors.postalCode && <span className={styles.errorText}>{errors.postalCode}</span>}
+                  {/* Manual Address Entry */}
+                  {(useNewAddress || !selectedAddress || !isAuthenticated) && (
+                    <div className={styles.manualAddressForm}>
+                      {isAuthenticated && userAddresses.length > 0 && (
+                        <div className={styles.addressToggle}>
+                          <button
+                            type="button"
+                            onClick={() => setShowAddressManager(true)}
+                            className={styles.selectExistingButton}
+                          >
+                            Seleccionar Dirección Guardada
+                          </button>
+                        </div>
+                      )}
+                      
+                      <div className={styles.row}>
+                        <div className={styles.inputGroup}>
+                          <label htmlFor="street">Calle *</label>
+                          <input
+                            type="text"
+                            id="street"
+                            value={formData.street}
+                            onChange={(e) => handleInputChange('street', e.target.value)}
+                            className={errors.street ? styles.error : ''}
+                            placeholder="Nombre de la calle"
+                          />
+                          {errors.street && <span className={styles.errorText}>{errors.street}</span>}
+                        </div>
+
+                        <div className={styles.inputGroup}>
+                          <label htmlFor="number">Número *</label>
+                          <input
+                            type="text"
+                            id="number"
+                            value={formData.number}
+                            onChange={(e) => handleInputChange('number', e.target.value)}
+                            className={errors.number ? styles.error : ''}
+                            placeholder="Número exterior/interior"
+                          />
+                          {errors.number && <span className={styles.errorText}>{errors.number}</span>}
+                        </div>
+                      </div>
+
+                      <div className={styles.row}>
+                        <div className={styles.inputGroup}>
+                          <label htmlFor="neighborhood">Colonia *</label>
+                          <input
+                            type="text"
+                            id="neighborhood"
+                            value={formData.neighborhood}
+                            onChange={(e) => handleInputChange('neighborhood', e.target.value)}
+                            className={errors.neighborhood ? styles.error : ''}
+                            placeholder="Nombre de la colonia"
+                          />
+                          {errors.neighborhood && <span className={styles.errorText}>{errors.neighborhood}</span>}
+                        </div>
+
+                        <div className={styles.inputGroup}>
+                          <label htmlFor="city">Ciudad *</label>
+                          <input
+                            type="text"
+                            id="city"
+                            value={formData.city}
+                            onChange={(e) => handleInputChange('city', e.target.value)}
+                            className={errors.city ? styles.error : ''}
+                            placeholder="Ciudad"
+                          />
+                          {errors.city && <span className={styles.errorText}>{errors.city}</span>}
+                        </div>
+
+                        <div className={styles.inputGroup}>
+                          <label htmlFor="postalCode">Código Postal *</label>
+                          <input
+                            type="text"
+                            id="postalCode"
+                            value={formData.postalCode}
+                            onChange={(e) => handleInputChange('postalCode', e.target.value)}
+                            className={errors.postalCode ? styles.error : ''}
+                            placeholder="CP"
+                            maxLength="5"
+                          />
+                          {errors.postalCode && <span className={styles.errorText}>{errors.postalCode}</span>}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
             </div>
@@ -429,18 +605,25 @@ export default function SimpleCheckout() {
             <div className={styles.section}>
               <h2>Método de Pago</h2>
               
+              {formData.deliveryType === 'delivery' && (
+                <div className={styles.paymentNotice}>
+                  <p>⚠️ Para envíos a domicilio, el pago debe ser por transferencia bancaria.</p>
+                </div>
+              )}
+              
               <div className={styles.radioGroup}>
-                <label className={styles.radioOption}>
+                <label className={`${styles.radioOption} ${formData.deliveryType === 'delivery' ? styles.disabled : ''}`}>
                   <input
                     type="radio"
                     name="paymentMethod"
                     value="cash"
                     checked={formData.paymentMethod === 'cash'}
                     onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
+                    disabled={formData.deliveryType === 'delivery'}
                   />
                   <span className={styles.radioLabel}>
                     <strong>Pago Contra Entrega</strong>
-                    <small>Paga cuando recibas tu pedido</small>
+                    <small>{formData.deliveryType === 'delivery' ? 'No disponible para envíos' : 'Paga cuando recibas tu pedido'}</small>
                   </span>
                 </label>
 
@@ -455,6 +638,9 @@ export default function SimpleCheckout() {
                   <span className={styles.radioLabel}>
                     <strong>Transferencia Bancaria</strong>
                     <small>Banco Azteca - Cuenta: 1234 5678 9012 3456</small>
+                    {formData.deliveryType === 'delivery' && (
+                      <small className={styles.required}>* Requerido para envíos</small>
+                    )}
                   </span>
                 </label>
               </div>
@@ -474,10 +660,24 @@ export default function SimpleCheckout() {
               </div>
             </div>
 
+            {/* Debug info - remove in production */}
+            <div style={{ fontSize: '12px', color: '#666', marginBottom: '8px' }}>
+              Debug: Items: {items?.length || 0}, isSubmitting: {isSubmitting.toString()}, 
+              deliveryType: {formData.deliveryType}, paymentMethod: {formData.paymentMethod}
+              {selectedAddress && <span>, Dirección seleccionada: ✓</span>}
+            </div>
+
             <button 
               type="submit" 
               className={styles.submitButton}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !items || items.length === 0}
+              onClick={(e) => {
+                console.log('Button clicked!');
+                console.log('Form data:', formData);
+                console.log('Items:', items);
+                console.log('Is submitting:', isSubmitting);
+                // Don't prevent default - let the form handle submission
+              }}
             >
               {isSubmitting ? 'Procesando...' : 'Confirmar Pedido'}
             </button>

@@ -118,6 +118,15 @@ export function CartProvider({ children }) {
       const localCart = state.items;
       
       if (localCart.length > 0) {
+        // Clear existing cart in database first to avoid duplicates
+        await apiRequest('/api/cart', {
+          method: 'DELETE',
+          body: JSON.stringify({
+            clearAll: true,
+            userId: user.id
+          })
+        });
+
         // Sync local cart items to database
         for (const item of localCart) {
           try {

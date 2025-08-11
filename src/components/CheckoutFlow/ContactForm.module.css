@@ -299,3 +299,72 @@
     font-size: 11px;
   }
 }
+
+/* Address Management Styles */
+.addressSection {
+  margin: 16px 0;
+}
+
+.addressSelection {
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  background: #f9fafb;
+}
+
+.addressHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.manageAddressButton {
+  background: #059669;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.manageAddressButton:hover {
+  background: #047857;
+}
+
+.selectedAddress {
+  background: white;
+  border: 2px solid #059669;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.addressText {
+  margin: 0 0 8px 0;
+  color: #1f2937;
+  line-height: 1.5;
+}
+
+.phoneText {
+  margin: 4px 0 0 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.noAddressSelected {
+  text-align: center;
+  padding: 24px;
+  color: #6b7280;
+}
+
+.noAddressSelected p {
+  margin: 4px 0;
+}
+
+.hint {
+  font-size: 14px;
+  color: #9ca3af;
+}
