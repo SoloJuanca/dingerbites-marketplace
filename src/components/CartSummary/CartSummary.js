@@ -1,11 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import { useCart } from '../../lib/CartContext';
+import { useAuth } from '../../lib/AuthContext';
 import Link from 'next/link';
 import styles from './CartSummary.module.css';
 
 export default function CartSummary() {
-  const { getTotalPrice, items } = useCart();
+  const { getTotalPrice, items, clearCart } = useCart();
+  const { user, apiRequest } = useAuth();
+  const [isClearing, setIsClearing] = useState(false);
 
   const deliveryFee = 120; // Envío estándar
   const subtotal = getTotalPrice();
@@ -17,6 +21,40 @@ export default function CartSummary() {
       currency: 'MXN',
       minimumFractionDigits: 0,
     }).format(price);
+  };
+
+  const handleClearCart = async () => {
+    if (!window.confirm('¿Estás seguro de que quieres vaciar el carrito? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    setIsClearing(true);
+
+    try {
+      if (user && apiRequest) {
+        // Clear cart from database for authenticated users
+        const response = await apiRequest('/api/cart', {
+          method: 'DELETE',
+          body: JSON.stringify({ userId: user.id, clearAll: true })
+        });
+        
+        if (response.ok) {
+          clearCart();
+        } else {
+          // Fallback to local clear even if API fails
+          clearCart();
+        }
+      } else {
+        // Guest user - just clear local storage
+        clearCart();
+      }
+    } catch (error) {
+      console.error('Error clearing cart:', error);
+      // Fallback to local clear
+      clearCart();
+    } finally {
+      setIsClearing(false);
+    }
   };
 
   return (
@@ -48,6 +86,15 @@ export default function CartSummary() {
       <Link href="/checkout" className={styles.checkoutButton}>
         Continuar al Checkout
       </Link>
+
+      {/* Botón para vaciar carrito */}
+      <button 
+        onClick={handleClearCart}
+        disabled={isClearing}
+        className={styles.clearCartButton}
+      >
+        {isClearing ? 'Vaciando...' : '🗑️ Vaciar Carrito'}
+      </button>
 
       {/* Información adicional */}
       <div className={styles.additionalInfo}>

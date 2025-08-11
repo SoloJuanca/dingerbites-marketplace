@@ -120,15 +120,20 @@ export function CartProvider({ children }) {
       if (localCart.length > 0) {
         // Sync local cart items to database
         for (const item of localCart) {
-          await apiRequest('/api/cart', {
-            method: 'POST',
-            body: JSON.stringify({
-              productId: item.id,
-              quantity: item.quantity,
-              variantId: item.variantId || null,
-              userId: user.id
-            })
-          });
+          try {
+            await apiRequest('/api/cart', {
+              method: 'POST',
+              body: JSON.stringify({
+                productId: item.id,
+                quantity: item.quantity,
+                variantId: item.variantId || null,
+                userId: user.id
+              })
+            });
+          } catch (itemError) {
+            console.error(`Error syncing item ${item.id}:`, itemError);
+            // Continue with other items even if one fails
+          }
         }
         
         // Clear local cart after syncing
@@ -156,33 +161,39 @@ export function CartProvider({ children }) {
   }, [state.items]);
 
   // Add item to cart with database sync
-  const addToCartWithSync = useCallback(async (product, user, apiRequest) => {
+  const addToCartWithSync = useCallback(async (product, user, apiRequest, quantity = 1) => {
     if (user && apiRequest) {
       try {
         const response = await apiRequest('/api/cart', {
           method: 'POST',
           body: JSON.stringify({
             productId: product.id,
-            quantity: 1,
+            quantity: quantity,
             variantId: product.variantId || null,
             userId: user.id
           })
         });
         
         if (response.ok) {
-          // Update local state
-          addToCart(product);
+          // Update local state with correct quantity
+          for (let i = 0; i < quantity; i++) {
+            addToCart(product);
+          }
         }
       } catch (error) {
         console.error('Error adding to cart:', error);
         // Fallback to local storage
-        addToCart(product);
+        for (let i = 0; i < quantity; i++) {
+          addToCart(product);
+        }
       }
     } else {
       // Guest user - use local storage
-      addToCart(product);
+      for (let i = 0; i < quantity; i++) {
+        addToCart(product);
+      }
     }
-  }, [addToCart]);
+  }, []);
 
   // Remove item from cart with database sync
   const removeFromCartWithSync = useCallback(async (productId, user, apiRequest) => {
@@ -200,9 +211,18 @@ export function CartProvider({ children }) {
             });
             
             if (response.ok) {
+              // Only update local state if API call was successful
               removeFromCart(productId);
+            } else {
+              console.error('Failed to remove from database, keeping local item');
             }
+          } else {
+            // Item not found in database, remove from local storage anyway
+            removeFromCart(productId);
           }
+        } else {
+          // Can't fetch cart, remove from local storage anyway
+          removeFromCart(productId);
         }
       } catch (error) {
         console.error('Error removing from cart:', error);
@@ -213,7 +233,7 @@ export function CartProvider({ children }) {
       // Guest user - use local storage
       removeFromCart(productId);
     }
-  }, [removeFromCart]);
+  }, []);
 
   // Update quantity with database sync
   const updateQuantityWithSync = useCallback(async (productId, quantity, user, apiRequest) => {
@@ -237,8 +257,16 @@ export function CartProvider({ children }) {
             
             if (response.ok) {
               updateQuantity(productId, quantity);
+            } else {
+              console.error('Failed to update quantity in database');
             }
+          } else {
+            // Item not found in database, update local anyway
+            updateQuantity(productId, quantity);
           }
+        } else {
+          // Can't fetch cart, update local anyway
+          updateQuantity(productId, quantity);
         }
       } catch (error) {
         console.error('Error updating quantity:', error);
@@ -249,7 +277,7 @@ export function CartProvider({ children }) {
       // Guest user - use local storage
       updateQuantity(productId, quantity);
     }
-  }, [updateQuantity]);
+  }, []);
 
   const value = {
     items: state.items,

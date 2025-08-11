@@ -38,7 +38,6 @@ export default function AdminUsers() {
   }, [filters, pagination.page, isAuthenticated]);
 
   const loadUsers = async () => {
-    console.log("loadUsers");
     try {
       setLoading(true);
       const params = new URLSearchParams({
@@ -52,10 +51,8 @@ export default function AdminUsers() {
       if (filters.search) params.append('search', filters.search);
 
       const response = await apiRequest(`/api/admin/users?${params.toString()}`);
-      console.log("response", response);
       if (response.ok) {
         const data = await response.json();
-        console.log("data", data);
         setUsers(data.users);
         setPagination(prev => ({
           ...prev,

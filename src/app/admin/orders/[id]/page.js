@@ -32,7 +32,7 @@ export default function AdminOrderDetail() {
       if (response.ok) {
         const data = await response.json();
         setOrder(data.order);
-        setOrderItems(data.orderItems || []);
+        setOrderItems(data.items || []);
       } else {
         toast.error('Error al cargar el pedido');
         router.push('/admin/orders');
@@ -192,10 +192,17 @@ export default function AdminOrderDetail() {
             <h2>Información del Cliente</h2>
             <div className={styles.customerInfo}>
               <div className={styles.customerDetails}>
-                <h3>{order.customer_name || 'Cliente Invitado'}</h3>
+                <h3>{
+                  order.first_name && order.last_name ? 
+                    `${order.first_name} ${order.last_name}` : 
+                    'Cliente Invitado'
+                }</h3>
                 <p><strong>Email:</strong> {order.customer_email}</p>
                 {order.customer_phone && (
                   <p><strong>Teléfono:</strong> {order.customer_phone}</p>
+                )}
+                {order.phone && !order.customer_phone && (
+                  <p><strong>Teléfono:</strong> {order.phone}</p>
                 )}
                 {order.user_id && (
                   <p><strong>Usuario Registrado:</strong> Sí</p>
@@ -213,7 +220,10 @@ export default function AdminOrderDetail() {
                   <div key={index} className={styles.orderItem}>
                     <div className={styles.itemInfo}>
                       <h4>{item.product_name || 'Producto'}</h4>
-                      <p><strong>SKU:</strong> {item.sku || 'N/A'}</p>
+                      <p><strong>SKU:</strong> {item.product_sku || item.variant_sku || 'N/A'}</p>
+                      {item.variant_name && (
+                        <p><strong>Variante:</strong> {item.variant_name}</p>
+                      )}
                       <p><strong>Cantidad:</strong> {item.quantity}</p>
                       <p><strong>Precio Unitario:</strong> {formatCurrency(item.unit_price)}</p>
                     </div>

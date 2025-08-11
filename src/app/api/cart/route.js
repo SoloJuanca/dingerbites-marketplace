@@ -211,7 +211,7 @@ export async function PUT(request) {
   }
 }
 
-// DELETE /api/cart - Remove item from cart
+// DELETE /api/cart - Remove item from cart or clear entire cart
 export async function DELETE(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -219,6 +219,37 @@ export async function DELETE(request) {
     const userId = searchParams.get('userId');
     const sessionId = searchParams.get('sessionId');
 
+    // Check if it's a request to clear entire cart
+    let body = null;
+    try {
+      body = await request.json();
+    } catch (e) {
+      // No body, continue with normal deletion
+    }
+
+    if (body && body.clearAll) {
+      // Clear entire cart
+      if (!body.userId && !sessionId) {
+        return NextResponse.json(
+          { error: 'User ID or session ID required to clear cart' },
+          { status: 400 }
+        );
+      }
+
+      const clearQuery = `
+        DELETE FROM cart_items 
+        WHERE user_id = $1 OR session_id = $2
+      `;
+
+      await query(clearQuery, [body.userId, sessionId]);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Cart cleared successfully'
+      });
+    }
+
+    // Normal item deletion
     if (!cartItemId || (!userId && !sessionId)) {
       return NextResponse.json(
         { error: 'Cart item ID and user ID or session ID required' },

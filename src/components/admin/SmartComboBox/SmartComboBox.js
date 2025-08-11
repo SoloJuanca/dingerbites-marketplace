@@ -15,10 +15,6 @@ export default function SmartComboBox({
   onOptionsUpdate,
   disabled = false 
 }) {
-  // Debug logging (only if options is not an array or empty)
-  if (!Array.isArray(options) || (Array.isArray(options) && options.length === 0)) {
-    console.log('SmartComboBox received options:', options, 'Type:', typeof options, 'IsArray:', Array.isArray(options));
-  }
   const { apiRequest } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,9 +24,6 @@ export default function SmartComboBox({
   const dropdownRef = useRef(null);
 
   useEffect(() => {
-    console.log('SmartComboBox options:', options);
-    console.log('SmartComboBox filteredOptions:', filteredOptions);
-    // Ensure options is always an array
     const safeOptions = Array.isArray(options) ? options : [];
     setFilteredOptions(
       safeOptions.filter(option => 
@@ -64,7 +57,6 @@ export default function SmartComboBox({
     setSearchTerm(value);
     setIsOpen(true);
     
-    // If the input matches an existing option exactly, select it
     const exactMatch = safeOptions.find(option => 
       option && option.name && option.name.toLowerCase() === value.toLowerCase()
     );

@@ -32,7 +32,6 @@ export default function CartItems() {
       </div>
       
       <div className={styles.itemsList}>
-        {console.log("items", items)}
         {items.map((item) => (
           <div key={item.id} className={styles.cartItem}>
             <div className={styles.itemImage}>

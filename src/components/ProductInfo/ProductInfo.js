@@ -145,7 +145,6 @@ function getDefaultFeatures(category) {
 }
 
 function formatDate(dateString, isClient = true) {
-  console.log(dateString);
   if (!isClient) return new Date(dateString).toLocaleDateString();
   return new Date(dateString).toLocaleDateString('es-MX', {
     year: 'numeric',

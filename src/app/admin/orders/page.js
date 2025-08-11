@@ -48,7 +48,7 @@ export default function AdminOrders() {
       
       if (response.ok) {
         const data = await response.json();
-        setOrders(data.orders.rows);
+        setOrders(data.orders);
         setPagination(prev => ({
           ...prev,
           total: data.pagination.total,

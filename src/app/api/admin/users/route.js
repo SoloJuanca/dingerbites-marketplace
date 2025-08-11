@@ -4,11 +4,9 @@ import { authenticateAdmin } from '../../../../lib/auth';
 
 // GET /api/admin/users - Get users with admin features (admin only)
 export async function GET(request) {
-  console.log("GET /api/admin/users");
   try {
     // Authenticate admin
     const authResult = await authenticateAdmin(request);
-    console.log("authResult", authResult);
     if (!authResult.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },

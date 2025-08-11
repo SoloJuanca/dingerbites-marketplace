@@ -21,7 +21,7 @@ export default function CartSync() {
     if (!isAuthenticated) {
       hasSync.current = false;
     }
-  }, [isAuthenticated, user?.id]); // Only depend on auth state and user ID
+  }, [isAuthenticated, user?.id, syncCartWithDatabase, apiRequest]); // Proper dependencies
 
   // This component doesn't render anything
   return null;

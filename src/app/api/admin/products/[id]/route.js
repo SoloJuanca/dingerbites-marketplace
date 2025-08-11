@@ -55,7 +55,6 @@ export async function GET(request, { params }) {
     `;
 
     const product = await getRow(productQuery, [id]);
-    console.log("product-images", product);
     if (!product) {
       return NextResponse.json(
         { error: 'Product not found' },
@@ -90,7 +89,6 @@ export async function PUT(request, { params }) {
     }
 
     const { id } = params;
-    console.log('PUT /api/admin/products/[id] called for product ID:', id, 'Type:', typeof id);
     const body = await request.json();
 
     // Check if product exists
@@ -132,8 +130,6 @@ export async function PUT(request, { params }) {
       images,
       features
     } = body;
-
-    console.log('Features received in request:', features, 'Type:', typeof features);
 
     // Validate required fields
     if (!name || !slug) {
@@ -252,7 +248,6 @@ export async function PUT(request, { params }) {
     // Handle product features if provided
     if (features !== undefined) {
       try {
-        console.log('Calling updateProductFeatures with id:', id, 'and features:', features);
         await updateProductFeatures(id, features || []);
       } catch (featuresError) {
         console.error('Error updating product features:', featuresError);

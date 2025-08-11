@@ -43,16 +43,14 @@ export default function ProductSummary({ product }) {
   const handleAddToCart = async () => {
     setIsAddingToCart(true);
     
-    // Add the quantity as individual items
-    for (let i = 0; i < quantity; i++) {
-      await addToCartWithSync({
-        id: product.id,
-        name: product.name,
-        description: product.description,
-        price: product.price,
-        image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null)
-      }, user, apiRequest);
-    }
+    // Add the quantity as a single operation
+    await addToCartWithSync({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null)
+    }, user, apiRequest, quantity);
     
     // Simular feedback visual
     setTimeout(() => {
@@ -61,16 +59,15 @@ export default function ProductSummary({ product }) {
   };
 
   const handleBuyNow = async () => {
-    // Add the quantity as individual items
-    for (let i = 0; i < quantity; i++) {
-      await addToCartWithSync({
-        id: product.id,
-        name: product.name,
-        description: product.description,
-        price: product.price,
-        image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null)
-      }, user, apiRequest);
-    }
+    // Add the quantity as a single operation
+    await addToCartWithSync({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null)
+    }, user, apiRequest, quantity);
+    
     // Aquí iría la navegación al checkout
     window.location.href = '/cart';
   };

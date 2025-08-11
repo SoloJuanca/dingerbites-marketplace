@@ -45,10 +45,8 @@ export default function ProductsPage() {
       });
 
       const response = await apiRequest(`/api/admin/products?${params}`);
-      console.log("response", response);
       if (response.ok) {
         const data = await response.json();
-        console.log("data", data);
         setProducts(data.products.rows || []);
         setPagination(prev => ({
           ...prev,

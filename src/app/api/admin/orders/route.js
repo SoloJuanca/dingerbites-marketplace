@@ -7,7 +7,7 @@ export async function GET(request) {
   try {
     // Authenticate admin
     const authResult = await authenticateAdmin(request);
-    if (!authResult.success) {
+    if (!authResult) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }

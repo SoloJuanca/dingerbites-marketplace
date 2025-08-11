@@ -189,6 +189,7 @@ CREATE TABLE service_categories (
 CREATE TABLE services (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
+    slug TEXT NOT NULL,
     description TEXT,
     short_description VARCHAR(500),
     image_url VARCHAR(500),

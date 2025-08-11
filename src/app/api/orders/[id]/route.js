@@ -35,13 +35,13 @@ export async function GET(request, { params }) {
       WHERE oi.order_id = $1
       ORDER BY oi.created_at ASC
     `;
-
+    console.log("orderItemsQuery", orderItemsQuery);
     const orderItems = await getRows(orderItemsQuery, [id]);
-
+    console.log("orderItems", orderItems);
     // Get order service items
     const orderServiceItemsQuery = `
       SELECT osi.*, s.name as service_name, s.slug as service_slug,
-             ss.schedule_date, ss.start_time, ss.end_time
+             ss.date, ss.start_time, ss.end_time
       FROM order_service_items osi
       LEFT JOIN services s ON osi.service_id = s.id
       LEFT JOIN service_schedules ss ON osi.service_schedule_id = ss.id
@@ -70,7 +70,7 @@ export async function GET(request, { params }) {
     });
 
   } catch (error) {
-    console.error('Error fetching order:', error);
+    console.error('Error fetching orderdwu:', error);
     return NextResponse.json(
       { error: 'Failed to fetch order' },
       { status: 500 }

@@ -41,7 +41,6 @@ export async function comparePassword(password, hashedPassword) {
 // Get user from token
 export async function getUserFromToken(token) {
   const decoded = verifyToken(token);
-  console.log('decoded', decoded);
   if (!decoded) {
     return null;
   }
@@ -50,7 +49,6 @@ export async function getUserFromToken(token) {
     'SELECT id, email, first_name, last_name, role, is_active FROM users WHERE id = $1',
     [decoded.userId]
   );
-  console.log('user', user);
 
   return user && user.is_active ? user : null;
 }
@@ -58,7 +56,6 @@ export async function getUserFromToken(token) {
 // Middleware helper for API routes
 export async function authenticateUser(request) {
   const authHeader = request.headers.get('authorization');
-  console.log('authHeader', authHeader);
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null;
   }

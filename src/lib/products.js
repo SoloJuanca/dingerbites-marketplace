@@ -363,8 +363,6 @@ export async function updateProductFeatures(productId, features) {
       console.error('Invalid productId provided to updateProductFeatures:', productId);
       throw new Error('Invalid product ID provided for feature update. Cannot proceed.');
     }
-
-    console.log('updateProductFeatures called with productId:', productId, 'and features:', features);
     
     // Get existing features
     const existingFeatures = await getRows(
@@ -380,9 +378,7 @@ export async function updateProductFeatures(productId, features) {
     
     // Find features to remove (ones that no longer exist)
     const newFeatureTexts = newFeatures.map(f => f.trim().toLowerCase());
-    console.log("newFeatureTexts", newFeatureTexts);
     const featuresToRemove = existingFeatures.filter(f => !newFeatureTexts.includes(f.feature_text.toLowerCase()));
-    console.log("featuresToRemove", featuresToRemove);
     
     // Remove deleted features
     if (featuresToRemove.length > 0) {

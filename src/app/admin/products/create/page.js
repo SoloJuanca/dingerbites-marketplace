@@ -58,9 +58,6 @@ export default function CreateProductPage() {
   const [validationErrors, setValidationErrors] = useState({});
 
   useEffect(() => {
-    console.log('Current user:', user);
-    console.log('User role:', user?.role);
-    console.log('Is authenticated:', isAuthenticated);
     if (isAuthenticated) {
       loadCategories();
       loadBrands();
@@ -72,8 +69,6 @@ export default function CreateProductPage() {
       const response = await apiRequest('/api/admin/categories');
       if (response.ok) {
         const data = await response.json();
-        console.log('Categories loaded:', data);
-        console.log('Categories array:', data.categories.rows);
         
         const categories = Array.isArray(data.categories.rows) ? data.categories.rows : [];
         setCategories(categories);
@@ -98,8 +93,6 @@ export default function CreateProductPage() {
       const response = await apiRequest('/api/admin/brands');
       if (response.ok) {
         const data = await response.json();
-        console.log('Brands loaded:', data);
-        console.log('Brands array:', data.brands.rows);
         
         const brands = Array.isArray(data.brands.rows) ? data.brands.rows : [];
         setBrands(brands);
