@@ -231,7 +231,7 @@ export default function ContactForm({
                 ) : (
                   <div className={styles.noAddressSelected}>
                     <p>No hay dirección seleccionada</p>
-                    <p className={styles.hint}>Haz clic en "Gestionar Direcciones" para seleccionar una dirección</p>
+                    <p className={styles.hint}>Haz clic en &quot;Gestionar Direcciones&quot; para seleccionar una dirección</p>
                   </div>
                 )}
               </div>

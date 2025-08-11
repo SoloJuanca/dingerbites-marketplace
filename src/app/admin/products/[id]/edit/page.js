@@ -72,8 +72,6 @@ export default function EditProductPage() {
     }
   }, [productId, user]);
   
-  console.log("formData", formData);
-
   const loadProduct = async () => {
     setLoadingProduct(true);
     try {
@@ -317,7 +315,6 @@ export default function EditProductPage() {
       if (featuresChanged) {
         productData.features = formData.features.split('\n').map(feature => feature.trim()).filter(feature => feature);
       }
-      console.log("productData", productData);
       const response = await apiRequest(`/api/admin/products/${productId}`, {
         method: 'PUT',
         headers: {
@@ -325,7 +322,6 @@ export default function EditProductPage() {
         },
         body: JSON.stringify(productData)
       });
-      console.log("response", response);
       if (response.ok) {
         toast.success('Cambios guardados exitosamente');
       } else {
