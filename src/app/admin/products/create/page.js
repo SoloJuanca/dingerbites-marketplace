@@ -54,6 +54,8 @@ export default function CreateProductPage() {
     meta_description: '',
     images: []
   });
+  const [barcodeBuffer, setBarcodeBuffer] = useState('');
+  const [lastKeyTime, setLastKeyTime] = useState(0);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
 
@@ -63,6 +65,47 @@ export default function CreateProductPage() {
       loadBrands();
     }
   }, [user, isAuthenticated]);
+
+  // Barcode scanner functionality
+  useEffect(() => {
+    const handleBarcodeKeypress = (e) => {
+      const currentTime = Date.now();
+      const timeDiff = currentTime - lastKeyTime;
+      
+      // Detect if this is a barcode scanner input (rapid keystrokes)
+      // Barcode scanners typically input at 200+ characters per second
+      const isScanner = timeDiff < 100 && e.key.length === 1;
+      
+      setLastKeyTime(currentTime);
+      
+      if (isScanner || (timeDiff < 100 && barcodeBuffer.length > 0)) {
+        // Add character to buffer
+        setBarcodeBuffer(prev => prev + e.key);
+        e.preventDefault();
+      } else if (e.key === 'Enter' && barcodeBuffer.length > 0) {
+        // Scanner finished - process barcode
+        const barcode = barcodeBuffer.trim();
+        if (barcode.length >= 8) { // Minimum barcode length
+          setFormData(prev => ({
+            ...prev,
+            barcode: barcode
+          }));
+          toast.success(`Código de barras escaneado: ${barcode}`);
+        }
+        setBarcodeBuffer('');
+        e.preventDefault();
+      } else if (timeDiff > 500) {
+        // Reset buffer if too much time has passed
+        setBarcodeBuffer('');
+      }
+    };
+
+    document.addEventListener('keypress', handleBarcodeKeypress);
+    
+    return () => {
+      document.removeEventListener('keypress', handleBarcodeKeypress);
+    };
+  }, [barcodeBuffer, lastKeyTime]);
 
   const loadCategories = async () => {
     try {
@@ -116,10 +159,20 @@ export default function CreateProductPage() {
     const { name, value, type, checked } = e.target;
     const newValue = type === 'checkbox' ? checked : value;
     
-    setFormData(prev => ({
-      ...prev,
-      [name]: newValue
-    }));
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        [name]: newValue
+      };
+
+      // Auto-generate SKU when name or category changes
+      if ((name === 'name' || name === 'category_id') && (updated.name && updated.category_id)) {
+        const newSKU = generateSKUFromData(updated);
+        updated.sku = newSKU;
+      }
+
+      return updated;
+    });
 
     // Auto-generate slug when name changes
     if (name === 'name') {
@@ -146,16 +199,16 @@ export default function CreateProductPage() {
     setBrands(prev => [...prev, newBrand]);
   };
 
-  const generateSKU = () => {
-    if (!formData.name || !formData.category_id) return '';
+  const generateSKUFromData = (data) => {
+    if (!data.name || !data.category_id) return '';
     
-    const categoryName = categories.find(cat => cat.id === formData.category_id)?.name || '';
-    const brandName = brands.find(brand => brand.id === formData.brand_id)?.name || '';
+    const categoryName = categories.find(cat => cat.id === data.category_id)?.name || '';
+    const brandName = brands.find(brand => brand.id === data.brand_id)?.name || '';
     
     // Extract first 3 letters from each component
     const categoryCode = categoryName.substring(0, 3).toUpperCase();
     const brandCode = brandName ? brandName.substring(0, 3).toUpperCase() : '';
-    const productCode = formData.name.substring(0, 3).toUpperCase();
+    const productCode = data.name.substring(0, 3).toUpperCase();
     
     // Generate random 3-digit number
     const randomNum = Math.floor(Math.random() * 900) + 100;
@@ -165,6 +218,10 @@ export default function CreateProductPage() {
     return skuParts.join('-');
   };
 
+  const generateSKU = () => {
+    return generateSKUFromData(formData);
+  };
+
   const validateStep = (step) => {
     const errors = {};
 
@@ -172,7 +229,7 @@ export default function CreateProductPage() {
       case 1:
         if (!formData.name.trim()) errors.name = 'El nombre es requerido';
         if (!formData.category_id) errors.category_id = 'La categoría es requerida';
-        if (!formData.sku.trim()) errors.sku = 'El SKU es requerido';
+        // SKU is no longer required - it's auto-generated
         break;
       case 2:
         if (!formData.price || parseFloat(formData.price) <= 0) {
@@ -591,28 +648,15 @@ export default function CreateProductPage() {
                 <div className={styles.skuPreview}>
                   <h4>SKU Generado Automáticamente</h4>
                   <div className={styles.skuDisplay}>
-                    <span className={styles.skuCode}>{generateSKU() || 'SKU-PENDIENTE'}</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newSKU = generateSKU();
-                        if (newSKU) {
-                          setFormData(prev => ({ ...prev, sku: newSKU }));
-                          toast.success('SKU generado automáticamente');
-                        } else {
-                          toast.error('Completa el nombre y categoría primero');
-                        }
-                      }}
-                      className={styles.generateButton}
-                      disabled={!formData.name || !formData.category_id}
-                    >
-                      🔄 Generar SKU
-                    </button>
+                    <span className={styles.skuCode}>{formData.sku || 'Completa nombre y categoría para generar SKU'}</span>
+                    <div className={styles.autoIndicator}>
+                      ⚡ Generación automática
+                    </div>
                   </div>
                   
-                  {generateSKU() && (
+                  {formData.sku && (
                     <div className={styles.skuBreakdown}>
-                      <p><strong>Componentes:</strong></p>
+                      <p><strong>Componentes del SKU:</strong></p>
                       <div className={styles.skuParts}>
                         <div className={styles.skuPart}>
                           <span className={styles.partLabel}>Categoría</span>
@@ -636,7 +680,9 @@ export default function CreateProductPage() {
                         </div>
                         <div className={styles.skuPart}>
                           <span className={styles.partLabel}>Número</span>
-                          <span className={styles.partValue}>XXX</span>
+                          <span className={styles.partValue}>
+                            {formData.sku ? formData.sku.split('-').pop() : 'XXX'}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -647,8 +693,8 @@ export default function CreateProductPage() {
               <div className={styles.fieldRow}>
                 <div className={styles.field}>
                   <label htmlFor="sku">
-                    SKU (Código de Producto) *
-                    <Tooltip content="SKU significa 'Stock Keeping Unit'. Es un código único que identifica este producto en tu inventario.">
+                    SKU (Código de Producto)
+                    <Tooltip content="SKU significa 'Stock Keeping Unit'. Se genera automáticamente cuando completas el nombre y categoría.">
                       <span className={styles.helpIcon}>?</span>
                     </Tooltip>
                   </label>
@@ -658,20 +704,19 @@ export default function CreateProductPage() {
                     name="sku"
                     value={formData.sku}
                     onChange={handleInputChange}
-                    required
-                    className={`${styles.input} ${validationErrors.sku ? styles.inputError : ''}`}
-                    placeholder="Ej: ELE-APP-IPH-123"
+                    readOnly
+                    className={`${styles.input} ${styles.inputReadonly}`}
+                    placeholder="Se generará automáticamente..."
                   />
-                  {validationErrors.sku && <span className={styles.errorText}>{validationErrors.sku}</span>}
                   <small className={styles.helpText}>
-                    Puedes usar el SKU generado automáticamente o crear uno personalizado.
+                    El SKU se genera automáticamente basado en la categoría, marca (opcional) y nombre del producto.
                   </small>
                 </div>
 
                 <div className={styles.field}>
                   <label htmlFor="barcode">
-                    Código de Barras
-                    <Tooltip content="Código de barras del producto para escaneo en tienda (opcional). También llamado EAN o UPC">
+                    Código de Barras (Opcional)
+                    <Tooltip content="Escanea el código de barras del producto o escríbelo manualmente. Compatible con escáneres automáticos.">
                       <span className={styles.helpIcon}>?</span>
                     </Tooltip>
                   </label>
@@ -682,8 +727,11 @@ export default function CreateProductPage() {
                     value={formData.barcode}
                     onChange={handleInputChange}
                     className={styles.input}
-                    placeholder="Ej: 1234567890123"
+                    placeholder="Escanea con tu lector o escribe manualmente..."
                   />
+                  <small className={styles.helpText}>
+                    📱 Usa tu escáner de códigos de barras para llenar automáticamente este campo.
+                  </small>
                 </div>
               </div>
             </div>
@@ -691,9 +739,10 @@ export default function CreateProductPage() {
             <div className={styles.infoCard}>
               <h4>💡 Tips para este paso</h4>
               <ul>
-                <li>• Completa primero el <strong>nombre</strong> y <strong>categoría</strong> para generar el SKU automáticamente</li>
+                <li>• El <strong>SKU se genera automáticamente</strong> al completar nombre y categoría</li>
+                <li>• <strong>Escáner de códigos:</strong> Usa tu lector para llenar automáticamente el código de barras</li>
+                <li>• El <strong>código de barras es opcional</strong> - no todos los productos lo tienen</li>
                 <li>• Las <strong>etiquetas</strong> ayudan a los clientes a encontrar tu producto</li>
-                <li>• El <strong>SKU</strong> debe ser único en todo tu inventario</li>
                 <li>• Puedes crear nuevas categorías y marcas directamente desde los campos de búsqueda</li>
                 <li>• 📝 <strong>Borrador automático:</strong> Tu progreso se guarda automáticamente al avanzar pasos</li>
               </ul>

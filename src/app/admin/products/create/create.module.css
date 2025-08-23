@@ -280,6 +280,18 @@
   box-shadow: 0 0 0 3px rgba(245, 101, 101, 0.1);
 }
 
+.inputReadonly {
+  background: #f7fafc;
+  color: #4a5568;
+  cursor: not-allowed;
+  border-color: #e2e8f0;
+}
+
+.inputReadonly:focus {
+  border-color: #e2e8f0;
+  box-shadow: none;
+}
+
 .errorText {
   color: #f56565;
   font-size: 12px;
@@ -801,6 +813,18 @@
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+}
+
+.autoIndicator {
+  background: #16a34a;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
 .skuBreakdown {
