@@ -19,14 +19,14 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: {
-    default: "E-Commerce - Tienda Online",
-    template: "%s | E-Commerce"
+    default: "Patito Montenegro",
+    template: "%s | Patito Montenegro"
   },
-  description: "Tu tienda online de confianza con los mejores productos y precios. Encuentra productos frescos, electrónicos y más.",
-  keywords: ["tienda online", "e-commerce", "productos", "compras", "México"],
-  authors: [{ name: "E-Commerce Team" }],
-  creator: "E-Commerce",
-  publisher: "E-Commerce",
+  description: "Tu tienda online de confianza con los mejores productos de uñas y belleza en México.",
+  keywords: ["tienda online", "e-commerce", "productos", "compras", "México", "uñas", "belleza", "Nuevo León", "Monterrey", "Guadalupe"],
+  authors: [{ name: "Patito Montenegro" }],
+  creator: "Patito Montenegro",
+  publisher: "Patito Montenegro",
   formatDetection: {
     email: false,
     address: false,
@@ -34,18 +34,18 @@ export const metadata = {
   },
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'),
   openGraph: {
-    title: "E-Commerce - Tienda Online",
-    description: "Tu tienda online de confianza con los mejores productos y precios",
+    title: "Patito Montenegro",
+    description: "Tu tienda online de confianza con los mejores productos de uñas y belleza en México.",
     url: "/",
-    siteName: "E-Commerce",
+    siteName: "Patito Montenegro",
     locale: "es_MX",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "E-Commerce - Tienda Online",
-    description: "Tu tienda online de confianza con los mejores productos y precios",
-    creator: "@ecommerce",
+    title: "Patito Montenegro",
+    description: "Tu tienda online de confianza con los mejores productos de uñas y belleza en México.",
+    creator: "@patitomontenegro",
   },
   robots: {
     index: true,
