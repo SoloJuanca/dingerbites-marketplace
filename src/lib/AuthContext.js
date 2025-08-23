@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useContext, useReducer, useEffect } from 'react';
+import { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import { isTokenExpired, shouldRefreshToken } from './auth-client';
 
 const AuthContext = createContext();
 
@@ -53,29 +54,180 @@ const initialState = {
 export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Load auth state from localStorage on initialization
-  useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    const userString = localStorage.getItem('auth_user');
-    
-    if (token && userString) {
-      try {
-        const user = JSON.parse(userString);
-        dispatch({ 
-          type: 'LOGIN', 
-          payload: { user, token } 
-        });
-      } catch (error) {
-        console.error('Error loading auth state:', error);
-        // Clear corrupted data
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('auth_user');
-        dispatch({ type: 'SET_LOADING', payload: false });
+  // Logout function
+  const logout = useCallback(() => {
+    console.log('🚪 Logging out user...');
+    console.log('Current auth state before logout:', {
+      isAuthenticated: state.isAuthenticated,
+      hasToken: !!state.token,
+      hasUser: !!state.user
+    });
+    dispatch({ type: 'LOGOUT' });
+    console.log('✅ Logout dispatch completed');
+  }, [state.isAuthenticated, state.token, state.user]);
+
+  // Token refresh function
+  const refreshToken = useCallback(async () => {
+    if (!state.token) return false;
+
+    try {
+      const response = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${state.token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        // Token refresh failed, logout user
+        logout();
+        return false;
       }
-    } else {
-      dispatch({ type: 'SET_LOADING', payload: false });
+
+      const data = await response.json();
+      dispatch({ 
+        type: 'LOGIN', 
+        payload: { user: data.user, token: data.token } 
+      });
+      return true;
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      logout();
+      return false;
+    }
+  }, [state.token, logout]);
+
+  // Validate token with server
+  const validateTokenWithServer = useCallback(async (token) => {
+    console.log('🔍 Validating token with server...');
+    try {
+      const response = await fetch('/api/auth/validate', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      console.log('📋 Server validation response:', {
+        status: response.status,
+        valid: data.valid,
+        error: data.error
+      });
+      return data.valid;
+    } catch (error) {
+      console.error('❌ Error validating token with server:', error);
+      return false;
     }
   }, []);
+
+  // Check token expiration and refresh if needed
+  const checkTokenExpiration = useCallback(async () => {
+    if (!state.token) return;
+
+    // If token is expired, logout immediately
+    if (isTokenExpired(state.token)) {
+      console.log('Token expired, logging out user');
+      logout();
+      return;
+    }
+
+    // Validate token with server
+    const isValidOnServer = await validateTokenWithServer(state.token);
+    if (!isValidOnServer) {
+      console.log('Token invalid on server, logging out user');
+      logout();
+      return;
+    }
+
+    // If token should be refreshed (expires within 24 hours), refresh it
+    if (shouldRefreshToken(state.token)) {
+      console.log('Token expiring soon, refreshing...');
+      await refreshToken();
+    }
+  }, [state.token, logout, refreshToken, validateTokenWithServer]);
+
+  // Load auth state from localStorage on initialization
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const token = localStorage.getItem('auth_token');
+      const userString = localStorage.getItem('auth_user');
+      
+      if (token && userString) {
+        try {
+          // Check if token is expired before loading
+          if (isTokenExpired(token)) {
+            console.log('Stored token is expired, clearing auth state');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('auth_user');
+            dispatch({ type: 'SET_LOADING', payload: false });
+            return;
+          }
+
+          // Validate token with server
+          const isValidOnServer = await validateTokenWithServer(token);
+          if (!isValidOnServer) {
+            console.log('Stored token is invalid on server, clearing auth state');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('auth_user');
+            dispatch({ type: 'SET_LOADING', payload: false });
+            return;
+          }
+
+          const user = JSON.parse(userString);
+          dispatch({ 
+            type: 'LOGIN', 
+            payload: { user, token } 
+          });
+        } catch (error) {
+          console.error('Error loading auth state:', error);
+          // Clear corrupted data
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_user');
+          dispatch({ type: 'SET_LOADING', payload: false });
+        }
+      } else {
+        dispatch({ type: 'SET_LOADING', payload: false });
+      }
+    };
+
+    initializeAuth();
+  }, [validateTokenWithServer]);
+
+  // Check token expiration on mount and when token changes
+  useEffect(() => {
+    if (state.isAuthenticated && state.token) {
+      checkTokenExpiration();
+    }
+  }, [state.isAuthenticated, state.token, checkTokenExpiration]);
+
+  // Force immediate token validation (useful for debugging)
+  const forceTokenValidation = useCallback(async () => {
+    console.log('Forcing token validation...');
+    await checkTokenExpiration();
+  }, [checkTokenExpiration]);
+
+  // Set up interval to check token expiration every 5 minutes
+  useEffect(() => {
+    let interval;
+    
+    if (state.isAuthenticated && state.token) {
+      console.log('Setting up token validation interval');
+      interval = setInterval(() => {
+        console.log('Periodic token validation check');
+        checkTokenExpiration();
+      }, 5 * 60 * 1000); // Check every 5 minutes
+    }
+
+    return () => {
+      if (interval) {
+        console.log('Clearing token validation interval');
+        clearInterval(interval);
+      }
+    };
+  }, [state.isAuthenticated, state.token, checkTokenExpiration]);
 
   // Save auth state to localStorage when it changes
   useEffect(() => {
@@ -149,16 +301,33 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const logout = () => {
-    dispatch({ type: 'LOGOUT' });
-  };
+
 
   const updateUser = (userData) => {
     dispatch({ type: 'UPDATE_USER', payload: userData });
   };
 
-  // Helper function to make authenticated API requests
-  const apiRequest = async (url, options = {}) => {
+  // Helper function to make authenticated API requests with automatic token refresh
+  const apiRequest = useCallback(async (url, options = {}) => {
+    // Check token expiration before making the request
+    if (state.token && isTokenExpired(state.token)) {
+      console.log('Token expired before API request, logging out');
+      logout();
+      throw new Error('Token expired');
+    }
+
+    // Skip server validation for frequent requests to avoid performance issues
+    // The token will be validated by the API endpoint itself
+
+    // Try to refresh token if it's expiring soon
+    if (state.token && shouldRefreshToken(state.token)) {
+      console.log('Token expiring soon, refreshing before API request');
+      const refreshSuccess = await refreshToken();
+      if (!refreshSuccess) {
+        throw new Error('Token refresh failed');
+      }
+    }
+
     const headers = {
       ...options.headers,
     };
@@ -172,11 +341,33 @@ export function AuthProvider({ children }) {
       headers.Authorization = `Bearer ${state.token}`;
     }
 
-    return fetch(url, {
+    const response = await fetch(url, {
       ...options,
       headers,
     });
-  };
+
+    // If we get a 401, try to refresh the token once
+    if (response.status === 401 && state.token) {
+      console.log('Received 401, attempting token refresh');
+      const refreshSuccess = await refreshToken();
+      
+      if (refreshSuccess) {
+        // Retry the request with the new token
+        headers.Authorization = `Bearer ${state.token}`;
+        return fetch(url, {
+          ...options,
+          headers,
+        });
+      } else {
+        // Refresh failed, logout
+        console.log('Token refresh failed after 401, logging out');
+        logout();
+        throw new Error('Authentication failed');
+      }
+    }
+
+    return response;
+  }, [state.token, logout, refreshToken, validateTokenWithServer]);
 
   const value = {
     user: state.user,
@@ -187,7 +378,11 @@ export function AuthProvider({ children }) {
     register,
     logout,
     updateUser,
-    apiRequest
+    apiRequest,
+    refreshToken,
+    checkTokenExpiration,
+    validateTokenWithServer,
+    forceTokenValidation
   };
 
   return (

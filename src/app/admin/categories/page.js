@@ -158,9 +158,9 @@ export default function CategoriesPage() {
             </span>
           </div>
           <div className={styles.headerRight}>
-            <button onClick={openModal} className={styles.createButton}>
+            <Link href="/admin/categories/create" className={styles.createButton}>
               ➕ Agregar Categoría
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -225,9 +225,9 @@ export default function CategoriesPage() {
                 <div className={styles.emptyIcon}>🏷️</div>
                 <h3>No hay categorías</h3>
                 <p>Comienza agregando tu primera categoría.</p>
-                <button onClick={openModal} className={styles.createButton}>
+                <Link href="/admin/categories/create" className={styles.createButton}>
                   Agregar Categoría
-                </button>
+                </Link>
               </div>
             )}
           </div>

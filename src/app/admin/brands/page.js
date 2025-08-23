@@ -162,9 +162,9 @@ export default function BrandsPage() {
             </span>
           </div>
           <div className={styles.headerRight}>
-            <button onClick={openModal} className={styles.createButton}>
+            <Link href="/admin/brands/create" className={styles.createButton}>
               ➕ Agregar Marca
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -239,9 +239,9 @@ export default function BrandsPage() {
                 <div className={styles.emptyIcon}>🏢</div>
                 <h3>No hay marcas</h3>
                 <p>Comienza agregando tu primera marca.</p>
-                <button onClick={openModal} className={styles.createButton}>
+                <Link href="/admin/brands/create" className={styles.createButton}>
                   Agregar Marca
-                </button>
+                </Link>
               </div>
             )}
           </div>
