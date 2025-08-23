@@ -12,11 +12,12 @@ export default function FilterModal({
   currentCategory, 
   currentBrand, 
   currentMinPrice, 
-  currentMaxPrice 
+  currentMaxPrice,
+  isOpen = false,
+  onClose = () => {}
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isOpen, setIsOpen] = useState(false);
   const [minPrice, setMinPrice] = useState(currentMinPrice || '');
   const [maxPrice, setMaxPrice] = useState(currentMaxPrice || '');
   
@@ -24,21 +25,18 @@ export default function FilterModal({
   const selectedCategories = currentCategory ? currentCategory.split(',') : [];
   const selectedBrands = currentBrand ? currentBrand.split(',') : [];
 
-  // Abrir modal cuando se hace clic en el botón de filtros
+  // Bloquear scroll del body cuando el modal está abierto
   useEffect(() => {
-    const filterButton = document.getElementById('filterButton');
-    if (filterButton) {
-      filterButton.addEventListener('click', () => setIsOpen(true));
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
     }
 
     return () => {
-      if (filterButton) {
-        filterButton.removeEventListener('click', () => setIsOpen(true));
-      }
+      document.body.style.overflow = 'unset';
     };
-  }, []);
-
-  const closeModal = () => setIsOpen(false);
+  }, [isOpen]);
 
   const updateFilters = (newFilters) => {
     const params = new URLSearchParams(searchParams);
@@ -57,7 +55,7 @@ export default function FilterModal({
     });
 
     router.push(`/catalog?${params.toString()}`);
-    closeModal();
+    onClose();
   };
 
   const handleCategoryChange = (categoryValue) => {
@@ -120,70 +118,90 @@ export default function FilterModal({
   if (!isOpen) return null;
 
   return (
-    <div className={styles.modalOverlay} onClick={closeModal}>
-      <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.modalHeader}>
-          <h2>Filtros</h2>
-          <button className={styles.closeButton} onClick={closeModal}>
+    <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.header}>
+          <h2 className={styles.title}>Filtros</h2>
+          <button className={styles.closeBtn} onClick={onClose}>
             <Icon name="close" size={24} />
           </button>
         </div>
 
-        <div className={styles.modalBody}>
+        <div className={styles.content}>
           {/* Categorías */}
           <div className={styles.filterSection}>
-            <h3>Categorías</h3>
-            <div className={styles.filterOptions}>
-              {categories.map((cat) => (
-                <label key={cat.id} className={styles.filterOption}>
-                  <input
-                    type="checkbox"
-                    checked={selectedCategories.includes(cat.slug)}
-                    onChange={() => handleCategoryChange(cat.slug)}
-                  />
-                  <span>{cat.name}</span>
-                </label>
-              ))}
+            <button className={styles.sectionHeader}>
+              <h3 className={styles.sectionTitle}>Categorías</h3>
+              <Icon name="expand_more" className={styles.collapseIcon} />
+            </button>
+            <div className={styles.sectionContent}>
+              <div className={styles.categoryList}>
+                {categories.map((cat) => (
+                  <div key={cat.id} className={styles.checkboxItem}>
+                    <input
+                      type="checkbox"
+                      id={`cat-${cat.id}`}
+                      className={styles.checkbox}
+                      checked={selectedCategories.includes(cat.slug)}
+                      onChange={() => handleCategoryChange(cat.slug)}
+                    />
+                    <label htmlFor={`cat-${cat.id}`} className={styles.checkboxLabel}>
+                      {cat.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* Marcas */}
           <div className={styles.filterSection}>
-            <h3>Marcas</h3>
-            <div className={styles.filterOptions}>
-              {brands.map((brand) => (
-                <label key={brand.id} className={styles.filterOption}>
-                  <input
-                    type="checkbox"
-                    checked={selectedBrands.includes(brand.slug)}
-                    onChange={() => handleBrandChange(brand.slug)}
-                  />
-                  <span>{brand.name}</span>
-                </label>
-              ))}
+            <button className={styles.sectionHeader}>
+              <h3 className={styles.sectionTitle}>Marcas</h3>
+              <Icon name="expand_more" className={styles.collapseIcon} />
+            </button>
+            <div className={styles.sectionContent}>
+              <div className={styles.brandList}>
+                {brands.map((brand) => (
+                  <div key={brand.id} className={styles.checkboxItem}>
+                    <input
+                      type="checkbox"
+                      id={`brand-${brand.id}`}
+                      className={styles.checkbox}
+                      checked={selectedBrands.includes(brand.slug)}
+                      onChange={() => handleBrandChange(brand.slug)}
+                    />
+                    <label htmlFor={`brand-${brand.id}`} className={styles.checkboxLabel}>
+                      {brand.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* Rango de Precios */}
           <div className={styles.filterSection}>
-            <h3>Rango de Precios</h3>
-            <form onSubmit={handlePriceSubmit} className={styles.priceForm}>
-              <div className={styles.priceInputs}>
-                <div className={styles.priceInput}>
-                  <label>Mínimo</label>
+            <button className={styles.sectionHeader}>
+              <h3 className={styles.sectionTitle}>Rango de Precios</h3>
+              <Icon name="expand_more" className={styles.collapseIcon} />
+            </button>
+            <div className={styles.sectionContent}>
+              <form onSubmit={handlePriceSubmit} className={styles.priceForm}>
+                <div className={styles.priceInputs}>
                   <input
                     type="number"
+                    className={styles.priceInput}
                     placeholder={`$${priceRange.min}`}
                     value={minPrice}
                     onChange={(e) => setMinPrice(e.target.value)}
                     min={priceRange.min}
                     max={priceRange.max}
                   />
-                </div>
-                <div className={styles.priceInput}>
-                  <label>Máximo</label>
+                  <span className={styles.priceSeparator}>-</span>
                   <input
                     type="number"
+                    className={styles.priceInput}
                     placeholder={`$${priceRange.max}`}
                     value={maxPrice}
                     onChange={(e) => setMaxPrice(e.target.value)}
@@ -191,19 +209,19 @@ export default function FilterModal({
                     max={priceRange.max}
                   />
                 </div>
-              </div>
-              <button type="submit" className={styles.applyButton}>
-                Aplicar Precios
-              </button>
-            </form>
+                <button type="submit" className={styles.priceBtn}>
+                  Aplicar Precios
+                </button>
+              </form>
+            </div>
           </div>
         </div>
 
-        <div className={styles.modalFooter}>
-          <button className={styles.clearButton} onClick={clearAllFilters}>
+        <div className={styles.footer}>
+          <button className={styles.clearAllBtn} onClick={clearAllFilters}>
             Limpiar Filtros
           </button>
-          <button className={styles.closeModalButton} onClick={closeModal}>
+          <button className={styles.applyBtn} onClick={onClose}>
             Cerrar
           </button>
         </div>

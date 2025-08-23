@@ -58,6 +58,13 @@ export default function CreateProductPage() {
   const [validationErrors, setValidationErrors] = useState({});
   const [scanningBarcode, setScanningBarcode] = useState(false);
 
+  // Log cuando cambia el código de barras en formData
+  useEffect(() => {
+    if (formData.barcode) {
+      console.log('🎯 [BARCODE DEBUG] FormData actualizado - nuevo código de barras:', formData.barcode);
+    }
+  }, [formData.barcode]);
+
   useEffect(() => {
     if (isAuthenticated) {
       loadCategories();
@@ -72,18 +79,40 @@ export default function CreateProductPage() {
     let lastInputTime = 0;
     
     const handleKeyPress = (e) => {
+      console.log('🔍 [BARCODE DEBUG] Tecla presionada:', {
+        key: e.key,
+        keyCode: e.keyCode,
+        charCode: e.charCode,
+        target: e.target.tagName,
+        targetId: e.target.id,
+        timestamp: new Date().toISOString()
+      });
+
       // No interceptar si estamos escribiendo directamente en el campo de código de barras
       if (e.target.id === 'barcode') {
+        console.log('🚫 [BARCODE DEBUG] Ignorando - escribiendo en campo de código de barras');
         return;
       }
       
       const currentTime = Date.now();
       const timeSinceLastKey = currentTime - lastInputTime;
       
+      console.log('⏱️ [BARCODE DEBUG] Timing:', {
+        currentTime,
+        lastInputTime,
+        timeSinceLastKey,
+        currentBuffer: inputBuffer,
+        bufferLength: inputBuffer.length
+      });
+
       // Si es un carácter normal (no teclas especiales)
       if (e.key && e.key.length === 1) {
+        console.log('📝 [BARCODE DEBUG] Carácter detectado:', e.key);
+        
         // Si es la primera tecla o viene muy rápido después de la anterior (< 100ms)
         if (inputBuffer.length === 0 || timeSinceLastKey < 100) {
+          console.log('✅ [BARCODE DEBUG] Detectado como entrada de escáner - agregando al buffer');
+          
           // Prevenir que aparezca en cualquier input
           e.preventDefault();
           
@@ -91,61 +120,107 @@ export default function CreateProductPage() {
           inputBuffer += e.key;
           lastInputTime = currentTime;
           
+          console.log('📦 [BARCODE DEBUG] Buffer actualizado:', {
+            newBuffer: inputBuffer,
+            bufferLength: inputBuffer.length
+          });
+          
           // Mostrar indicador de escaneo si es el primer carácter
           if (inputBuffer.length === 1) {
+            console.log('🚨 [BARCODE DEBUG] Iniciando indicador de escaneo');
             setScanningBarcode(true);
           }
           
           // Cancelar timeout anterior si existe
           if (barcodeTimeout) {
+            console.log('⏸️ [BARCODE DEBUG] Cancelando timeout anterior');
             clearTimeout(barcodeTimeout);
           }
           
           // Configurar nuevo timeout
           barcodeTimeout = setTimeout(() => {
+            console.log('⏰ [BARCODE DEBUG] Timeout alcanzado - procesando buffer:', inputBuffer);
+            
             // Procesar el código de barras acumulado
             if (inputBuffer.length >= 6) { // Mínimo para código de barras
-              setFormData(prev => ({
-                ...prev,
-                barcode: inputBuffer
-              }));
+              console.log('✅ [BARCODE DEBUG] Código válido - guardando:', inputBuffer);
+              setFormData(prev => {
+                console.log('📝 [BARCODE DEBUG] Actualizando formData con código:', inputBuffer);
+                console.log('📝 [BARCODE DEBUG] Estado anterior del barcode:', prev.barcode);
+                return {
+                  ...prev,
+                  barcode: inputBuffer
+                };
+              });
               toast.success(`Código de barras escaneado: ${inputBuffer}`);
+            } else {
+              console.log('❌ [BARCODE DEBUG] Código muy corto, ignorando:', {
+                buffer: inputBuffer,
+                length: inputBuffer.length
+              });
             }
             inputBuffer = '';
             setScanningBarcode(false);
+            console.log('🔄 [BARCODE DEBUG] Buffer limpiado y escaneo terminado');
           }, 150); // Esperar 150ms después del último carácter
           
         } else {
           // Demasiado tiempo entre teclas, limpiar buffer
+          console.log('🕒 [BARCODE DEBUG] Demasiado tiempo entre teclas - limpiando buffer');
+          console.log('📊 [BARCODE DEBUG] Buffer anterior:', inputBuffer);
           inputBuffer = '';
+          setScanningBarcode(false);
         }
       } else if (e.key === 'Enter' && inputBuffer.length > 0) {
+        console.log('⏎ [BARCODE DEBUG] Enter detectado con buffer:', inputBuffer);
+        
         // Enter presionado, procesar inmediatamente
         e.preventDefault();
         
         if (barcodeTimeout) {
+          console.log('⏸️ [BARCODE DEBUG] Cancelando timeout por Enter');
           clearTimeout(barcodeTimeout);
         }
         
         if (inputBuffer.length >= 6) {
-          setFormData(prev => ({
-            ...prev,
-            barcode: inputBuffer
-          }));
+          console.log('✅ [BARCODE DEBUG] Procesando código con Enter:', inputBuffer);
+          setFormData(prev => {
+            console.log('📝 [BARCODE DEBUG] Actualizando formData con Enter - código:', inputBuffer);
+            console.log('📝 [BARCODE DEBUG] Estado anterior del barcode:', prev.barcode);
+            return {
+              ...prev,
+              barcode: inputBuffer
+            };
+          });
           toast.success(`Código de barras escaneado: ${inputBuffer}`);
+        } else {
+          console.log('❌ [BARCODE DEBUG] Código muy corto con Enter:', {
+            buffer: inputBuffer,
+            length: inputBuffer.length
+          });
         }
         inputBuffer = '';
         setScanningBarcode(false);
+        console.log('🔄 [BARCODE DEBUG] Buffer limpiado después de Enter');
+      } else {
+        console.log('🚫 [BARCODE DEBUG] Tecla ignorada:', {
+          key: e.key,
+          keyLength: e.key?.length,
+          bufferEmpty: inputBuffer.length === 0
+        });
       }
     };
 
     // Usar keypress para mejor detección de caracteres
+    console.log('🎧 [BARCODE DEBUG] Listener de escáner inicializado');
     document.addEventListener('keypress', handleKeyPress);
     
     return () => {
+      console.log('🗑️ [BARCODE DEBUG] Removiendo listener de escáner');
       document.removeEventListener('keypress', handleKeyPress);
       if (barcodeTimeout) {
         clearTimeout(barcodeTimeout);
+        console.log('⏰ [BARCODE DEBUG] Timeout limpiado al desmontar');
       }
     };
   }, []); // Sin dependencias para evitar recrear el listener
