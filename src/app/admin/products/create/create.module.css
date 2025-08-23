@@ -827,6 +827,53 @@
   white-space: nowrap;
 }
 
+.barcodeInputContainer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inputScanning {
+  border-color: #16a34a !important;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1) !important;
+  animation: scanPulse 1s infinite;
+}
+
+@keyframes scanPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.3);
+  }
+}
+
+.scanningIndicator {
+  position: absolute;
+  top: -24px;
+  right: 0;
+  background: #16a34a;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  animation: slideDown 0.3s ease;
+  z-index: 10;
+}
+
+@keyframes slideDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .skuBreakdown {
   border-top: 1px solid #bae6fd;
   padding-top: 16px;

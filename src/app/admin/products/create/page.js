@@ -54,10 +54,9 @@ export default function CreateProductPage() {
     meta_description: '',
     images: []
   });
-  const [barcodeBuffer, setBarcodeBuffer] = useState('');
-  const [lastKeyTime, setLastKeyTime] = useState(0);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
+  const [scanningBarcode, setScanningBarcode] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -68,44 +67,88 @@ export default function CreateProductPage() {
 
   // Barcode scanner functionality
   useEffect(() => {
-    const handleBarcodeKeypress = (e) => {
+    let barcodeTimeout;
+    let inputBuffer = '';
+    let lastInputTime = 0;
+    
+    const handleKeyPress = (e) => {
+      // No interceptar si estamos escribiendo directamente en el campo de código de barras
+      if (e.target.id === 'barcode') {
+        return;
+      }
+      
       const currentTime = Date.now();
-      const timeDiff = currentTime - lastKeyTime;
+      const timeSinceLastKey = currentTime - lastInputTime;
       
-      // Detect if this is a barcode scanner input (rapid keystrokes)
-      // Barcode scanners typically input at 200+ characters per second
-      const isScanner = timeDiff < 100 && e.key.length === 1;
-      
-      setLastKeyTime(currentTime);
-      
-      if (isScanner || (timeDiff < 100 && barcodeBuffer.length > 0)) {
-        // Add character to buffer
-        setBarcodeBuffer(prev => prev + e.key);
+      // Si es un carácter normal (no teclas especiales)
+      if (e.key && e.key.length === 1) {
+        // Si es la primera tecla o viene muy rápido después de la anterior (< 100ms)
+        if (inputBuffer.length === 0 || timeSinceLastKey < 100) {
+          // Prevenir que aparezca en cualquier input
+          e.preventDefault();
+          
+          // Agregar al buffer
+          inputBuffer += e.key;
+          lastInputTime = currentTime;
+          
+          // Mostrar indicador de escaneo si es el primer carácter
+          if (inputBuffer.length === 1) {
+            setScanningBarcode(true);
+          }
+          
+          // Cancelar timeout anterior si existe
+          if (barcodeTimeout) {
+            clearTimeout(barcodeTimeout);
+          }
+          
+          // Configurar nuevo timeout
+          barcodeTimeout = setTimeout(() => {
+            // Procesar el código de barras acumulado
+            if (inputBuffer.length >= 6) { // Mínimo para código de barras
+              setFormData(prev => ({
+                ...prev,
+                barcode: inputBuffer
+              }));
+              toast.success(`Código de barras escaneado: ${inputBuffer}`);
+            }
+            inputBuffer = '';
+            setScanningBarcode(false);
+          }, 150); // Esperar 150ms después del último carácter
+          
+        } else {
+          // Demasiado tiempo entre teclas, limpiar buffer
+          inputBuffer = '';
+        }
+      } else if (e.key === 'Enter' && inputBuffer.length > 0) {
+        // Enter presionado, procesar inmediatamente
         e.preventDefault();
-      } else if (e.key === 'Enter' && barcodeBuffer.length > 0) {
-        // Scanner finished - process barcode
-        const barcode = barcodeBuffer.trim();
-        if (barcode.length >= 8) { // Minimum barcode length
+        
+        if (barcodeTimeout) {
+          clearTimeout(barcodeTimeout);
+        }
+        
+        if (inputBuffer.length >= 6) {
           setFormData(prev => ({
             ...prev,
-            barcode: barcode
+            barcode: inputBuffer
           }));
-          toast.success(`Código de barras escaneado: ${barcode}`);
+          toast.success(`Código de barras escaneado: ${inputBuffer}`);
         }
-        setBarcodeBuffer('');
-        e.preventDefault();
-      } else if (timeDiff > 500) {
-        // Reset buffer if too much time has passed
-        setBarcodeBuffer('');
+        inputBuffer = '';
+        setScanningBarcode(false);
       }
     };
 
-    document.addEventListener('keypress', handleBarcodeKeypress);
+    // Usar keypress para mejor detección de caracteres
+    document.addEventListener('keypress', handleKeyPress);
     
     return () => {
-      document.removeEventListener('keypress', handleBarcodeKeypress);
+      document.removeEventListener('keypress', handleKeyPress);
+      if (barcodeTimeout) {
+        clearTimeout(barcodeTimeout);
+      }
     };
-  }, [barcodeBuffer, lastKeyTime]);
+  }, []); // Sin dependencias para evitar recrear el listener
 
   const loadCategories = async () => {
     try {
@@ -720,15 +763,22 @@ export default function CreateProductPage() {
                       <span className={styles.helpIcon}>?</span>
                     </Tooltip>
                   </label>
-                  <input
-                    type="text"
-                    id="barcode"
-                    name="barcode"
-                    value={formData.barcode}
-                    onChange={handleInputChange}
-                    className={styles.input}
-                    placeholder="Escanea con tu lector o escribe manualmente..."
-                  />
+                  <div className={styles.barcodeInputContainer}>
+                    <input
+                      type="text"
+                      id="barcode"
+                      name="barcode"
+                      value={formData.barcode}
+                      onChange={handleInputChange}
+                      className={`${styles.input} ${scanningBarcode ? styles.inputScanning : ''}`}
+                      placeholder="Escanea con tu lector o escribe manualmente..."
+                    />
+                    {scanningBarcode && (
+                      <div className={styles.scanningIndicator}>
+                        📱 Escaneando...
+                      </div>
+                    )}
+                  </div>
                   <small className={styles.helpText}>
                     📱 Usa tu escáner de códigos de barras para llenar automáticamente este campo.
                   </small>
