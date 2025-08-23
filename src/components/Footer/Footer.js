@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import Icon from '../Icon/Icon';
 import styles from './Footer.module.css';
@@ -32,8 +33,7 @@ export default function Footer() {
           <div className={styles.footerContent}>
             <div className={styles.logo}>
               <span className={styles.logoText}>
-                <Icon name="palette" size={24} className={styles.logoIcon} />
-                Patito Montenegro
+                <Image src="/logo_w.png" alt="Logo" width={200} height={250} />
               </span>
             </div>
             <div className={styles.links}>

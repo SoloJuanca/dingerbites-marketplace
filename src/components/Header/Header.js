@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import Icon from '../Icon/Icon';
 import { useCart } from '../../lib/CartContext';
 import { useAuth } from '../../lib/AuthContext';
@@ -25,8 +26,7 @@ export default function Header() {
       <div className={styles.container}>
         <div className={styles.logo}>
           <Link href="/" className={styles.logoText} onClick={closeMenu}>
-            <Icon name="palette" size={24} className={styles.logoIcon} />
-            Patito Montenegro
+            <Image src="/logo.png" alt="Logo" width={100} height={100} />
           </Link>
         </div>
         
