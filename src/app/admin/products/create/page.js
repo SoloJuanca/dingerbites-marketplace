@@ -61,7 +61,6 @@ export default function CreateProductPage() {
   // Log cuando cambia el código de barras en formData
   useEffect(() => {
     if (formData.barcode) {
-      console.log('🎯 [BARCODE DEBUG] FormData actualizado - nuevo código de barras:', formData.barcode);
     }
   }, [formData.barcode]);
 
@@ -72,155 +71,72 @@ export default function CreateProductPage() {
     }
   }, [user, isAuthenticated]);
 
-  // Barcode scanner functionality
+  // Barcode scanner functionality - solo activo en el campo de código de barras
   useEffect(() => {
     let barcodeTimeout;
     let inputBuffer = '';
     let lastInputTime = 0;
     
-    const handleKeyPress = (e) => {
-      console.log('🔍 [BARCODE DEBUG] Tecla presionada:', {
-        key: e.key,
-        keyCode: e.keyCode,
-        charCode: e.charCode,
-        target: e.target.tagName,
-        targetId: e.target.id,
-        timestamp: new Date().toISOString()
-      });
-
-      // No interceptar si estamos escribiendo directamente en el campo de código de barras
-      if (e.target.id === 'barcode') {
-        console.log('🚫 [BARCODE DEBUG] Ignorando - escribiendo en campo de código de barras');
+    const handleBarcodeInput = (e) => {
+      // Solo funcionar si estamos en el campo de código de barras
+      if (e.target.id !== 'barcode') {
         return;
       }
       
       const currentTime = Date.now();
       const timeSinceLastKey = currentTime - lastInputTime;
-      
-      console.log('⏱️ [BARCODE DEBUG] Timing:', {
-        currentTime,
-        lastInputTime,
-        timeSinceLastKey,
-        currentBuffer: inputBuffer,
-        bufferLength: inputBuffer.length
-      });
 
-      // Si es un carácter normal (no teclas especiales)
-      if (e.key && e.key.length === 1) {
-        console.log('📝 [BARCODE DEBUG] Carácter detectado:', e.key);
+      // Si es un carácter normal y viene muy rápido (típico de escáneres)
+      if (e.key && e.key.length === 1 && timeSinceLastKey < 50) {
+        // Agregar al buffer para detectar escaneo rápido
+        inputBuffer += e.key;
+        lastInputTime = currentTime;
         
-        // Si es la primera tecla o viene muy rápido después de la anterior (< 100ms)
-        if (inputBuffer.length === 0 || timeSinceLastKey < 100) {
-          console.log('✅ [BARCODE DEBUG] Detectado como entrada de escáner - agregando al buffer');
-          
-          // Prevenir que aparezca en cualquier input
-          e.preventDefault();
-          
-          // Agregar al buffer
-          inputBuffer += e.key;
-          lastInputTime = currentTime;
-          
-          console.log('📦 [BARCODE DEBUG] Buffer actualizado:', {
-            newBuffer: inputBuffer,
-            bufferLength: inputBuffer.length
-          });
-          
-          // Mostrar indicador de escaneo si es el primer carácter
-          if (inputBuffer.length === 1) {
-            console.log('🚨 [BARCODE DEBUG] Iniciando indicador de escaneo');
-            setScanningBarcode(true);
+        // Mostrar indicador de escaneo
+        if (inputBuffer.length === 1) {
+          setScanningBarcode(true);
+        }
+        
+        // Cancelar timeout anterior si existe
+        if (barcodeTimeout) {
+          clearTimeout(barcodeTimeout);
+        }
+        
+        // Configurar timeout para detectar fin de escaneo
+        barcodeTimeout = setTimeout(() => {
+          if (inputBuffer.length >= 6) {
+            toast.success(`Código de barras escaneado: ${inputBuffer}`);
           }
-          
-          // Cancelar timeout anterior si existe
-          if (barcodeTimeout) {
-            console.log('⏸️ [BARCODE DEBUG] Cancelando timeout anterior');
-            clearTimeout(barcodeTimeout);
-          }
-          
-          // Configurar nuevo timeout
-          barcodeTimeout = setTimeout(() => {
-            console.log('⏰ [BARCODE DEBUG] Timeout alcanzado - procesando buffer:', inputBuffer);
-            
-            // Procesar el código de barras acumulado
-            if (inputBuffer.length >= 6) { // Mínimo para código de barras
-              console.log('✅ [BARCODE DEBUG] Código válido - guardando:', inputBuffer);
-              setFormData(prev => {
-                console.log('📝 [BARCODE DEBUG] Actualizando formData con código:', inputBuffer);
-                console.log('📝 [BARCODE DEBUG] Estado anterior del barcode:', prev.barcode);
-                return {
-                  ...prev,
-                  barcode: inputBuffer
-                };
-              });
-              toast.success(`Código de barras escaneado: ${inputBuffer}`);
-            } else {
-              console.log('❌ [BARCODE DEBUG] Código muy corto, ignorando:', {
-                buffer: inputBuffer,
-                length: inputBuffer.length
-              });
-            }
-            inputBuffer = '';
-            setScanningBarcode(false);
-            console.log('🔄 [BARCODE DEBUG] Buffer limpiado y escaneo terminado');
-          }, 150); // Esperar 150ms después del último carácter
-          
-        } else {
-          // Demasiado tiempo entre teclas, limpiar buffer
-          console.log('🕒 [BARCODE DEBUG] Demasiado tiempo entre teclas - limpiando buffer');
-          console.log('📊 [BARCODE DEBUG] Buffer anterior:', inputBuffer);
           inputBuffer = '';
           setScanningBarcode(false);
-        }
+        }, 100);
+        
       } else if (e.key === 'Enter' && inputBuffer.length > 0) {
-        console.log('⏎ [BARCODE DEBUG] Enter detectado con buffer:', inputBuffer);
-        
-        // Enter presionado, procesar inmediatamente
-        e.preventDefault();
-        
+        // Enter presionado durante escaneo
         if (barcodeTimeout) {
-          console.log('⏸️ [BARCODE DEBUG] Cancelando timeout por Enter');
           clearTimeout(barcodeTimeout);
         }
         
         if (inputBuffer.length >= 6) {
-          console.log('✅ [BARCODE DEBUG] Procesando código con Enter:', inputBuffer);
-          setFormData(prev => {
-            console.log('📝 [BARCODE DEBUG] Actualizando formData con Enter - código:', inputBuffer);
-            console.log('📝 [BARCODE DEBUG] Estado anterior del barcode:', prev.barcode);
-            return {
-              ...prev,
-              barcode: inputBuffer
-            };
-          });
           toast.success(`Código de barras escaneado: ${inputBuffer}`);
-        } else {
-          console.log('❌ [BARCODE DEBUG] Código muy corto con Enter:', {
-            buffer: inputBuffer,
-            length: inputBuffer.length
-          });
         }
         inputBuffer = '';
         setScanningBarcode(false);
-        console.log('🔄 [BARCODE DEBUG] Buffer limpiado después de Enter');
+        
       } else {
-        console.log('🚫 [BARCODE DEBUG] Tecla ignorada:', {
-          key: e.key,
-          keyLength: e.key?.length,
-          bufferEmpty: inputBuffer.length === 0
-        });
+        // Tecla normal o demasiado lenta - limpiar buffer
+        inputBuffer = '';
+        setScanningBarcode(false);
       }
     };
 
-    // Usar keypress para mejor detección de caracteres
-    console.log('🎧 [BARCODE DEBUG] Listener de escáner inicializado');
-    document.addEventListener('keypress', handleKeyPress);
+    // Agregar listener específico para el campo de código de barras
+    document.addEventListener('keydown', handleBarcodeInput);
     
     return () => {
-      console.log('🗑️ [BARCODE DEBUG] Removiendo listener de escáner');
-      document.removeEventListener('keypress', handleKeyPress);
+      document.removeEventListener('keydown', handleBarcodeInput);
       if (barcodeTimeout) {
         clearTimeout(barcodeTimeout);
-        console.log('⏰ [BARCODE DEBUG] Timeout limpiado al desmontar');
       }
     };
   }, []); // Sin dependencias para evitar recrear el listener
@@ -283,8 +199,14 @@ export default function CreateProductPage() {
         [name]: newValue
       };
 
-      // Auto-generate SKU when name or category changes
-      if ((name === 'name' || name === 'category_id') && (updated.name && updated.category_id)) {
+      // Auto-generate SKU when name changes (category is now optional)
+      if (name === 'name' && updated.name) {
+        const newSKU = generateSKUFromData(updated);
+        updated.sku = newSKU;
+      }
+      
+      // Update SKU when category changes (if name exists)
+      if (name === 'category_id' && updated.name) {
         const newSKU = generateSKUFromData(updated);
         updated.sku = newSKU;
       }
@@ -318,13 +240,13 @@ export default function CreateProductPage() {
   };
 
   const generateSKUFromData = (data) => {
-    if (!data.name || !data.category_id) return '';
+    if (!data.name) return '';
     
     const categoryName = categories.find(cat => cat.id === data.category_id)?.name || '';
     const brandName = brands.find(brand => brand.id === data.brand_id)?.name || '';
     
     // Extract first 3 letters from each component
-    const categoryCode = categoryName.substring(0, 3).toUpperCase();
+    const categoryCode = categoryName ? categoryName.substring(0, 3).toUpperCase() : 'GEN'; // Generic if no category
     const brandCode = brandName ? brandName.substring(0, 3).toUpperCase() : '';
     const productCode = data.name.substring(0, 3).toUpperCase();
     
@@ -346,7 +268,7 @@ export default function CreateProductPage() {
     switch (step) {
       case 1:
         if (!formData.name.trim()) errors.name = 'El nombre es requerido';
-        if (!formData.category_id) errors.category_id = 'La categoría es requerida';
+        // Category and brand are now optional
         // SKU is no longer required - it's auto-generated
         break;
       case 2:
@@ -691,8 +613,8 @@ export default function CreateProductPage() {
               <div className={styles.fieldRow}>
                 <div className={styles.field}>
                   <label htmlFor="category_id">
-                    Categoría del Producto *
-                    <Tooltip content="Ayuda a los clientes a encontrar tu producto. Puedes crear una nueva si no existe">
+                    Categoría del Producto
+                    <Tooltip content="Ayuda a los clientes a encontrar tu producto. Puedes crear una nueva si no existe. Campo opcional">
                       <span className={styles.helpIcon}>?</span>
                     </Tooltip>
                   </label>
@@ -700,12 +622,11 @@ export default function CreateProductPage() {
                     value={formData.category_id}
                     onChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}
                     options={categories}
-                    placeholder="Buscar o crear categoría..."
+                    placeholder="Buscar o crear categoría (opcional)..."
                     createEndpoint="/api/admin/categories"
                     createLabel="categoría"
                     onOptionsUpdate={handleCategoryUpdate}
                   />
-                  {validationErrors.category_id && <span className={styles.errorText}>{validationErrors.category_id}</span>}
                 </div>
 
                 <div className={styles.field}>
@@ -719,7 +640,7 @@ export default function CreateProductPage() {
                     value={formData.brand_id}
                     onChange={(value) => setFormData(prev => ({ ...prev, brand_id: value }))}
                     options={brands}
-                    placeholder="Buscar o crear marca..."
+                    placeholder="Buscar o crear marca (opcional)..."
                     createEndpoint="/api/admin/brands"
                     createLabel="marca"
                     onOptionsUpdate={handleBrandUpdate}
@@ -766,7 +687,7 @@ export default function CreateProductPage() {
                 <div className={styles.skuPreview}>
                   <h4>SKU Generado Automáticamente</h4>
                   <div className={styles.skuDisplay}>
-                    <span className={styles.skuCode}>{formData.sku || 'Completa nombre y categoría para generar SKU'}</span>
+                    <span className={styles.skuCode}>{formData.sku || 'Completa el nombre para generar SKU'}</span>
                     <div className={styles.autoIndicator}>
                       ⚡ Generación automática
                     </div>
@@ -779,7 +700,7 @@ export default function CreateProductPage() {
                         <div className={styles.skuPart}>
                           <span className={styles.partLabel}>Categoría</span>
                           <span className={styles.partValue}>
-                            {categories.find(cat => cat.id === formData.category_id)?.name.substring(0, 3).toUpperCase()}
+                            {categories.find(cat => cat.id === formData.category_id)?.name.substring(0, 3).toUpperCase() || 'GEN'}
                           </span>
                         </div>
                         {formData.brand_id && (
@@ -827,7 +748,7 @@ export default function CreateProductPage() {
                     placeholder="Se generará automáticamente..."
                   />
                   <small className={styles.helpText}>
-                    El SKU se genera automáticamente basado en la categoría, marca (opcional) y nombre del producto.
+                    El SKU se genera automáticamente basado en el nombre del producto, categoría (opcional) y marca (opcional).
                   </small>
                 </div>
 
@@ -864,7 +785,8 @@ export default function CreateProductPage() {
             <div className={styles.infoCard}>
               <h4>💡 Tips para este paso</h4>
               <ul>
-                <li>• El <strong>SKU se genera automáticamente</strong> al completar nombre y categoría</li>
+                <li>• El <strong>SKU se genera automáticamente</strong> al completar el nombre del producto</li>
+                <li>• <strong>Categoría y marca son opcionales</strong> - pero ayudan a organizar mejor tu inventario</li>
                 <li>• <strong>Escáner de códigos:</strong> Usa tu lector para llenar automáticamente el código de barras</li>
                 <li>• El <strong>código de barras es opcional</strong> - no todos los productos lo tienen</li>
                 <li>• Las <strong>etiquetas</strong> ayudan a los clientes a encontrar tu producto</li>
