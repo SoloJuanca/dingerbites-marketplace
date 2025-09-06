@@ -12,13 +12,7 @@ import toast from 'react-hot-toast';
 import { loadingToast } from '../../../../lib/toastHelpers';
 import styles from './create.module.css';
 
-const STEPS = [
-  { id: 1, title: 'Información y Categorización', icon: '📝' },
-  { id: 2, title: 'Precios y Stock', icon: '💰' },
-  { id: 3, title: 'Detalles Físicos', icon: '📦' },
-  { id: 4, title: 'Imágenes', icon: '🖼️' },
-  { id: 5, title: 'SEO y Configuración', icon: '⚙️' }
-];
+// Single form approach - no steps needed
 
 export default function CreateProductPage() {
   const { user, apiRequest, isAuthenticated } = useAuth();
@@ -26,8 +20,6 @@ export default function CreateProductPage() {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [completedSteps, setCompletedSteps] = useState(new Set());
   const [productStatus, setProductStatus] = useState('draft');
   const [draftId, setDraftId] = useState(null);
   const [formData, setFormData] = useState({
@@ -42,16 +34,10 @@ export default function CreateProductPage() {
     brand_id: '',
     stock_quantity: '0',
     low_stock_threshold: '5',
-    weight_grams: '',
-    length_cm: '',
-    width_cm: '',
-    height_cm: '',
     tags: '',
     features: '',
     is_featured: false,
     is_active: false,
-    meta_title: '',
-    meta_description: '',
     images: []
   });
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -68,6 +54,19 @@ export default function CreateProductPage() {
     if (isAuthenticated) {
       loadCategories();
       loadBrands();
+      
+      // Test upload endpoint accessibility
+      console.log('Testing upload endpoint accessibility...');
+      apiRequest('/api/admin/upload', { method: 'HEAD' })
+        .then(response => {
+          console.log('Upload endpoint test:', response.status);
+          if (response.status === 405) {
+            console.log('✅ Upload endpoint is accessible (405 = Method Not Allowed for HEAD is expected)');
+          }
+        })
+        .catch(error => {
+          console.error('❌ Upload endpoint test failed:', error);
+        });
     }
   }, [user, isAuthenticated]);
 
@@ -262,21 +261,12 @@ export default function CreateProductPage() {
     return generateSKUFromData(formData);
   };
 
-  const validateStep = (step) => {
+  const validateForm = () => {
     const errors = {};
 
-    switch (step) {
-      case 1:
-        if (!formData.name.trim()) errors.name = 'El nombre es requerido';
-        // Category and brand are now optional
-        // SKU is no longer required - it's auto-generated
-        break;
-      case 2:
-        if (!formData.price || parseFloat(formData.price) <= 0) {
-          errors.price = 'El precio debe ser mayor a 0';
-        }
-        break;
-      // Steps 3, 4, 5 don't have required fields
+    if (!formData.name.trim()) errors.name = 'El nombre es requerido';
+    if (!formData.price || parseFloat(formData.price) <= 0) {
+      errors.price = 'El precio debe ser mayor a 0';
     }
 
     setValidationErrors(errors);
@@ -295,68 +285,134 @@ export default function CreateProductPage() {
       .trim('-');
   };
 
-  const nextStep = async () => {
-    if (validateStep(currentStep)) {
-      // Mark current step as completed
-      setCompletedSteps(prev => new Set([...prev, currentStep]));
-      
-      // Move to next step
-      setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
-    }
-  };
+  // Step navigation functions removed - single form approach
 
-  const prevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
-  };
+  const handleImageUpload = async (files) => {
+    if (!files || files.length === 0) return;
 
-  const goToStep = (step) => {
-    // Only allow going to completed steps or the next immediate step
-    if (step <= currentStep || completedSteps.has(step - 1) || step === 1) {
-      setCurrentStep(step);
-    } else {
-      toast.error('Debes completar los pasos anteriores primero');
-    }
-  };
-
-  const handleImageUpload = async (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-
+    console.log('Starting image upload process...', { fileCount: files.length });
     setUploadingImages(true);
     const uploadedImages = [];
+    const failedUploads = [];
 
     try {
       for (const file of files) {
-        const formData = new FormData();
-        formData.append('file', file);
+        console.log('Processing file:', { name: file.name, size: file.size, type: file.type });
+        
+        // Validate file before upload
+        if (!file.type.startsWith('image/')) {
+          console.error('Invalid file type:', file.type);
+          failedUploads.push({ file: file.name, error: 'Tipo de archivo no válido' });
+          continue;
+        }
 
-        const response = await apiRequest('/api/admin/upload', {
-          method: 'POST',
-          body: formData
-        });
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+          console.error('File too large:', file.size);
+          failedUploads.push({ file: file.name, error: 'Archivo muy grande (máx. 5MB)' });
+          continue;
+        }
 
-        if (response.ok) {
-          const data = await response.json();
-          uploadedImages.push({
-            url: data.url,
-            alt: file.name
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', file);
+        uploadFormData.append('folder', 'products');
+
+        console.log('Sending upload request for:', file.name);
+        
+        try {
+          const response = await apiRequest('/api/admin/upload', {
+            method: 'POST',
+            body: uploadFormData
           });
-        } else {
-          throw new Error(`Failed to upload ${file.name}`);
+
+          console.log('Upload response status:', response.status);
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Upload successful:', data);
+            uploadedImages.push({
+              url: data.url,
+              alt: file.name
+            });
+          } else {
+            const errorData = await response.text();
+            console.error('Upload failed:', { status: response.status, error: errorData });
+            
+            let errorMessage = `Error ${response.status}`;
+            try {
+              const errorJson = JSON.parse(errorData);
+              errorMessage = errorJson.error || errorMessage;
+            } catch (e) {
+              // Keep the default error message
+            }
+            
+            failedUploads.push({ file: file.name, error: errorMessage });
+          }
+        } catch (networkError) {
+          console.error('Network error during upload:', networkError);
+          failedUploads.push({ file: file.name, error: 'Error de conexión' });
         }
       }
 
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images, ...uploadedImages]
-      }));
+      // Update form data with successfully uploaded images
+      if (uploadedImages.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          images: [...prev.images, ...uploadedImages]
+        }));
+      }
 
-      toast.success(`${uploadedImages.length} imagen(es) subida(s) exitosamente`);
+      // Show results
+      if (uploadedImages.length > 0) {
+        toast.success(`${uploadedImages.length} imagen(es) subida(s) exitosamente`);
+      }
+      
+      if (failedUploads.length > 0) {
+        console.error('Failed uploads:', failedUploads);
+        const failedList = failedUploads.map(f => `${f.file}: ${f.error}`).join(', ');
+        toast.error(`Error al subir ${failedUploads.length} imagen(es): ${failedList}`);
+      }
+
     } catch (error) {
-      console.error('Error uploading images:', error);
-      toast.error('Error al subir las imágenes');
+      console.error('Error during image upload:', error);
+      toast.error(`Error al subir las imágenes: ${error.message}`);
     } finally {
       setUploadingImages(false);
+    }
+  };
+
+  const handleFileInputChange = (e) => {
+    const files = Array.from(e.target.files);
+    handleImageUpload(files);
+    // Clear the input so the same file can be uploaded again if needed
+    e.target.value = '';
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const files = Array.from(e.dataTransfer.files);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    
+    if (imageFiles.length > 0) {
+      handleImageUpload(imageFiles);
+    } else {
+      toast.error('Por favor, arrastra solo archivos de imagen');
     }
   };
 
@@ -381,20 +437,12 @@ export default function CreateProductPage() {
         cost_price: formData.cost_price ? parseFloat(formData.cost_price) : null,
         sku: formData.sku || null,
         barcode: formData.barcode || null,
-        weight_grams: formData.weight_grams && formData.weight_grams.trim() ? parseFloat(formData.weight_grams) : null,
-        dimensions_cm: (formData.length_cm || formData.width_cm || formData.height_cm) ? {
-          length: formData.length_cm ? parseFloat(formData.length_cm) : null,
-          width: formData.width_cm ? parseFloat(formData.width_cm) : null,
-          height: formData.height_cm ? parseFloat(formData.height_cm) : null
-        } : null,
         category_id: formData.category_id || null,
         brand_id: formData.brand_id || null,
         stock_quantity: parseInt(formData.stock_quantity) || 0,
         low_stock_threshold: parseInt(formData.low_stock_threshold) || 5,
         is_active: false,
         is_featured: formData.is_featured || false,
-        meta_title: formData.meta_title || null,
-        meta_description: formData.meta_description || null,
         meta_keywords: formData.tags && formData.tags.trim() ? formData.tags.split(',').map(tag => tag.trim()).join(', ') : null,
         images: formData.images || [],
         features: formData.features && formData.features.trim() ? formData.features.split('\n').map(feature => feature.trim()).filter(feature => feature) : []
@@ -443,18 +491,9 @@ export default function CreateProductPage() {
   };
 
   const handlePublish = async () => {
-    // Validate all required fields before publishing
-    const allStepsValid = STEPS.every(step => validateStep(step.id));
-    
-    if (!allStepsValid) {
+    // Validate required fields before publishing
+    if (!validateForm()) {
       toast.error('Por favor completa todos los campos requeridos antes de publicar');
-      return;
-    }
-
-    // Extra validation for publishing - price is required
-    if (!formData.price || parseFloat(formData.price) <= 0) {
-      toast.error('El precio es requerido para publicar el producto');
-      setCurrentStep(2); // Go to price step
       return;
     }
 
@@ -471,20 +510,12 @@ export default function CreateProductPage() {
         cost_price: formData.cost_price ? parseFloat(formData.cost_price) : null,
         sku: formData.sku || null,
         barcode: formData.barcode || null,
-        weight_grams: formData.weight_grams && formData.weight_grams.trim() ? parseFloat(formData.weight_grams) : null,
-        dimensions_cm: (formData.length_cm || formData.width_cm || formData.height_cm) ? {
-          length: formData.length_cm ? parseFloat(formData.length_cm) : null,
-          width: formData.width_cm ? parseFloat(formData.width_cm) : null,
-          height: formData.height_cm ? parseFloat(formData.height_cm) : null
-        } : null,
         category_id: formData.category_id || null,
         brand_id: formData.brand_id || null,
         stock_quantity: parseInt(formData.stock_quantity) || 0,
         low_stock_threshold: parseInt(formData.low_stock_threshold) || 5,
         is_active: true,
         is_featured: formData.is_featured || false,
-        meta_title: formData.meta_title || null,
-        meta_description: formData.meta_description || null,
         meta_keywords: formData.tags && formData.tags.trim() ? formData.tags.split(',').map(tag => tag.trim()).join(', ') : null,
         images: formData.images || [],
         features: formData.features && formData.features.trim() ? formData.features.split('\n').map(feature => feature.trim()).filter(feature => feature) : []
@@ -532,672 +563,505 @@ export default function CreateProductPage() {
     }
   };
 
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <div className={styles.stepContent}>
-            <h2>Información del Producto y Categorización</h2>
-            
-            {/* Información Básica */}
-            <div className={styles.subsection}>
-              <h3>📝 Información Básica</h3>
-              
-              <div className={styles.field}>
-                <label htmlFor="name">
-                  Nombre del Producto *
-                  <Tooltip content="El nombre comercial que verán los clientes">
-                    <span className={styles.helpIcon}>?</span>
-                  </Tooltip>
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  required
-                  className={`${styles.input} ${validationErrors.name ? styles.inputError : ''}`}
-                  placeholder="Ej: iPhone 15 Pro Max"
-                />
-                {validationErrors.name && <span className={styles.errorText}>{validationErrors.name}</span>}
-              </div>
-
-              <div className={styles.fieldRow}>
-                <div className={styles.field}>
-                  <label htmlFor="short_description">
-                    Descripción Corta
-                    <Tooltip content="Resumen breve que aparece en listados de productos (máximo 160 caracteres)">
-                      <span className={styles.helpIcon}>?</span>
-                    </Tooltip>
-                  </label>
-                  <textarea
-                    id="short_description"
-                    name="short_description"
-                    value={formData.short_description}
-                    onChange={handleInputChange}
-                    rows={2}
-                    maxLength={160}
-                    className={styles.textarea}
-                    placeholder="Descripción breve para mostrar en listados..."
-                  />
-                  <small className={styles.charCount}>
-                    {formData.short_description.length}/160 caracteres
-                  </small>
-                </div>
-
-                <div className={styles.field}>
-                  <label htmlFor="description">
-                    Descripción Completa
-                    <Tooltip content="Descripción detallada del producto que verán los clientes">
-                      <span className={styles.helpIcon}>?</span>
-                    </Tooltip>
-                  </label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    rows={4}
-                    className={styles.textarea}
-                    placeholder="Describe detalladamente las características, beneficios y especificaciones del producto..."
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Categorización */}
-            <div className={styles.subsection}>
-              <h3>📋 Categorización y Etiquetas</h3>
-              
-              <div className={styles.fieldRow}>
-                <div className={styles.field}>
-                  <label htmlFor="category_id">
-                    Categoría del Producto
-                    <Tooltip content="Ayuda a los clientes a encontrar tu producto. Puedes crear una nueva si no existe. Campo opcional">
-                      <span className={styles.helpIcon}>?</span>
-                    </Tooltip>
-                  </label>
-                  <SmartComboBox
-                    value={formData.category_id}
-                    onChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}
-                    options={categories}
-                    placeholder="Buscar o crear categoría (opcional)..."
-                    createEndpoint="/api/admin/categories"
-                    createLabel="categoría"
-                    onOptionsUpdate={handleCategoryUpdate}
-                  />
-                </div>
-
-                <div className={styles.field}>
-                  <label htmlFor="brand_id">
-                    Marca del Producto
-                    <Tooltip content="La marca o fabricante del producto. Opcional pero recomendado para productos con marca conocida">
-                      <span className={styles.helpIcon}>?</span>
-                    </Tooltip>
-                  </label>
-                  <SmartComboBox
-                    value={formData.brand_id}
-                    onChange={(value) => setFormData(prev => ({ ...prev, brand_id: value }))}
-                    options={brands}
-                    placeholder="Buscar o crear marca (opcional)..."
-                    createEndpoint="/api/admin/brands"
-                    createLabel="marca"
-                    onOptionsUpdate={handleBrandUpdate}
-                  />
-                </div>
-              </div>
-
-              <div className={styles.field}>
-                <label htmlFor="tags">
-                  Etiquetas del Producto
-                  <Tooltip content="Palabras clave que describen tu producto. Ayudan en las búsquedas y mejoran el SEO. Ej: nuevo, oferta, popular, tendencia">
-                    <span className={styles.helpIcon}>?</span>
-                  </Tooltip>
-                </label>
-                <TagInput
-                  value={formData.tags}
-                  onChange={(value) => setFormData(prev => ({ ...prev, tags: value }))}
-                  placeholder="Ej: nuevo, oferta, popular, tendencia..."
-                  maxTags={15}
-                />
-              </div>
-
-              <div className={styles.field}>
-                <label htmlFor="features">
-                  Características del Producto
-                  <Tooltip content="Detalles adicionales que describen las características del producto. Ej: Secado rápido, Color vibrante, Sin formaldehído">
-                    <span className={styles.helpIcon}>?</span>
-                  </Tooltip>
-                </label>
-                <FeatureInput
-                  value={formData.features}
-                  onChange={(value) => setFormData(prev => ({ ...prev, features: value }))}
-                  placeholder="Ej: Secado rápido, Color vibrante, Sin formaldehído..."
-                  maxFeatures={50}
-                />
-              </div>
-            </div>
-
-            {/* Generador de SKU */}
-            <div className={styles.subsection}>
-              <h3>🏷️ Código y SKU del Producto</h3>
-              
-              <div className={styles.skuGenerator}>
-                <div className={styles.skuPreview}>
-                  <h4>SKU Generado Automáticamente</h4>
-                  <div className={styles.skuDisplay}>
-                    <span className={styles.skuCode}>{formData.sku || 'Completa el nombre para generar SKU'}</span>
-                    <div className={styles.autoIndicator}>
-                      ⚡ Generación automática
-                    </div>
-                  </div>
-                  
-                  {formData.sku && (
-                    <div className={styles.skuBreakdown}>
-                      <p><strong>Componentes del SKU:</strong></p>
-                      <div className={styles.skuParts}>
-                        <div className={styles.skuPart}>
-                          <span className={styles.partLabel}>Categoría</span>
-                          <span className={styles.partValue}>
-                            {categories.find(cat => cat.id === formData.category_id)?.name.substring(0, 3).toUpperCase() || 'GEN'}
-                          </span>
-                        </div>
-                        {formData.brand_id && (
-                          <div className={styles.skuPart}>
-                            <span className={styles.partLabel}>Marca</span>
-                            <span className={styles.partValue}>
-                              {brands.find(brand => brand.id === formData.brand_id)?.name.substring(0, 3).toUpperCase()}
-                            </span>
-                          </div>
-                        )}
-                        <div className={styles.skuPart}>
-                          <span className={styles.partLabel}>Producto</span>
-                          <span className={styles.partValue}>
-                            {formData.name.substring(0, 3).toUpperCase()}
-                          </span>
-                        </div>
-                        <div className={styles.skuPart}>
-                          <span className={styles.partLabel}>Número</span>
-                          <span className={styles.partValue}>
-                            {formData.sku ? formData.sku.split('-').pop() : 'XXX'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className={styles.fieldRow}>
-                <div className={styles.field}>
-                  <label htmlFor="sku">
-                    SKU (Código de Producto)
-                    <Tooltip content="SKU significa 'Stock Keeping Unit'. Se genera automáticamente cuando completas el nombre y categoría.">
-                      <span className={styles.helpIcon}>?</span>
-                    </Tooltip>
-                  </label>
-                  <input
-                    type="text"
-                    id="sku"
-                    name="sku"
-                    value={formData.sku}
-                    onChange={handleInputChange}
-                    readOnly
-                    className={`${styles.input} ${styles.inputReadonly}`}
-                    placeholder="Se generará automáticamente..."
-                  />
-                  <small className={styles.helpText}>
-                    El SKU se genera automáticamente basado en el nombre del producto, categoría (opcional) y marca (opcional).
-                  </small>
-                </div>
-
-                <div className={styles.field}>
-                  <label htmlFor="barcode">
-                    Código de Barras (Opcional)
-                    <Tooltip content="Escanea el código de barras del producto o escríbelo manualmente. Compatible con escáneres automáticos.">
-                      <span className={styles.helpIcon}>?</span>
-                    </Tooltip>
-                  </label>
-                  <div className={styles.barcodeInputContainer}>
-                    <input
-                      type="text"
-                      id="barcode"
-                      name="barcode"
-                      value={formData.barcode}
-                      onChange={handleInputChange}
-                      className={`${styles.input} ${scanningBarcode ? styles.inputScanning : ''}`}
-                      placeholder="Escanea con tu lector o escribe manualmente..."
-                    />
-                    {scanningBarcode && (
-                      <div className={styles.scanningIndicator}>
-                        📱 Escaneando...
-                      </div>
-                    )}
-                  </div>
-                  <small className={styles.helpText}>
-                    📱 Usa tu escáner de códigos de barras para llenar automáticamente este campo.
-                  </small>
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.infoCard}>
-              <h4>💡 Tips para este paso</h4>
-              <ul>
-                <li>• El <strong>SKU se genera automáticamente</strong> al completar el nombre del producto</li>
-                <li>• <strong>Categoría y marca son opcionales</strong> - pero ayudan a organizar mejor tu inventario</li>
-                <li>• <strong>Escáner de códigos:</strong> Usa tu lector para llenar automáticamente el código de barras</li>
-                <li>• El <strong>código de barras es opcional</strong> - no todos los productos lo tienen</li>
-                <li>• Las <strong>etiquetas</strong> ayudan a los clientes a encontrar tu producto</li>
-                <li>• Puedes crear nuevas categorías y marcas directamente desde los campos de búsqueda</li>
-                <li>• 📝 <strong>Borrador automático:</strong> Tu progreso se guarda automáticamente al avanzar pasos</li>
-              </ul>
-            </div>
-          </div>
-        );
-
-      case 2:
-        return (
-          <div className={styles.stepContent}>
-            <h2>Precios y Control de Inventario</h2>
-            
-            <div className={styles.fieldRow}>
-              <div className={styles.field}>
-                <label htmlFor="price">
-                  Precio de Venta al Público *
-                  <Tooltip content="Precio en pesos mexicanos que pagarán los clientes">
-                    <span className={styles.helpIcon}>?</span>
-                  </Tooltip>
-                </label>
-                <div className={styles.inputWithPrefix}>
-                  <span className={styles.prefix}>$</span>
-                  <input
-                    type="number"
-                    id="price"
-                    name="price"
-                    value={formData.price}
-                    onChange={handleInputChange}
-                    step="0.01"
-                    min="0"
-                    required
-                    className={`${styles.input} ${styles.inputWithPrefixField} ${validationErrors.price ? styles.inputError : ''}`}
-                    placeholder="0.00"
-                  />
-                </div>
-                {validationErrors.price && <span className={styles.errorText}>{validationErrors.price}</span>}
-              </div>
-
-              <div className={styles.field}>
-                <label htmlFor="cost_price">
-                  Precio de Costo
-                  <Tooltip content="Lo que te cuesta a ti adquirir este producto. Te ayuda a calcular tus ganancias (opcional pero recomendado)">
-                    <span className={styles.helpIcon}>?</span>
-                  </Tooltip>
-                </label>
-                <div className={styles.inputWithPrefix}>
-                  <span className={styles.prefix}>$</span>
-                  <input
-                    type="number"
-                    id="cost_price"
-                    name="cost_price"
-                    value={formData.cost_price}
-                    onChange={handleInputChange}
-                    step="0.01"
-                    min="0"
-                    className={`${styles.input} ${styles.inputWithPrefixField}`}
-                    placeholder="0.00"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {formData.price && formData.cost_price && (
-              <div className={styles.profitIndicator}>
-                <div className={styles.profitCard}>
-                  <h4>💰 Análisis de Rentabilidad</h4>
-                  <div className={styles.profitDetails}>
-                    <div className={styles.profitItem}>
-                      <span>Ganancia por unidad:</span>
-                      <strong>${(parseFloat(formData.price) - parseFloat(formData.cost_price)).toFixed(2)}</strong>
-                    </div>
-                    <div className={styles.profitItem}>
-                      <span>Margen de ganancia:</span>
-                      <strong>{(((parseFloat(formData.price) - parseFloat(formData.cost_price)) / parseFloat(formData.price)) * 100).toFixed(1)}%</strong>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className={styles.fieldRow}>
-              <div className={styles.field}>
-                <label htmlFor="stock_quantity">
-                  Cantidad en Stock
-                  <Tooltip content="¿Cuántas unidades de este producto tienes disponibles para vender?">
-                    <span className={styles.helpIcon}>?</span>
-                  </Tooltip>
-                </label>
-                <input
-                  type="number"
-                  id="stock_quantity"
-                  name="stock_quantity"
-                  value={formData.stock_quantity}
-                  onChange={handleInputChange}
-                  min="0"
-                  className={styles.input}
-                  placeholder="0"
-                />
-              </div>
-
-              <div className={styles.field}>
-                <label htmlFor="low_stock_threshold">
-                  Alerta de Stock Bajo
-                  <Tooltip content="Te avisaremos cuando queden pocas unidades para que puedas reabastecerte a tiempo. Recomendamos entre 5-10 unidades">
-                    <span className={styles.helpIcon}>?</span>
-                  </Tooltip>
-                </label>
-                <input
-                  type="number"
-                  id="low_stock_threshold"
-                  name="low_stock_threshold"
-                  value={formData.low_stock_threshold}
-                  onChange={handleInputChange}
-                  min="0"
-                  className={styles.input}
-                  placeholder="5"
-                />
-              </div>
-            </div>
-          </div>
-        );
-
-      case 3:
-        return (
-          <div className={styles.stepContent}>
-            <h2>Detalles Físicos y Envío</h2>
-            
-            <div className={styles.subsection}>
-              <h3>📦 Peso del Producto</h3>
-              
-              <div className={styles.field}>
-                <label htmlFor="weight_grams">
-                  Peso (gramos)
-                  <Tooltip content="Peso del producto en gramos. Importante para calcular costos de envío">
-                    <span className={styles.helpIcon}>?</span>
-                  </Tooltip>
-                </label>
-                <div className={styles.inputWithSuffix}>
-                  <input
-                    type="number"
-                    id="weight_grams"
-                    name="weight_grams"
-                    value={formData.weight_grams}
-                    onChange={handleInputChange}
-                    step="0.1"
-                    min="0"
-                    className={`${styles.input} ${styles.inputWithSuffixField}`}
-                    placeholder="0.0"
-                  />
-                  <span className={styles.suffix}>g</span>
-                </div>
-                <small className={styles.helpText}>
-                  Puedes usar decimales para pesos precisos (ej: 250.5 para 250.5 gramos)
-                </small>
-              </div>
-            </div>
-
-            <div className={styles.subsection}>
-              <h3>📏 Dimensiones del Producto</h3>
-              
-              <div className={styles.fieldRow}>
-                <div className={styles.field}>
-                  <label htmlFor="length_cm">
-                    Largo (cm)
-                    <Tooltip content="Longitud del producto en centímetros">
-                      <span className={styles.helpIcon}>?</span>
-                    </Tooltip>
-                  </label>
-                  <div className={styles.inputWithSuffix}>
-                    <input
-                      type="number"
-                      id="length_cm"
-                      name="length_cm"
-                      value={formData.length_cm}
-                      onChange={handleInputChange}
-                      step="0.1"
-                      min="0"
-                      className={`${styles.input} ${styles.inputWithSuffixField}`}
-                      placeholder="0.0"
-                    />
-                    <span className={styles.suffix}>cm</span>
-                  </div>
-                </div>
-
-                <div className={styles.field}>
-                  <label htmlFor="width_cm">
-                    Ancho (cm)
-                    <Tooltip content="Ancho del producto en centímetros">
-                      <span className={styles.helpIcon}>?</span>
-                    </Tooltip>
-                  </label>
-                  <div className={styles.inputWithSuffix}>
-                    <input
-                      type="number"
-                      id="width_cm"
-                      name="width_cm"
-                      value={formData.width_cm}
-                      onChange={handleInputChange}
-                      step="0.1"
-                      min="0"
-                      className={`${styles.input} ${styles.inputWithSuffixField}`}
-                      placeholder="0.0"
-                    />
-                    <span className={styles.suffix}>cm</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.field}>
-                <label htmlFor="height_cm">
-                  Alto (cm)
-                  <Tooltip content="Altura del producto en centímetros">
-                    <span className={styles.helpIcon}>?</span>
-                  </Tooltip>
-                </label>
-                <div className={styles.inputWithSuffix}>
-                  <input
-                    type="number"
-                    id="height_cm"
-                    name="height_cm"
-                    value={formData.height_cm}
-                    onChange={handleInputChange}
-                    step="0.1"
-                    min="0"
-                    className={`${styles.input} ${styles.inputWithSuffixField}`}
-                    placeholder="0.0"
-                  />
-                  <span className={styles.suffix}>cm</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className={styles.infoCard}>
-              <h4>💡 ¿Por qué es importante el peso y las dimensiones?</h4>
-              <ul>
-                <li>• Calcula automáticamente los costos de envío</li>
-                <li>• Ayuda a determinar el mejor método de empaque</li>
-                <li>• Mejora la experiencia del cliente con información precisa</li>
-                <li>• Facilita la gestión de inventario y almacenamiento</li>
-                <li>• Las dimensiones se almacenan como Largo × Ancho × Alto</li>
-              </ul>
-            </div>
-          </div>
-        );
-
-      case 4:
-        return (
-          <div className={styles.stepContent}>
-            <h2>Imágenes del Producto</h2>
-            
-            <div className={styles.field}>
-              <label htmlFor="images">
-                Subir Imágenes
-                <Tooltip content="Las primeras imágenes que subas serán las principales. Recomendamos al menos 3-5 imágenes de buena calidad">
-                  <span className={styles.helpIcon}>?</span>
-                </Tooltip>
-              </label>
+  const renderFormContent = () => {
+    return (
+      <div className={styles.formContent}>
+        <h2>Crear Nuevo Producto</h2>
+        
+        {/* Imágenes del Producto - PRIMER ELEMENTO */}
+        <div className={styles.subsection}>
+          <h3>🖼️ Imágenes del Producto</h3>
+          
+          <div className={styles.field}>
+            <label htmlFor="images">
+              Subir Imágenes
+              <Tooltip content="Las primeras imágenes que subas serán las principales. Recomendamos al menos 3-5 imágenes de buena calidad. Formatos: JPG, PNG, WebP. Máximo 5MB por imagen.">
+                <span className={styles.helpIcon}>?</span>
+              </Tooltip>
+            </label>
+            <div 
+              className={styles.uploadContainer}
+              onDragOver={handleDragOver}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
               <input
                 type="file"
                 id="images"
                 multiple
-                accept="image/*"
-                onChange={handleImageUpload}
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                onChange={handleFileInputChange}
                 disabled={uploadingImages}
                 className={styles.fileInput}
               />
-              {uploadingImages && <p className={styles.uploadingText}>Subiendo imágenes...</p>}
+              {uploadingImages && (
+                <div className={styles.uploadingIndicator}>
+                  <div className={styles.spinner}></div>
+                  <span>Subiendo imágenes...</span>
+                </div>
+              )}
+            </div>
+            <small className={styles.helpText}>
+              💡 Arrastra archivos aquí o haz clic para seleccionar. Máximo 5MB por imagen.
+            </small>
+          </div>
+
+          {formData.images.length > 0 && (
+            <div className={styles.imageSection}>
+              <h4>Imágenes Actuales ({formData.images.length})</h4>
+              <div className={styles.imagePreview}>
+                {formData.images.map((image, index) => (
+                  <div key={index} className={styles.imageItem}>
+                    {index === 0 && <div className={styles.primaryBadge}>Principal</div>}
+                    <img src={image.url} alt={image.alt} className={styles.productImage} />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className={styles.removeImageButton}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className={styles.infoCard}>
+            <h4>📸 Tips para Mejores Imágenes</h4>
+            <ul>
+              <li>• La primera imagen será la principal que ven los clientes</li>
+              <li>• Usa fondo blanco o neutral para mejor presentación</li>
+              <li>• Incluye diferentes ángulos y detalles importantes</li>
+              <li>• Resolución mínima recomendada: 800x800 píxeles</li>
+              <li>• Formatos compatibles: JPG, PNG, WebP</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Información Básica */}
+        <div className={styles.subsection}>
+          <h3>📝 Información Básica</h3>
+          
+          <div className={styles.field}>
+            <label htmlFor="name">
+              Nombre del Producto *
+              <Tooltip content="El nombre comercial que verán los clientes">
+                <span className={styles.helpIcon}>?</span>
+              </Tooltip>
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleInputChange}
+              required
+              className={`${styles.input} ${validationErrors.name ? styles.inputError : ''}`}
+              placeholder="Ej: iPhone 15 Pro Max"
+            />
+            {validationErrors.name && <span className={styles.errorText}>{validationErrors.name}</span>}
+          </div>
+
+          <div className={styles.fieldRow}>
+            <div className={styles.field}>
+              <label htmlFor="short_description">
+                Descripción Corta
+                <Tooltip content="Resumen breve que aparece en listados de productos (máximo 160 caracteres)">
+                  <span className={styles.helpIcon}>?</span>
+                </Tooltip>
+              </label>
+              <textarea
+                id="short_description"
+                name="short_description"
+                value={formData.short_description}
+                onChange={handleInputChange}
+                rows={2}
+                maxLength={160}
+                className={styles.textarea}
+                placeholder="Descripción breve para mostrar en listados..."
+              />
+              <small className={styles.charCount}>
+                {formData.short_description.length}/160 caracteres
+              </small>
             </div>
 
-            {formData.images.length > 0 && (
-              <div className={styles.imageSection}>
-                <h3>Imágenes Actuales ({formData.images.length})</h3>
-                <div className={styles.imagePreview}>
-                  {formData.images.map((image, index) => (
-                    <div key={index} className={styles.imageItem}>
-                      {index === 0 && <div className={styles.primaryBadge}>Principal</div>}
-                      <img src={image.url} alt={image.alt} className={styles.previewImage} />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(index)}
-                        className={styles.removeImageButton}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className={styles.infoCard}>
-              <h4>📸 Tips para Mejores Imágenes</h4>
-              <ul>
-                <li>• La primera imagen será la principal que ven los clientes</li>
-                <li>• Usa fondo blanco o neutral para mejor presentación</li>
-                <li>• Incluye diferentes ángulos y detalles importantes</li>
-                <li>• Resolución mínima recomendada: 800x800 píxeles</li>
-                <li>• Formatos compatibles: JPG, PNG, WebP</li>
-              </ul>
+            <div className={styles.field}>
+              <label htmlFor="description">
+                Descripción Completa
+                <Tooltip content="Descripción detallada del producto que verán los clientes">
+                  <span className={styles.helpIcon}>?</span>
+                </Tooltip>
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                rows={4}
+                className={styles.textarea}
+                placeholder="Describe detalladamente las características, beneficios y especificaciones del producto..."
+              />
             </div>
           </div>
-        );
+        </div>
 
-      case 5:
-        return (
-          <div className={styles.stepContent}>
-            <h2>SEO y Configuración Final</h2>
-            
+        {/* Categorización */}
+        <div className={styles.subsection}>
+          <h3>📋 Categorización y Etiquetas</h3>
+          
+          <div className={styles.fieldRow}>
             <div className={styles.field}>
-              <label htmlFor="meta_title">
-                Título SEO
-                <Tooltip content="Título que aparece en Google y redes sociales. Si lo dejas vacío, usaremos el nombre del producto">
+              <label htmlFor="category_id">
+                Categoría del Producto
+                <Tooltip content="Ayuda a los clientes a encontrar tu producto. Puedes crear una nueva si no existe. Campo opcional">
+                  <span className={styles.helpIcon}>?</span>
+                </Tooltip>
+              </label>
+              <SmartComboBox
+                value={formData.category_id}
+                onChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}
+                options={categories}
+                placeholder="Buscar o crear categoría (opcional)..."
+                createEndpoint="/api/admin/categories"
+                createLabel="categoría"
+                onOptionsUpdate={handleCategoryUpdate}
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label htmlFor="brand_id">
+                Marca del Producto
+                <Tooltip content="La marca o fabricante del producto. Opcional pero recomendado para productos con marca conocida">
+                  <span className={styles.helpIcon}>?</span>
+                </Tooltip>
+              </label>
+              <SmartComboBox
+                value={formData.brand_id}
+                onChange={(value) => setFormData(prev => ({ ...prev, brand_id: value }))}
+                options={brands}
+                placeholder="Buscar o crear marca (opcional)..."
+                createEndpoint="/api/admin/brands"
+                createLabel="marca"
+                onOptionsUpdate={handleBrandUpdate}
+              />
+            </div>
+          </div>
+
+          <div className={styles.field}>
+            <label htmlFor="tags">
+              Etiquetas del Producto
+              <Tooltip content="Palabras clave que describen tu producto. Ayudan en las búsquedas y mejoran el SEO. Ej: nuevo, oferta, popular, tendencia">
+                <span className={styles.helpIcon}>?</span>
+              </Tooltip>
+            </label>
+            <TagInput
+              value={formData.tags}
+              onChange={(value) => setFormData(prev => ({ ...prev, tags: value }))}
+              placeholder="Ej: nuevo, oferta, popular, tendencia..."
+              maxTags={15}
+            />
+          </div>
+
+          <div className={styles.field}>
+            <label htmlFor="features">
+              Características del Producto
+              <Tooltip content="Detalles adicionales que describen las características del producto. Ej: Secado rápido, Color vibrante, Sin formaldehído">
+                <span className={styles.helpIcon}>?</span>
+              </Tooltip>
+            </label>
+            <FeatureInput
+              value={formData.features}
+              onChange={(value) => setFormData(prev => ({ ...prev, features: value }))}
+              placeholder="Ej: Secado rápido, Color vibrante, Sin formaldehído..."
+              maxFeatures={50}
+            />
+          </div>
+        </div>
+
+        {/* Código y SKU */}
+        <div className={styles.subsection}>
+          <h3>🏷️ Código y SKU del Producto</h3>
+          
+          <div className={styles.skuGenerator}>
+            <div className={styles.skuPreview}>
+              <h4>SKU Generado Automáticamente</h4>
+              <div className={styles.skuDisplay}>
+                <span className={styles.skuCode}>{formData.sku || 'Completa el nombre para generar SKU'}</span>
+                <div className={styles.autoIndicator}>
+                  ⚡ Generación automática
+                </div>
+              </div>
+              
+              {formData.sku && (
+                <div className={styles.skuBreakdown}>
+                  <p><strong>Componentes del SKU:</strong></p>
+                  <div className={styles.skuParts}>
+                    <div className={styles.skuPart}>
+                      <span className={styles.partLabel}>Categoría</span>
+                      <span className={styles.partValue}>
+                        {categories.find(cat => cat.id === formData.category_id)?.name.substring(0, 3).toUpperCase() || 'GEN'}
+                      </span>
+                    </div>
+                    {formData.brand_id && (
+                      <div className={styles.skuPart}>
+                        <span className={styles.partLabel}>Marca</span>
+                        <span className={styles.partValue}>
+                          {brands.find(brand => brand.id === formData.brand_id)?.name.substring(0, 3).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <div className={styles.skuPart}>
+                      <span className={styles.partLabel}>Producto</span>
+                      <span className={styles.partValue}>
+                        {formData.name.substring(0, 3).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className={styles.skuPart}>
+                      <span className={styles.partLabel}>Número</span>
+                      <span className={styles.partValue}>
+                        {formData.sku ? formData.sku.split('-').pop() : 'XXX'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.fieldRow}>
+            <div className={styles.field}>
+              <label htmlFor="sku">
+                SKU (Código de Producto)
+                <Tooltip content="SKU significa 'Stock Keeping Unit'. Se genera automáticamente cuando completas el nombre y categoría.">
                   <span className={styles.helpIcon}>?</span>
                 </Tooltip>
               </label>
               <input
                 type="text"
-                id="meta_title"
-                name="meta_title"
-                value={formData.meta_title}
+                id="sku"
+                name="sku"
+                value={formData.sku}
                 onChange={handleInputChange}
-                maxLength={60}
-                className={styles.input}
-                placeholder={formData.name || "Título para buscadores..."}
+                readOnly
+                className={`${styles.input} ${styles.inputReadonly}`}
+                placeholder="Se generará automáticamente..."
               />
-              <small className={styles.charCount}>
-                {formData.meta_title.length}/60 caracteres
+              <small className={styles.helpText}>
+                El SKU se genera automáticamente basado en el nombre del producto, categoría (opcional) y marca (opcional).
               </small>
             </div>
 
             <div className={styles.field}>
-              <label htmlFor="meta_description">
-                Descripción SEO
-                <Tooltip content="Descripción que aparece en Google. Ayuda a que más gente encuentre tu producto">
+              <label htmlFor="barcode">
+                Código de Barras (Opcional)
+                <Tooltip content="Escanea el código de barras del producto o escríbelo manualmente. Compatible con escáneres automáticos.">
                   <span className={styles.helpIcon}>?</span>
                 </Tooltip>
               </label>
-              <textarea
-                id="meta_description"
-                name="meta_description"
-                value={formData.meta_description}
-                onChange={handleInputChange}
-                rows={3}
-                maxLength={160}
-                className={styles.textarea}
-                placeholder={formData.short_description || "Descripción que aparecerá en Google..."}
-              />
-              <small className={styles.charCount}>
-                {formData.meta_description.length}/160 caracteres
+              <div className={styles.barcodeInputContainer}>
+                <input
+                  type="text"
+                  id="barcode"
+                  name="barcode"
+                  value={formData.barcode}
+                  onChange={handleInputChange}
+                  className={`${styles.input} ${scanningBarcode ? styles.inputScanning : ''}`}
+                  placeholder="Escanea con tu lector o escribe manualmente..."
+                />
+                {scanningBarcode && (
+                  <div className={styles.scanningIndicator}>
+                    📱 Escaneando...
+                  </div>
+                )}
+              </div>
+              <small className={styles.helpText}>
+                📱 Usa tu escáner de códigos de barras para llenar automáticamente este campo.
               </small>
             </div>
+          </div>
+        </div>
 
-            <div className={styles.configSection}>
-              <h3>Configuración del Producto</h3>
-              
-              <div className={styles.checkboxGroup}>
-                <label className={styles.checkboxLabel}>
-                  <input
-                    type="checkbox"
-                    name="is_featured"
-                    checked={formData.is_featured}
-                    onChange={handleInputChange}
-                    className={styles.checkbox}
-                  />
-                  <div className={styles.checkboxContent}>
-                    <strong>⭐ Producto Destacado</strong>
-                    <span>Aparecerá en la sección de productos destacados de tu tienda</span>
-                  </div>
-                </label>
+        {/* Precios y Stock */}
+        <div className={styles.subsection}>
+          <h3>💰 Precios y Control de Inventario</h3>
+          
+          <div className={styles.fieldRow}>
+            <div className={styles.field}>
+              <label htmlFor="price">
+                Precio de Venta al Público *
+                <Tooltip content="Precio en pesos mexicanos que pagarán los clientes">
+                  <span className={styles.helpIcon}>?</span>
+                </Tooltip>
+              </label>
+              <div className={styles.inputWithPrefix}>
+                <span className={styles.prefix}>$</span>
+                <input
+                  type="number"
+                  id="price"
+                  name="price"
+                  value={formData.price}
+                  onChange={handleInputChange}
+                  step="0.01"
+                  min="0"
+                  required
+                  className={`${styles.input} ${styles.inputWithPrefixField} ${validationErrors.price ? styles.inputError : ''}`}
+                  placeholder="0.00"
+                />
               </div>
+              {validationErrors.price && <span className={styles.errorText}>{validationErrors.price}</span>}
             </div>
 
-            <div className={styles.statusSection}>
-              <h3>🚀 ¿Qué quieres hacer con este producto?</h3>
-              <div className={styles.statusOptions}>
-                <div className={styles.statusOption}>
-                  <h4>💾 Guardar como Borrador</h4>
-                  <p>Guarda tu trabajo para continuar después. El producto no será visible para los clientes.</p>
-                  <button
-                    type="button"
-                    onClick={handleSaveDraft}
-                    disabled={loading}
-                    className={styles.draftButton}
-                  >
-                    {loading ? 'Guardando...' : 'Guardar Borrador'}
-                  </button>
-                </div>
-                
-                <div className={styles.statusOption}>
-                  <h4>✅ Publicar Producto</h4>
-                  <p>Hace el producto visible y disponible para compra inmediatamente.</p>
-                  <button
-                    type="button"
-                    onClick={handlePublish}
-                    disabled={loading}
-                    className={styles.publishButton}
-                  >
-                    {loading ? 'Publicando...' : 'Publicar Producto'}
-                  </button>
-                </div>
+            <div className={styles.field}>
+              <label htmlFor="cost_price">
+                Precio de Costo
+                <Tooltip content="Lo que te cuesta a ti adquirir este producto. Te ayuda a calcular tus ganancias (opcional pero recomendado)">
+                  <span className={styles.helpIcon}>?</span>
+                </Tooltip>
+              </label>
+              <div className={styles.inputWithPrefix}>
+                <span className={styles.prefix}>$</span>
+                <input
+                  type="number"
+                  id="cost_price"
+                  name="cost_price"
+                  value={formData.cost_price}
+                  onChange={handleInputChange}
+                  step="0.01"
+                  min="0"
+                  className={`${styles.input} ${styles.inputWithPrefixField}`}
+                  placeholder="0.00"
+                />
               </div>
             </div>
           </div>
-        );
 
-      default:
-        return null;
-    }
+          {formData.price && formData.cost_price && (
+            <div className={styles.profitIndicator}>
+              <div className={styles.profitCard}>
+                <h4>💰 Análisis de Rentabilidad</h4>
+                <div className={styles.profitDetails}>
+                  <div className={styles.profitItem}>
+                    <span>Ganancia por unidad:</span>
+                    <strong>${(parseFloat(formData.price) - parseFloat(formData.cost_price)).toFixed(2)}</strong>
+                  </div>
+                  <div className={styles.profitItem}>
+                    <span>Margen de ganancia:</span>
+                    <strong>{(((parseFloat(formData.price) - parseFloat(formData.cost_price)) / parseFloat(formData.price)) * 100).toFixed(1)}%</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className={styles.fieldRow}>
+            <div className={styles.field}>
+              <label htmlFor="stock_quantity">
+                Cantidad en Stock
+                <Tooltip content="¿Cuántas unidades de este producto tienes disponibles para vender?">
+                  <span className={styles.helpIcon}>?</span>
+                </Tooltip>
+              </label>
+              <input
+                type="number"
+                id="stock_quantity"
+                name="stock_quantity"
+                value={formData.stock_quantity}
+                onChange={handleInputChange}
+                min="0"
+                className={styles.input}
+                placeholder="0"
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label htmlFor="low_stock_threshold">
+                Alerta de Stock Bajo
+                <Tooltip content="Te avisaremos cuando queden pocas unidades para que puedas reabastecerte a tiempo. Recomendamos entre 5-10 unidades">
+                  <span className={styles.helpIcon}>?</span>
+                </Tooltip>
+              </label>
+              <input
+                type="number"
+                id="low_stock_threshold"
+                name="low_stock_threshold"
+                value={formData.low_stock_threshold}
+                onChange={handleInputChange}
+                min="0"
+                className={styles.input}
+                placeholder="5"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Configuración del Producto */}
+        <div className={styles.subsection}>
+          <h3>⚙️ Configuración del Producto</h3>
+          
+          <div className={styles.checkboxGroup}>
+            <label className={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                name="is_featured"
+                checked={formData.is_featured}
+                onChange={handleInputChange}
+                className={styles.checkbox}
+              />
+              <div className={styles.checkboxContent}>
+                <strong>⭐ Producto Destacado</strong>
+                <span>Aparecerá en la sección de productos destacados de tu tienda</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        {/* Acciones Finales */}
+        <div className={styles.statusSection}>
+          <h3>🚀 ¿Qué quieres hacer con este producto?</h3>
+          <div className={styles.statusOptions}>
+            <div className={styles.statusOption}>
+              <h4>💾 Guardar como Borrador</h4>
+              <p>Guarda tu trabajo para continuar después. El producto no será visible para los clientes.</p>
+              <button
+                type="button"
+                onClick={handleSaveDraft}
+                disabled={loading}
+                className={styles.draftButton}
+              >
+                {loading ? 'Guardando...' : 'Guardar Borrador'}
+              </button>
+            </div>
+            
+            <div className={styles.statusOption}>
+              <h4>✅ Publicar Producto</h4>
+              <p>Hace el producto visible y disponible para compra inmediatamente.</p>
+              <button
+                type="button"
+                onClick={handlePublish}
+                disabled={loading}
+                className={styles.publishButton}
+              >
+                {loading ? 'Publicando...' : 'Publicar Producto'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.infoCard}>
+          <h4>💡 Tips para crear un buen producto</h4>
+          <ul>
+            <li>• <strong>Comienza con las imágenes</strong> - Son lo primero que ven los clientes</li>
+            <li>• El <strong>SKU se genera automáticamente</strong> al completar el nombre del producto</li>
+            <li>• <strong>Categoría y marca son opcionales</strong> - pero ayudan a organizar mejor tu inventario</li>
+            <li>• <strong>Escáner de códigos:</strong> Usa tu lector para llenar automáticamente el código de barras</li>
+            <li>• Las <strong>etiquetas</strong> ayudan a los clientes a encontrar tu producto</li>
+            <li>• Puedes crear nuevas categorías y marcas directamente desde los campos de búsqueda</li>
+          </ul>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -1214,74 +1078,10 @@ export default function CreateProductPage() {
           </button>
         </div>
 
-        {/* Progress Steps */}
-        <div className={styles.stepsContainer}>
-          <div className={styles.stepsHeader}>
-            <h2>Progreso de Creación</h2>
-            <span className={styles.stepCounter}>{currentStep} de {STEPS.length}</span>
-          </div>
-          
-          <div className={styles.steps}>
-            {STEPS.map((step) => (
-              <div
-                key={step.id}
-                className={`${styles.step} ${
-                  currentStep === step.id ? styles.stepActive : 
-                  completedSteps.has(step.id) ? styles.stepCompleted : styles.stepPending
-                } ${
-                  step.id > currentStep && !completedSteps.has(step.id - 1) && step.id !== 1 ? styles.stepBlocked : ''
-                }`}
-                onClick={() => goToStep(step.id)}
-              >
-                <div className={styles.stepIcon}>
-                  {completedSteps.has(step.id) ? '✓' : step.icon}
-                </div>
-                <div className={styles.stepInfo}>
-                  <div className={styles.stepTitle}>{step.title}</div>
-                  <div className={styles.stepNumber}>Paso {step.id}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          <div className={styles.progressBar}>
-            <div 
-              className={styles.progressFill}
-              style={{ width: `${(currentStep / STEPS.length) * 100}%` }}
-            ></div>
-          </div>
+        {/* Single Form Content */}
+        <div className={styles.formContainer}>
+          {renderFormContent()}
         </div>
-
-        {/* Step Content */}
-        <div className={styles.stepContainer}>
-          {renderStepContent()}
-        </div>
-
-        {/* Navigation */}
-        {currentStep < 5 && (
-          <div className={styles.navigation}>
-            <button
-              type="button"
-              onClick={prevStep}
-              disabled={currentStep === 1}
-              className={styles.prevButton}
-            >
-              ← Anterior
-            </button>
-            
-            <div className={styles.navInfo}>
-              Paso {currentStep} de {STEPS.length}
-            </div>
-            
-            <button
-              type="button"
-              onClick={nextStep}
-              className={styles.nextButton}
-            >
-              Siguiente →
-            </button>
-          </div>
-        )}
       </div>
     </AdminLayout>
   );
