@@ -1,0 +1,268 @@
+.container {
+  min-height: 100vh;
+  padding: 32px 16px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 40px;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.title {
+  font-size: 32px;
+  font-weight: bold;
+  color: #2d3748;
+  margin: 0 0 16px 0;
+  text-align: center;
+}
+
+.description {
+  color: #718096;
+  margin: 0 0 32px 0;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.form {
+  margin-bottom: 32px;
+}
+
+.inputGroup {
+  margin-bottom: 24px;
+}
+
+.label {
+  display: block;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #3182ce;
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+}
+
+.input:disabled {
+  background: #f7fafc;
+  color: #a0aec0;
+  cursor: not-allowed;
+}
+
+.hint {
+  display: block;
+  color: #718096;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+.button {
+  width: 100%;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+}
+
+.button:disabled {
+  background: #a0aec0;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.error {
+  background: #fed7d7;
+  border: 1px solid #fc8181;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.error h3 {
+  color: #c53030;
+  margin: 0 0 8px 0;
+  font-size: 18px;
+}
+
+.error p {
+  color: #742a2a;
+  margin: 0;
+}
+
+.details {
+  margin-top: 12px;
+}
+
+.details summary {
+  color: #c53030;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.details ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.details li {
+  color: #742a2a;
+  margin-bottom: 4px;
+}
+
+.results {
+  background: #f0fff4;
+  border: 1px solid #9ae6b4;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.results h3 {
+  color: #276749;
+  margin: 0 0 16px 0;
+  font-size: 18px;
+}
+
+.resultItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #c6f6d5;
+}
+
+.resultItem strong {
+  color: #2d3748;
+  min-width: 180px;
+}
+
+.success {
+  color: #38a169;
+  font-weight: 600;
+}
+
+.failure {
+  color: #e53e3e;
+  font-weight: 600;
+}
+
+.errorDetail {
+  color: #e53e3e;
+  font-size: 14px;
+  margin: 4px 0 0 0;
+  flex: 1;
+}
+
+.summary {
+  background: #e6fffa;
+  border-radius: 6px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.summary p {
+  margin: 0 0 8px 0;
+  color: #2d3748;
+}
+
+.summary p:last-child {
+  margin-bottom: 0;
+}
+
+.successMessage {
+  background: #c6f6d5;
+  color: #276749;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 16px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.info {
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.info h3 {
+  color: #2d3748;
+  margin: 0 0 12px 0;
+  font-size: 16px;
+}
+
+.info ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.info li {
+  color: #4a5568;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.info li:last-child {
+  margin-bottom: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+  
+  .card {
+    padding: 24px;
+  }
+  
+  .title {
+    font-size: 24px;
+  }
+  
+  .resultItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .resultItem strong {
+    min-width: auto;
+  }
+}

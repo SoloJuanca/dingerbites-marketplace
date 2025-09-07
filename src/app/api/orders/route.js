@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getRows, getRow, query, transaction } from '../../../lib/database';
 import { authenticateUser } from '../../../lib/auth';
+import { sendOrderNotifications } from '../../../lib/emailService';
 
 // GET /api/orders - Get orders (user-specific, requires authentication)
 export async function GET(request) {
@@ -314,6 +315,76 @@ export async function POST(request) {
 
       return order.rows[0];
     });
+
+    // Obtener detalles completos del pedido para los correos
+    const orderData = {
+      order_number: result.order_number,
+      customer_name: customer_name,
+      customer_email: customer_email,
+      customer_phone: customer_phone,
+      total_amount: total_amount,
+      payment_method: payment_method,
+      shipping_method: shipping_method,
+      items: items || [],
+      service_items: service_items || [],
+      address: address,
+      notes: notes,
+      created_at: new Date()
+    };
+
+    // Enriquecer los datos de items con información de productos si están disponibles
+    if (items && items.length > 0) {
+      try {
+        const enrichedItems = [];
+        for (const item of items) {
+          const productQuery = 'SELECT name, price, sku FROM products WHERE id = $1';
+          const productData = await getRow(productQuery, [item.product_id]);
+          
+          enrichedItems.push({
+            ...item,
+            product_name: productData?.name || 'Producto',
+            unit_price: productData?.price || item.price || 0,
+            total_price: (productData?.price || item.price || 0) * item.quantity
+          });
+        }
+        orderData.items = enrichedItems;
+      } catch (error) {
+        console.error('Error enriching product data for email:', error);
+        // Use original items if enrichment fails
+      }
+    }
+
+    // Enriquecer los datos de servicios si están disponibles
+    if (service_items && service_items.length > 0) {
+      try {
+        const enrichedServiceItems = [];
+        for (const item of service_items) {
+          const serviceQuery = 'SELECT name, price FROM services WHERE id = $1';
+          const serviceData = await getRow(serviceQuery, [item.service_id]);
+          
+          enrichedServiceItems.push({
+            ...item,
+            service_name: serviceData?.name || 'Servicio',
+            unit_price: serviceData?.price || 0,
+            total_price: (serviceData?.price || 0) * (item.quantity || 1)
+          });
+        }
+        orderData.service_items = enrichedServiceItems;
+      } catch (error) {
+        console.error('Error enriching service data for email:', error);
+        // Use original service_items if enrichment fails
+      }
+    }
+
+    // Enviar notificaciones por correo de manera asíncrona
+    // No bloquear la respuesta si falla el envío de correos
+    sendOrderNotifications(orderData)
+      .then((emailResults) => {
+        console.log('Email notifications sent:', emailResults);
+      })
+      .catch((error) => {
+        console.error('Error sending email notifications:', error);
+      });
 
     return NextResponse.json(result, { status: 201 });
 

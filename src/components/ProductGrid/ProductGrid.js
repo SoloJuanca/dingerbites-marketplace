@@ -27,7 +27,7 @@ export default function ProductGrid({
         setLoading(true);
         const params = new URLSearchParams({
           page: currentPage,
-          limit: 8
+          limit: 12
         });
 
         if (category) params.set('category', category);

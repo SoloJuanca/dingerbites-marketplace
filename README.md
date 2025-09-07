@@ -1,8 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Patito Montenegro E-commerce
 
-## Getting Started
+Este es un proyecto de e-commerce construido con [Next.js](https://nextjs.org) 14 usando App Router y JavaScript puro.
 
-First, run the development server:
+## Características Principales
+
+- 🛍️ **E-commerce completo** con carrito, checkout y gestión de pedidos
+- 👑 **Panel de administración** para gestión de productos, pedidos y usuarios  
+- 📧 **Notificaciones por correo** automáticas usando Brevo
+- 🎨 **CSS Modules** para estilos personalizados (sin TailwindCSS)
+- 🔐 **Autenticación JWT** con roles de usuario
+- 📱 **Diseño responsivo** optimizado para móviles
+- 🗄️ **Base de datos PostgreSQL** con esquema completo
+
+## Nuevas Funcionalidades - Notificaciones por Correo 📧
+
+El sistema ahora envía automáticamente correos electrónicos cuando se recibe un pedido:
+
+- **📨 Al Administrador**: Notificación completa con todos los detalles del pedido
+- **✅ Al Cliente**: Confirmación de que el pedido está en proceso
+
+### ✅ Implementación Simplificada
+
+**Sin dependencias externas** - Solo usa la API REST de Brevo:
+
+- 🚀 **Sin SDK**: No requiere librerías de Brevo
+- 🔗 **API REST Directa**: Usa `fetch()` y la [API oficial](https://developers.brevo.com/reference/sendtransacemail)
+- 🛠️ **Simple**: Código fácil de mantener
+- ⚡ **Rápido**: Sin overhead de librerías
+
+### Configuración de Correos
+
+1. **Configurar variables de entorno** en `.env.local`:
+   ```env
+   BREVO_API_KEY=tu-api-key-de-brevo
+   BREVO_SENDER_EMAIL=noreply@tudominio.com
+   BREVO_SENDER_NAME=Patito Montenegro
+   ADMIN_EMAIL=admin@tudominio.com
+   ```
+
+2. **Ver documentación completa**: [BREVO_EMAIL_SETUP.md](./BREVO_EMAIL_SETUP.md)
+
+### Probar Correos en Desarrollo
+
+- **✅ Prueba Simple** (Recomendado): http://localhost:3000/test-email-simple
+- **📧 Prueba Completa**: http://localhost:3000/test-email
+
+**Implementación confiable**: Solo API REST, sin complicaciones de SDKs.
+
+## Configuración Inicial
+
+Primero, ejecuta el servidor de desarrollo:
 
 ```bash
 npm run dev
