@@ -81,6 +81,19 @@ export default function Footer() {
                   </span>
                 </Link>
               </div>
+              <div className={styles.linkGroup}>
+                <h4 className={styles.linkTitle}>Legal</h4>
+                <Link href="/terminos">
+                <span className={styles.link}>
+                  Términos y Condiciones
+                  </span>
+                </Link>
+                <Link href="/privacidad">
+                <span className={styles.link}>
+                  Aviso de Privacidad
+                  </span>
+                </Link>
+              </div>
             </div>
           </div>
           <div className={styles.copyright}>

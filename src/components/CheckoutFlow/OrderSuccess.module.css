@@ -1,0 +1,219 @@
+.orderSuccess {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 32px;
+  text-align: center;
+}
+
+.successIcon {
+  font-size: 64px;
+  margin-bottom: 24px;
+  animation: bounce 1s ease-in-out;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+.header {
+  margin-bottom: 32px;
+}
+
+.header h2 {
+  color: #2c5530;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.orderNumber {
+  font-size: 18px;
+  color: #666;
+  margin: 0;
+}
+
+.orderNumber strong {
+  color: #2c5530;
+  font-weight: 600;
+}
+
+.successMessage {
+  margin-bottom: 40px;
+}
+
+.messageBox {
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: left;
+}
+
+.messageBox h3 {
+  color: #2c5530;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.nextSteps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.nextSteps li {
+  padding: 8px 0;
+  border-bottom: 1px solid #e9ecef;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.nextSteps li:last-child {
+  border-bottom: none;
+}
+
+.nextSteps strong {
+  color: #2c5530;
+}
+
+.actions {
+  margin-bottom: 32px;
+}
+
+.guestActions,
+.userActions {
+  background: #fff;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.guestActions h4,
+.userActions h4 {
+  color: #2c5530;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.buttonGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.primaryButton {
+  background: #2c5530;
+  color: white;
+  border: none;
+  padding: 16px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.primaryButton:hover {
+  background: #1e3a21;
+  transform: translateY(-2px);
+}
+
+.secondaryButton {
+  background: #fff;
+  color: #2c5530;
+  border: 2px solid #2c5530;
+  padding: 16px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.secondaryButton:hover {
+  background: #2c5530;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.tertiaryButton {
+  background: #f8f9fa;
+  color: #666;
+  border: 2px solid #e9ecef;
+  padding: 16px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.tertiaryButton:hover {
+  background: #e9ecef;
+  color: #333;
+  transform: translateY(-2px);
+}
+
+.thankYouMessage {
+  background: #f0f8f0;
+  border: 1px solid #d4edda;
+  border-radius: 8px;
+  padding: 20px;
+  color: #155724;
+}
+
+.thankYouMessage p {
+  margin: 0 0 8px 0;
+  line-height: 1.5;
+}
+
+.thankYouMessage p:last-child {
+  margin-bottom: 0;
+}
+
+.registerLink {
+  color: #2c5530;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.registerLink:hover {
+  color: #1e3a21;
+}
+
+/* Responsive Design */
+@media (min-width: 768px) {
+  .buttonGroup {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .primaryButton,
+  .secondaryButton,
+  .tertiaryButton {
+    width: auto;
+    min-width: 180px;
+    margin-top: 0;
+  }
+
+  .secondaryButton,
+  .tertiaryButton {
+    margin-left: 12px;
+  }
+}

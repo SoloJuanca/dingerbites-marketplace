@@ -1,0 +1,139 @@
+.termsPage {
+  min-height: 100vh;
+  background: linear-gradient(135deg, rgba(252, 228, 236, 0.3) 0%, rgba(248, 187, 217, 0.3) 100%);
+  padding: 80px 0 40px;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.content {
+  background: white;
+  border-radius: 16px;
+  padding: 48px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  margin-bottom: 32px;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.subtitle {
+  font-size: 1.25rem;
+  color: #4a5568;
+  text-align: center;
+  margin-bottom: 48px;
+  font-weight: 500;
+}
+
+.section {
+  margin-bottom: 32px;
+}
+
+.sectionTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #ec407a;
+}
+
+.text {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #4a5568;
+  margin-bottom: 16px;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.list li {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #4a5568;
+  margin-bottom: 12px;
+  padding-left: 24px;
+  position: relative;
+}
+
+.list li::before {
+  content: '•';
+  color: #ec407a;
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+  font-size: 1.2rem;
+}
+
+.lastUpdated {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+.lastUpdated p {
+  font-size: 0.9rem;
+  color: #4a5568;
+  font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .termsPage {
+    padding: 64px 0 24px;
+  }
+
+  .container {
+    padding: 0 16px;
+  }
+
+  .content {
+    padding: 32px 24px;
+    border-radius: 12px;
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .subtitle {
+    font-size: 1.1rem;
+    margin-bottom: 32px;
+  }
+
+  .sectionTitle {
+    font-size: 1.25rem;
+  }
+
+  .text, .list li {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: 24px 16px;
+  }
+
+  .title {
+    font-size: 1.75rem;
+  }
+
+  .sectionTitle {
+    font-size: 1.1rem;
+  }
+}

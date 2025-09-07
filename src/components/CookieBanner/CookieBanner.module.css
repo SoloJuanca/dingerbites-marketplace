@@ -1,0 +1,230 @@
+.cookieBanner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid #e0e0e0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  padding: 20px;
+  animation: slideUp 0.3s ease-out;
+}
+
+.cookieBanner.closing {
+  animation: slideDown 0.3s ease-in;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  position: relative;
+}
+
+.content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex: 1;
+}
+
+.iconSection {
+  flex-shrink: 0;
+}
+
+.cookieIcon {
+  color: #ec407a;
+}
+
+.textSection {
+  flex: 1;
+}
+
+.title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0 0 8px 0;
+}
+
+.description {
+  font-size: 0.9rem;
+  color: #4a5568;
+  line-height: 1.5;
+  margin: 0 0 8px 0;
+}
+
+.links {
+  font-size: 0.85rem;
+  color: #4a5568;
+  margin: 0;
+}
+
+.link {
+  color: #ec407a;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.link:hover {
+  color: #ad1457;
+  text-decoration: underline;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.acceptButton {
+  background: #ec407a;
+  color: white;
+}
+
+.acceptButton:hover {
+  background: #ad1457;
+  transform: translateY(-1px);
+}
+
+.rejectButton {
+  background: #f7fafc;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+}
+
+.rejectButton:hover {
+  background: #e2e8f0;
+  color: #2d3748;
+}
+
+.closeButton {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #4a5568;
+}
+
+.closeButton:hover {
+  background: #ec407a;
+  color: white;
+  border-color: #ec407a;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .cookieBanner {
+    padding: 16px;
+  }
+
+  .container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .content {
+    align-items: flex-start;
+  }
+
+  .actions {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .button {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+  }
+
+  .closeButton {
+    top: 8px;
+    right: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .cookieBanner {
+    padding: 12px;
+  }
+
+  .content {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .iconSection {
+    align-self: center;
+  }
+
+  .title {
+    font-size: 1rem;
+    text-align: center;
+  }
+
+  .description, .links {
+    font-size: 0.85rem;
+    text-align: center;
+  }
+
+  .actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .button {
+    width: 100%;
+  }
+}

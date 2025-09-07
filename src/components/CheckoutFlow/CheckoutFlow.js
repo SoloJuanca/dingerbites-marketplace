@@ -13,17 +13,20 @@ import DeliveryTypeSelection from './DeliveryTypeSelection';
 import ContactForm from './ContactForm';
 import PaymentMethodSelection from './PaymentMethodSelection';
 import OrderConfirmation from './OrderConfirmation';
+import OrderSuccess from './OrderSuccess';
 
 const STEPS = {
   USER_TYPE: 'user_type',
   DELIVERY_TYPE: 'delivery_type',
   CONTACT_INFO: 'contact_info',
   PAYMENT_METHOD: 'payment_method',
-  CONFIRMATION: 'confirmation'
+  CONFIRMATION: 'confirmation',
+  ORDER_SUCCESS: 'order_success'
 };
 
 export default function CheckoutFlow() {
   const [currentStep, setCurrentStep] = useState(STEPS.USER_TYPE);
+  const [orderNumber, setOrderNumber] = useState(null);
   const [checkoutData, setCheckoutData] = useState({
     userType: null, // 'guest' o 'account'
     deliveryType: null, // 'delivery' o 'pickup'
@@ -163,10 +166,10 @@ export default function CheckoutFlow() {
         `• ${item.name} x${item.quantity} - ${formatPrice(item.price * item.quantity)}`
       ).join('\n');
 
-      const orderNumber = orderResult?.order?.order_number || `TEMP-${Date.now()}`;
+      const finalOrderNumber = orderResult?.order?.order_number || `TEMP-${Date.now()}`;
       
                         const message = `🛍️ *Nueva Orden - Patito Montenegro*\n` +
-                    `📋 *Número de Orden:* ${orderNumber}\n\n` +
+                    `📋 *Número de Orden:* ${finalOrderNumber}\n\n` +
                     `👤 *Información de Contacto:*\n` +
                     `Nombre: ${checkoutData.contactInfo.name}\n` +
                     `Email: ${checkoutData.contactInfo.email}\n` +
@@ -188,16 +191,17 @@ export default function CheckoutFlow() {
       // Limpiar carrito después de la orden exitosa
       clearCart();
       
+      // Guardar el número de orden y ir al paso de éxito
+      setOrderNumber(finalOrderNumber);
+      
       if (isAuthenticated) {
-        toast.success(`¡Orden ${orderNumber} creada exitosamente! Te contactaremos pronto por WhatsApp.`);
+        toast.success(`¡Orden ${finalOrderNumber} creada exitosamente! Te contactaremos pronto por WhatsApp.`);
       } else {
         toast.success('¡Orden enviada! Te contactaremos pronto por WhatsApp.');
       }
 
-      // Redirigir a la página de confirmación o inicio
-      setTimeout(() => {
-        router.push('/');
-      }, 2000);
+      // Ir al paso de éxito en lugar de redirigir
+      setCurrentStep(STEPS.ORDER_SUCCESS);
 
     } catch (error) {
       console.error('Error creating order:', error);
@@ -269,35 +273,55 @@ export default function CheckoutFlow() {
           />
         );
       
+      case STEPS.ORDER_SUCCESS:
+        return (
+          <OrderSuccess
+            checkoutData={checkoutData}
+            orderNumber={orderNumber}
+            isAuthenticated={isAuthenticated}
+          />
+        );
+      
       default:
         return null;
     }
   };
 
+  // Pasos a mostrar en la barra de progreso (excluyendo ORDER_SUCCESS)
+  const progressSteps = [
+    STEPS.USER_TYPE,
+    STEPS.DELIVERY_TYPE,
+    STEPS.CONTACT_INFO,
+    STEPS.PAYMENT_METHOD,
+    STEPS.CONFIRMATION
+  ];
+
   return (
     <div className={styles.checkoutFlow}>
-      {/* Progress Bar */}
-      <div className={styles.progressBar}>
-        <div className={styles.progressSteps}>
-          {Object.values(STEPS).map((step, index) => (
-            <div
-              key={step}
-              className={`${styles.progressStep} ${
-                Object.values(STEPS).indexOf(currentStep) >= index ? styles.active : ''
-              }`}
-            >
-              <div className={styles.stepNumber}>{index + 1}</div>
-              <span className={styles.stepLabel}>
-                {step === STEPS.USER_TYPE && 'Tipo de Usuario'}
-                {step === STEPS.DELIVERY_TYPE && 'Tipo de Entrega'}
-                {step === STEPS.CONTACT_INFO && 'Información'}
-                {step === STEPS.PAYMENT_METHOD && 'Pago'}
-                {step === STEPS.CONFIRMATION && 'Confirmar'}
-              </span>
-            </div>
-          ))}
+      {/* Progress Bar - Solo mostrar si no estamos en ORDER_SUCCESS */}
+      {currentStep !== STEPS.ORDER_SUCCESS && (
+        <div className={styles.progressBar}>
+          <div className={styles.progressSteps}>
+            {progressSteps.map((step, index) => (
+              <div
+                key={step}
+                className={`${styles.progressStep} ${
+                  progressSteps.indexOf(currentStep) >= index ? styles.active : ''
+                }`}
+              >
+                <div className={styles.stepNumber}>{index + 1}</div>
+                <span className={styles.stepLabel}>
+                  {step === STEPS.USER_TYPE && 'Tipo de Usuario'}
+                  {step === STEPS.DELIVERY_TYPE && 'Tipo de Entrega'}
+                  {step === STEPS.CONTACT_INFO && 'Información'}
+                  {step === STEPS.PAYMENT_METHOD && 'Pago'}
+                  {step === STEPS.CONFIRMATION && 'Confirmar'}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Current Step Content */}
       <div className={styles.stepContent}>

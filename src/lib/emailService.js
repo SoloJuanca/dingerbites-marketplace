@@ -161,7 +161,7 @@ export function generateAdminEmailContent(orderData) {
         <!-- Header -->
         <div style="text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #e2e8f0;">
           <h1 style="color: #2d3748; margin: 0; font-size: 28px;">🛍️ Nuevo Pedido Recibido</h1>
-          <p style="color: #718096; margin: 8px 0 0 0; font-size: 16px;">Patito Montenegro E-commerce</p>
+          <p style="color: #718096; margin: 8px 0 0 0; font-size: 16px;">Patito Montenegro</p>
         </div>
 
         <!-- Información del Pedido -->
@@ -339,7 +339,7 @@ export function generateCustomerEmailContent(orderData) {
         <!-- Header -->
         <div style="text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #e2e8f0;">
           <h1 style="color: #2d3748; margin: 0; font-size: 28px;">✅ Pedido Confirmado</h1>
-          <p style="color: #718096; margin: 8px 0 0 0; font-size: 16px;">Patito Montenegro E-commerce</p>
+          <p style="color: #718096; margin: 8px 0 0 0; font-size: 16px;">Patito Montenegro</p>
         </div>
 
         <!-- Saludo -->
@@ -378,19 +378,19 @@ export function generateCustomerEmailContent(orderData) {
         <!-- Información de Entrega -->
         <div style="margin-bottom: 32px;">
           <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 18px;">🚚 Información de Entrega</h3>
-          <div style="background-color: #e6fffa; padding: 16px; border-radius: 8px; border-left: 4px solid #38b2ac;">
-            <p style="margin: 0 0 8px 0; color: #2d3748;"><strong>Método de Entrega:</strong> ${shipping_method || 'No especificado'}</p>
-            <p style="margin: 0 0 8px 0; color: #2d3748;"><strong>Método de Pago:</strong> ${payment_method || 'No especificado'}</p>
-            ${address ? `<p style="margin: 0 0 8px 0; color: #2d3748;"><strong>Dirección de Entrega:</strong> ${address}</p>` : ''}
+          <div style="background-color: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
+            <p style="margin: 0 0 12px 0; color: #2d3748;"><strong>Método de Entrega:</strong> ${shipping_method || 'No especificado'}</p>
+            <p style="margin: 0 0 12px 0; color: #2d3748;"><strong>Método de Pago:</strong> ${payment_method || 'No especificado'}</p>
+            ${address ? `<p style="margin: 0 0 12px 0; color: #2d3748;"><strong>Dirección de Entrega:</strong> ${address}</p>` : ''}
             ${notes ? `<p style="margin: 0; color: #2d3748;"><strong>Notas:</strong> ${notes}</p>` : ''}
           </div>
         </div>
 
         <!-- Estado del Pedido -->
-        <div style="background-color: #fff5e6; padding: 24px; border-radius: 8px; margin-bottom: 32px; border-left: 4px solid #f6ad55;">
+        <div style="background: linear-gradient(135deg, #fef5e7 0%, #fed7aa 100%); padding: 24px; border-radius: 12px; margin-bottom: 32px; border: 1px solid #f6ad55;">
           <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 18px;">📊 Estado de tu Pedido</h3>
           <p style="color: #4a5568; margin: 0 0 16px 0;">
-            Tu pedido está actualmente <strong style="color: #f6ad55;">en proceso</strong>. Nuestro equipo está revisando los detalles y preparando tu orden.
+            Tu pedido está actualmente <strong style="color: #c05621;">en proceso</strong>. Nuestro equipo está revisando los detalles y preparando tu orden.
           </p>
           <p style="color: #4a5568; margin: 0;">
             Te contactaremos pronto para coordinar la entrega y cualquier detalle adicional.

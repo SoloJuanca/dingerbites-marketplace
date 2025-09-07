@@ -5,6 +5,7 @@ import { AuthProvider } from "../lib/AuthContext";
 import { WishlistProvider } from "../lib/WishlistContext";
 import CartSync from "../components/CartSync/CartSync";
 import WishlistSync from "../components/WishlistSync/WishlistSync";
+import CookieBanner from "../components/CookieBanner/CookieBanner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -96,6 +97,7 @@ export default function RootLayout({ children }) {
               <CartSync />
               <WishlistSync />
               {children}
+              <CookieBanner />
               <Toaster 
                 position="top-right"
                 toastOptions={{
