@@ -49,13 +49,13 @@ export function WishlistProvider({ children }) {
   const [state, dispatch] = useReducer(wishlistReducer, initialState);
 
   // Wishlist functions
-  const addToWishlist = (product) => {
+  const addToWishlist = useCallback((product) => {
     dispatch({ type: 'ADD_TO_WISHLIST', payload: product });
-  };
+  }, []);
 
-  const removeFromWishlist = (productId) => {
+  const removeFromWishlist = useCallback((productId) => {
     dispatch({ type: 'REMOVE_FROM_WISHLIST', payload: { id: productId } });
-  };
+  }, []);
 
   const clearWishlist = () => {
     dispatch({ type: 'CLEAR_WISHLIST' });

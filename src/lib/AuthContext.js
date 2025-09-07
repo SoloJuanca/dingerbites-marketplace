@@ -367,7 +367,7 @@ export function AuthProvider({ children }) {
     }
 
     return response;
-  }, [state.token, logout, refreshToken, validateTokenWithServer]);
+  }, [state.token, logout, refreshToken]);
 
   const value = {
     user: state.user,

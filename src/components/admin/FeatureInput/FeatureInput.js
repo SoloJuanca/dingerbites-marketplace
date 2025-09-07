@@ -21,7 +21,7 @@ export default function FeatureInput({
       const initialFeatures = value.split('\n').map(feature => feature.trim()).filter(Boolean);
       setFeatures(initialFeatures);
     }
-  }, []);
+  }, [value]);
 
   // Update parent component when features change
   useEffect(() => {
@@ -29,7 +29,7 @@ export default function FeatureInput({
     if (onChange && featuresString !== value) {
       onChange(featuresString);
     }
-  }, [features, onChange]);
+  }, [features, onChange, value]);
 
   const addFeature = (featureText) => {
     const trimmedFeature = featureText.trim();
