@@ -24,8 +24,8 @@ export default function PrivacidadPage() {
             <div className={styles.section}>
               <h2 className={styles.sectionTitle}>Responsable del tratamiento de sus datos personales</h2>
               <p className={styles.text}>
-                Patito Montenegro ("Responsable") es la persona moral que decide sobre el tratamiento 
-                de los datos personales que recaba de usted como "Titular".
+                Patito Montenegro (&ldquo;Responsable&rdquo;) es la persona moral que decide sobre el tratamiento 
+                de los datos personales que recaba de usted como &ldquo;Titular&rdquo;.
               </p>
             </div>
 
@@ -76,7 +76,7 @@ export default function PrivacidadPage() {
               </ul>
               <p className={styles.text}>
                 De manera automática, cuando navega en nuestro sitio, recopilamos información técnica 
-                ("Información del dispositivo"), como:
+                (&ldquo;Información del dispositivo&rdquo;), como:
               </p>
               <ul className={styles.list}>
                 <li>Dirección IP</li>
