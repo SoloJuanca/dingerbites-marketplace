@@ -296,6 +296,7 @@ export default function ProfilePage() {
                 <h2 className={styles.sectionTitle}>Mi Lista de Deseos</h2>
                 {wishlistItems.length > 0 ? (
                   <div className={styles.wishlistGrid}>
+                    {console.log(wishlistItems)}
                     {wishlistItems.map(item => (
                       <ProductCard
                         key={item.id}
@@ -305,7 +306,7 @@ export default function ProfilePage() {
                           name: item.name,
                           description: item.description,
                           price: item.price,
-                          image: item.image_url
+                          image: item.image
                         }}
                       />
                     ))}

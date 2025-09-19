@@ -51,37 +51,6 @@ export default function Footer() {
                 </Link>
               </div>
               <div className={styles.linkGroup}>
-                <h4 className={styles.linkTitle}>Productos</h4>
-                <Link href="/catalog">  
-                <span className={styles.link}>
-                  Marca 1
-                  </span>
-                </Link>
-                <Link href="/catalog">
-                <span className={styles.link}>
-                  Marca 2
-                  </span>
-                </Link>
-                <Link href="/catalog">
-                <span className={styles.link}>
-                  Marca 3
-                  </span>
-                </Link>
-              </div>
-              <div className={styles.linkGroup}>
-                <h4 className={styles.linkTitle}>Servicios</h4>
-                <Link href="/services">
-                <span className={styles.link}>
-                  Cursos
-                  </span>
-                </Link>
-                <Link href="/services">
-                <span className={styles.link}>
-                  Talleres
-                  </span>
-                </Link>
-              </div>
-              <div className={styles.linkGroup}>
                 <h4 className={styles.linkTitle}>Legal</h4>
                 <Link href="/terminos">
                 <span className={styles.link}>
