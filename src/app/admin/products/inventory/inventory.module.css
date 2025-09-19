@@ -252,6 +252,8 @@
 .stockInput {
   display: flex;
   align-items: center;
+  gap: 8px;
+  position: relative;
 }
 
 .stockField {
@@ -261,13 +263,33 @@
   border-radius: 6px;
   font-size: 14px;
   text-align: center;
-  transition: border-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .stockField:focus {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.stockField.updating {
+  border-color: #f59e0b;
+  background-color: #fef3c7;
+  opacity: 0.8;
+}
+
+.stockSpinner {
+  font-size: 12px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .threshold {

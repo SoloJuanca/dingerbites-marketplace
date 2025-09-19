@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
@@ -32,6 +32,13 @@ export default function InventoryPage() {
     total: 0,
     totalPages: 0
   });
+  
+  // Local state for stock inputs
+  const [localStockValues, setLocalStockValues] = useState({});
+  const [updatingStock, setUpdatingStock] = useState(new Set());
+  
+  // Refs for debouncing
+  const stockUpdateTimeouts = useRef({});
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -59,6 +66,13 @@ export default function InventoryPage() {
           total: data.pagination?.total || 0,
           totalPages: data.pagination?.totalPages || 0
         }));
+        
+        // Initialize local stock values with server data as strings
+        const stockValues = {};
+        (data.products || []).forEach(product => {
+          stockValues[product.id] = product.stock_quantity.toString();
+        });
+        setLocalStockValues(stockValues);
       } else {
         toast.error('Error al cargar el inventario');
       }
@@ -96,8 +110,11 @@ export default function InventoryPage() {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
-  const updateStock = async (productId, newStock) => {
+  // Debounced stock update function
+  const debouncedUpdateStock = useCallback(async (productId, newStock) => {
     try {
+      setUpdatingStock(prev => new Set(prev).add(productId));
+      
       const response = await apiRequest(`/api/admin/products/${productId}/stock`, {
         method: 'PATCH',
         headers: {
@@ -108,14 +125,69 @@ export default function InventoryPage() {
 
       if (response.ok) {
         toast.success('Stock actualizado exitosamente');
-        loadInventoryData();
+        // Update the products state directly instead of reloading everything
+        setProducts(prev => prev.map(product => 
+          product.id === productId 
+            ? { ...product, stock_quantity: newStock }
+            : product
+        ));
       } else {
         const errorData = await response.json();
         toast.error(errorData.error || 'Error al actualizar el stock');
+        // Reset local value on error
+        const originalStock = products.find(p => p.id === productId)?.stock_quantity || 0;
+        setLocalStockValues(prev => ({
+          ...prev,
+          [productId]: originalStock.toString()
+        }));
       }
     } catch (error) {
       console.error('Error updating stock:', error);
       toast.error('Error al actualizar el stock');
+      // Reset local value on error
+      const originalStock = products.find(p => p.id === productId)?.stock_quantity || 0;
+      setLocalStockValues(prev => ({
+        ...prev,
+        [productId]: originalStock.toString()
+      }));
+    } finally {
+      setUpdatingStock(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(productId);
+        return newSet;
+      });
+    }
+  }, [apiRequest, products]);
+
+  // Handle stock input change
+  const handleStockChange = (productId, value) => {
+    // Update local state immediately for responsive UI - keep the raw value
+    setLocalStockValues(prev => ({ ...prev, [productId]: value }));
+    
+    // Clear existing timeout for this product
+    if (stockUpdateTimeouts.current[productId]) {
+      clearTimeout(stockUpdateTimeouts.current[productId]);
+    }
+    
+    // Set new timeout for debounced API call
+    stockUpdateTimeouts.current[productId] = setTimeout(() => {
+      // Only convert to number when actually updating
+      const newStock = value === '' ? 0 : (parseInt(value) || 0);
+      debouncedUpdateStock(productId, newStock);
+      delete stockUpdateTimeouts.current[productId];
+    }, 1000); // 1 second delay
+  };
+
+  // Handle stock input blur (immediate update)
+  const handleStockBlur = (productId) => {
+    // Clear timeout and update immediately on blur
+    if (stockUpdateTimeouts.current[productId]) {
+      clearTimeout(stockUpdateTimeouts.current[productId]);
+      delete stockUpdateTimeouts.current[productId];
+      
+      const currentValue = localStockValues[productId];
+      const newStock = currentValue === '' || currentValue === undefined ? 0 : (parseInt(currentValue) || 0);
+      debouncedUpdateStock(productId, newStock);
     }
   };
 
@@ -326,13 +398,15 @@ export default function InventoryPage() {
                           <input
                             type="number"
                             min="0"
-                            value={product.stock_quantity}
-                            onChange={(e) => {
-                              const newStock = parseInt(e.target.value) || 0;
-                              updateStock(product.id, newStock);
-                            }}
-                            className={styles.stockField}
+                            value={localStockValues[product.id] ?? product.stock_quantity.toString()}
+                            onChange={(e) => handleStockChange(product.id, e.target.value)}
+                            onBlur={() => handleStockBlur(product.id)}
+                            className={`${styles.stockField} ${updatingStock.has(product.id) ? styles.updating : ''}`}
+                            disabled={updatingStock.has(product.id)}
                           />
+                          {updatingStock.has(product.id) && (
+                            <div className={styles.stockSpinner}>⏳</div>
+                          )}
                         </div>
                       </td>
                       <td>
