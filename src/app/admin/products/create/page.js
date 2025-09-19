@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 import { loadingToast } from '../../../../lib/toastHelpers';
 import styles from './create.module.css';
 
-// Single form approach - no steps needed
+// Formulario unificado - todas las secciones en una sola página
 
 export default function CreateProductPage() {
   const { user, apiRequest, isAuthenticated } = useAuth();
@@ -285,7 +285,7 @@ export default function CreateProductPage() {
       .trim('-');
   };
 
-  // Step navigation functions removed - single form approach
+  // Formulario unificado - sin navegación por pasos
 
   const handleImageUpload = async (files) => {
     if (!files || files.length === 0) return;
@@ -566,7 +566,10 @@ export default function CreateProductPage() {
   const renderFormContent = () => {
     return (
       <div className={styles.formContent}>
-        <h2>Crear Nuevo Producto</h2>
+        <div className={styles.formIntro}>
+          <h2>📦 Crear Nuevo Producto</h2>
+          <p>Completa la información de tu producto. Comienza subiendo las imágenes y continúa con los demás campos.</p>
+        </div>
         
         {/* Imágenes del Producto - PRIMER ELEMENTO */}
         <div className={styles.subsection}>
@@ -1050,14 +1053,14 @@ export default function CreateProductPage() {
         </div>
 
         <div className={styles.infoCard}>
-          <h4>💡 Tips para crear un buen producto</h4>
+          <h4>💡 Proceso Simplificado de Creación</h4>
           <ul>
-            <li>• <strong>Comienza con las imágenes</strong> - Son lo primero que ven los clientes</li>
-            <li>• El <strong>SKU se genera automáticamente</strong> al completar el nombre del producto</li>
-            <li>• <strong>Categoría y marca son opcionales</strong> - pero ayudan a organizar mejor tu inventario</li>
-            <li>• <strong>Escáner de códigos:</strong> Usa tu lector para llenar automáticamente el código de barras</li>
-            <li>• Las <strong>etiquetas</strong> ayudan a los clientes a encontrar tu producto</li>
-            <li>• Puedes crear nuevas categorías y marcas directamente desde los campos de búsqueda</li>
+            <li>• <strong>1️⃣ Imágenes:</strong> Comienza subiendo las fotos de tu producto - son lo más importante</li>
+            <li>• <strong>2️⃣ Información básica:</strong> Nombre y descripción del producto</li>
+            <li>• <strong>3️⃣ Categorización:</strong> Organiza tu producto con categorías y etiquetas</li>
+            <li>• <strong>4️⃣ Códigos:</strong> El SKU se genera automáticamente</li>
+            <li>• <strong>5️⃣ Precios:</strong> Establece precios de venta y costo</li>
+            <li>• <strong>6️⃣ Configuración:</strong> Ajustes finales y publicación</li>
           </ul>
         </div>
       </div>
@@ -1078,7 +1081,7 @@ export default function CreateProductPage() {
           </button>
         </div>
 
-        {/* Single Form Content */}
+        {/* Formulario Unificado */}
         <div className={styles.formContainer}>
           {renderFormContent()}
         </div>
