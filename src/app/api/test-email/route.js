@@ -28,21 +28,33 @@ export async function POST(request) {
       customer_name: 'Cliente de Prueba',
       customer_email: testEmail,
       customer_phone: '+52 1234567890',
-      total_amount: 1250.00,
+      total_amount: 1032.00,
       payment_method: 'Transferencia bancaria',
       shipping_method: 'Envío a domicilio',
       items: [
         {
-          product_name: 'Esmalte Gel UV - Rojo Intenso',
+          product_name: 'Esmalte OPI Red Hot Rio',
+          product_slug: 'opi-red-hot-rio',
+          product_image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=300&fit=crop&crop=center',
           quantity: 2,
-          unit_price: 350.00,
-          total_price: 700.00
+          unit_price: 299.00,
+          total_price: 598.00
         },
         {
-          product_name: 'Kit de Uñas Básico',
+          product_name: 'Base Coat Fortalecedora',
+          product_slug: 'base-coat-fortalecedora',
+          product_image: 'https://images.unsplash.com/photo-1610992015732-2449b76344bc?w=400&h=300&fit=crop&crop=center',
           quantity: 1,
-          unit_price: 450.00,
-          total_price: 450.00
+          unit_price: 199.00,
+          total_price: 199.00
+        },
+        {
+          product_name: 'Lima Profesional 180/240',
+          product_slug: 'lima-profesional-180-240',
+          product_image: 'https://images.unsplash.com/photo-1599948568608-4bdb88ac3b3c?w=400&h=300&fit=crop&crop=center',
+          quantity: 3,
+          unit_price: 45.00,
+          total_price: 135.00
         }
       ],
       service_items: [

@@ -184,23 +184,33 @@ export function CartProvider({ children }) {
         });
         
         if (response.ok) {
-          // Update local state with correct quantity
-          for (let i = 0; i < quantity; i++) {
-            addToCart(product);
+          // Refresh cart from database to get accurate state
+          const cartResponse = await apiRequest(`/api/cart?userId=${user.id}`);
+          if (cartResponse.ok) {
+            const cartData = await cartResponse.json();
+            const dbCartItems = cartData.items.map(item => ({
+              id: item.product_id,
+              name: item.name,
+              price: item.variant_price || item.price,
+              quantity: item.quantity,
+              image: item.image_url,
+              variantId: item.variant_id
+            }));
+            dispatch({ type: 'LOAD_CART', payload: dbCartItems });
           }
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to add to cart');
         }
       } catch (error) {
         console.error('Error adding to cart:', error);
         // Fallback to local storage
-        for (let i = 0; i < quantity; i++) {
-          addToCart(product);
-        }
+        dispatch({ type: 'ADD_TO_CART', payload: product });
+        throw error; // Re-throw to let calling component handle it
       }
     } else {
       // Guest user - use local storage
-      for (let i = 0; i < quantity; i++) {
-        addToCart(product);
-      }
+      dispatch({ type: 'ADD_TO_CART', payload: product });
     }
   }, []);
 
@@ -220,10 +230,26 @@ export function CartProvider({ children }) {
             });
             
             if (response.ok) {
-              // Only update local state if API call was successful
-              removeFromCart(productId);
+              // Refresh cart from database to get accurate state
+              const updatedCartResponse = await apiRequest(`/api/cart?userId=${user.id}`);
+              if (updatedCartResponse.ok) {
+                const updatedCartData = await updatedCartResponse.json();
+                const dbCartItems = updatedCartData.items.map(item => ({
+                  id: item.product_id,
+                  name: item.name,
+                  price: item.variant_price || item.price,
+                  quantity: item.quantity,
+                  image: item.image_url,
+                  variantId: item.variant_id
+                }));
+                dispatch({ type: 'LOAD_CART', payload: dbCartItems });
+              } else {
+                // Fallback to local update
+                removeFromCart(productId);
+              }
             } else {
               console.error('Failed to remove from database, keeping local item');
+              removeFromCart(productId);
             }
           } else {
             // Item not found in database, remove from local storage anyway
@@ -265,9 +291,27 @@ export function CartProvider({ children }) {
             });
             
             if (response.ok) {
-              updateQuantity(productId, quantity);
+              // Refresh cart from database to get accurate state
+              const updatedCartResponse = await apiRequest(`/api/cart?userId=${user.id}`);
+              if (updatedCartResponse.ok) {
+                const updatedCartData = await updatedCartResponse.json();
+                const dbCartItems = updatedCartData.items.map(item => ({
+                  id: item.product_id,
+                  name: item.name,
+                  price: item.variant_price || item.price,
+                  quantity: item.quantity,
+                  image: item.image_url,
+                  variantId: item.variant_id
+                }));
+                dispatch({ type: 'LOAD_CART', payload: dbCartItems });
+              } else {
+                // Fallback to local update
+                updateQuantity(productId, quantity);
+              }
             } else {
               console.error('Failed to update quantity in database');
+              // Still update locally for better UX
+              updateQuantity(productId, quantity);
             }
           } else {
             // Item not found in database, update local anyway

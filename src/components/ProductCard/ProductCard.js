@@ -34,14 +34,22 @@ export default function ProductCard({ product }) {
   const handleAddToCart = async () => {
     setIsAdding(true);
     
-    // Agregar al carrito
-    await addToCartWithSync({
-      id: product.id,
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      image: product.image
-    }, user, apiRequest);
+    try {
+      // Agregar al carrito
+      await addToCartWithSync({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        image: product.image
+      }, user, apiRequest);
+
+      // Mostrar mensaje de éxito
+      toast.success('Producto agregado al carrito');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('Error al agregar producto al carrito');
+    }
 
     // Simular un pequeño delay para mejor UX
     setTimeout(() => {

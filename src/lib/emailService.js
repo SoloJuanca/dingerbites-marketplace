@@ -111,14 +111,42 @@ export function generateAdminEmailContent(orderData) {
   
   // Productos
   if (items && items.length > 0) {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    
     itemsHtml += '<h3 style="color: #2d3748; margin-bottom: 16px;">Productos:</h3>';
     itemsHtml += '<table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">';
     itemsHtml += '<thead><tr style="background-color: #f7fafc;"><th style="padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0;">Producto</th><th style="padding: 12px; text-align: center; border-bottom: 1px solid #e2e8f0;">Cantidad</th><th style="padding: 12px; text-align: right; border-bottom: 1px solid #e2e8f0;">Precio Unit.</th><th style="padding: 12px; text-align: right; border-bottom: 1px solid #e2e8f0;">Total</th></tr></thead>';
     itemsHtml += '<tbody>';
     
     items.forEach(item => {
+      const productUrl = item.product_slug ? `${baseUrl}/catalog/${item.product_slug}` : '#';
+      const hasImage = item.product_image && item.product_image.trim() !== '';
+      
       itemsHtml += `<tr>
-        <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">${item.product_name || 'Producto'}</td>
+        <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            ${hasImage ? `
+              <div style="flex-shrink: 0;">
+                <img src="${item.product_image}" alt="${item.product_name || 'Producto'}" 
+                     style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0;">
+              </div>
+            ` : ''}
+            <div>
+              ${item.product_slug ? `
+                <a href="${productUrl}" style="color: #3182ce; text-decoration: none; font-weight: 600; font-size: 16px;">
+                  ${item.product_name || 'Producto'}
+                </a>
+              ` : `
+                <span style="font-weight: 600; font-size: 16px; color: #2d3748;">
+                  ${item.product_name || 'Producto'}
+                </span>
+              `}
+              ${item.product_slug ? `
+                <br><small style="color: #718096;">Ver producto</small>
+              ` : ''}
+            </div>
+          </div>
+        </td>
         <td style="padding: 12px; text-align: center; border-bottom: 1px solid #e2e8f0;">${item.quantity}</td>
         <td style="padding: 12px; text-align: right; border-bottom: 1px solid #e2e8f0;">${formatCurrency(item.unit_price || 0)}</td>
         <td style="padding: 12px; text-align: right; border-bottom: 1px solid #e2e8f0;">${formatCurrency(item.total_price || 0)}</td>

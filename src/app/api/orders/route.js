@@ -337,12 +337,20 @@ export async function POST(request) {
       try {
         const enrichedItems = [];
         for (const item of items) {
-          const productQuery = 'SELECT name, price, sku FROM products WHERE id = $1';
+          const productQuery = `
+            SELECT p.name, p.price, p.sku, p.slug,
+                   COALESCE(pi.image_url, '') as image_url
+            FROM products p
+            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = true
+            WHERE p.id = $1
+          `;
           const productData = await getRow(productQuery, [item.product_id]);
           
           enrichedItems.push({
             ...item,
             product_name: productData?.name || 'Producto',
+            product_slug: productData?.slug || '',
+            product_image: productData?.image_url || '',
             unit_price: productData?.price || item.price || 0,
             total_price: (productData?.price || item.price || 0) * item.quantity
           });

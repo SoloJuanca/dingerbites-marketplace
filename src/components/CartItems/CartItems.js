@@ -2,6 +2,7 @@
 
 import { useCart } from '../../lib/CartContext';
 import { useAuth } from '../../lib/AuthContext';
+import toast from 'react-hot-toast';
 import Icon from '../Icon/Icon';
 import styles from './CartItems.module.css';
 
@@ -9,11 +10,17 @@ export default function CartItems() {
   const { items, updateQuantityWithSync, removeFromCartWithSync } = useCart();
   const { user, apiRequest } = useAuth();
 
-  const handleQuantityChange = (productId, newQuantity) => {
-    if (newQuantity < 1) {
-      removeFromCartWithSync(productId, user, apiRequest);
-    } else {
-      updateQuantityWithSync(productId, newQuantity, user, apiRequest);
+  const handleQuantityChange = async (productId, newQuantity) => {
+    try {
+      if (newQuantity < 1) {
+        await removeFromCartWithSync(productId, user, apiRequest);
+        toast.success('Producto eliminado del carrito');
+      } else {
+        await updateQuantityWithSync(productId, newQuantity, user, apiRequest);
+      }
+    } catch (error) {
+      console.error('Error updating cart:', error);
+      toast.error('Error al actualizar el carrito');
     }
   };
 
@@ -68,7 +75,15 @@ export default function CartItems() {
               
               <button 
                 className={styles.removeBtn}
-                onClick={() => removeFromCartWithSync(item.id, user, apiRequest)}
+                onClick={async () => {
+                  try {
+                    await removeFromCartWithSync(item.id, user, apiRequest);
+                    toast.success('Producto eliminado del carrito');
+                  } catch (error) {
+                    console.error('Error removing from cart:', error);
+                    toast.error('Error al eliminar producto');
+                  }
+                }}
                 title="Eliminar producto"
               >
                 <Icon name="delete" size={20} />
