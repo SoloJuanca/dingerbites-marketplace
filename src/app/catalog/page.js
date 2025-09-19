@@ -7,6 +7,7 @@ import ProductGrid from '../../components/ProductGrid/ProductGrid';
 import FilterSidebar from '../../components/FilterSidebar/FilterSidebar';
 import FilterModal from '../../components/FilterModal/FilterModal';
 import SortOptions from '../../components/SortOptions/SortOptions';
+import SearchBar from '../../components/SearchBar/SearchBar';
 import Icon from '../../components/Icon/Icon';
 import styles from './catalog.module.css';
 import { useSearchParams } from 'next/navigation';
@@ -27,6 +28,7 @@ function CatalogData() {
   const minPrice = searchParams.get('minPrice') || '';
   const maxPrice = searchParams.get('maxPrice') || '';
   const sortBy = searchParams.get('sortBy') || 'newest';
+  const search = searchParams.get('search') || '';
 
   // Cargar datos iniciales desde API
   useEffect(() => {
@@ -102,6 +104,8 @@ function CatalogData() {
             </aside>
             
             <div className={styles.mainContent}>
+                <SearchBar />
+              
               <div className={styles.sortSection}>
                 <button 
                   className={styles.filterButton}
@@ -120,6 +124,7 @@ function CatalogData() {
                 minPrice={minPrice}
                 maxPrice={maxPrice}
                 sortBy={sortBy}
+                search={search}
               />
             </div>
           </div>

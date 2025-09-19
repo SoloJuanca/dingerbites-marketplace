@@ -67,6 +67,18 @@ export async function getProducts(filters = {}) {
       params.push(parseFloat(filters.maxPrice));
     }
 
+    // Search functionality
+    if (filters.search) {
+      const searchTerm = `%${filters.search.toLowerCase()}%`;
+      sql += ` AND (
+        LOWER(p.name) LIKE $${++paramCount} OR 
+        LOWER(p.description) LIKE $${++paramCount} OR 
+        LOWER(p.short_description) LIKE $${++paramCount} OR 
+        LOWER(pc.name) LIKE $${++paramCount}
+      )`;
+      params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+    }
+
     // Ordenamiento
     switch (filters.sortBy) {
       case 'price_asc':
@@ -130,6 +142,18 @@ export async function getProducts(filters = {}) {
     if (filters.maxPrice) {
       countSql += ` AND p.price <= $${++paramCount}`;
       countParams.push(parseFloat(filters.maxPrice));
+    }
+
+    // Search functionality for count query
+    if (filters.search) {
+      const searchTerm = `%${filters.search.toLowerCase()}%`;
+      countSql += ` AND (
+        LOWER(p.name) LIKE $${++paramCount} OR 
+        LOWER(p.description) LIKE $${++paramCount} OR 
+        LOWER(p.short_description) LIKE $${++paramCount} OR 
+        LOWER(pc.name) LIKE $${++paramCount}
+      )`;
+      countParams.push(searchTerm, searchTerm, searchTerm, searchTerm);
     }
 
     const countResult = await getRow(countSql, countParams);

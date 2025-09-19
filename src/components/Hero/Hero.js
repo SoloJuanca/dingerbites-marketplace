@@ -10,7 +10,7 @@ export default function Hero() {
         <div className={styles.content}>
           <div className={styles.textContent}>
             <h1 className={styles.title}>
-              Todo lo que necesidas para crear, <span className={styles.highlight}>uñas</span> hermosas.
+              Todo lo que necesitas para crear, <span className={styles.highlight}>uñas</span> hermosas.
             </h1>
             <p className={styles.subtitle}>
               ¡Bienvenida a tu tienda favorita de uñas, Patito Montenegro! Encuentra todo lo que necesitas para crear uñas hermosas, material profesional y ¡lo más nuevo en el mundo de las uñas!

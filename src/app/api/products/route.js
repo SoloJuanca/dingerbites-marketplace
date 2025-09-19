@@ -12,6 +12,7 @@ export async function GET(request) {
       minPrice: searchParams.get('minPrice') || '',
       maxPrice: searchParams.get('maxPrice') || '',
       sortBy: searchParams.get('sortBy') || 'newest',
+      search: searchParams.get('search') || '',
       limit: parseInt(searchParams.get('limit')) || 12
     };
 

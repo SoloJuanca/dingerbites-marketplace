@@ -12,7 +12,8 @@ export default function ProductGrid({
   brand,
   minPrice,
   maxPrice,
-  sortBy
+  sortBy,
+  search
 }) {
   const [products, setProducts] = useState([]);
   const [total, setTotal] = useState(0);
@@ -35,6 +36,7 @@ export default function ProductGrid({
         if (minPrice) params.set('minPrice', minPrice);
         if (maxPrice) params.set('maxPrice', maxPrice);
         if (sortBy) params.set('sortBy', sortBy);
+        if (search) params.set('search', search);
 
         const response = await fetch(`/api/products?${params.toString()}`);
         
@@ -62,7 +64,7 @@ export default function ProductGrid({
     }
 
     loadProducts();
-  }, [currentPage, category, brand, minPrice, maxPrice, sortBy]);
+  }, [currentPage, category, brand, minPrice, maxPrice, sortBy, search]);
 
   if (loading) {
     return (
