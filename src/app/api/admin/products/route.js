@@ -44,7 +44,7 @@ export async function GET(request) {
 
     // Add search filter
     if (search) {
-      productsQuery += ` AND (p.name ILIKE $${paramIndex} OR p.sku ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex})`;
+      productsQuery += ` AND (p.name ILIKE $${paramIndex} OR p.sku ILIKE $${paramIndex} OR p.barcode ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex})`;
       params.push(`%${search}%`);
       paramIndex++;
     }
@@ -92,7 +92,7 @@ export async function GET(request) {
 
     // Add the same filters to count query
     if (search) {
-      countQuery += ` AND (p.name ILIKE $${countParamIndex} OR p.sku ILIKE $${countParamIndex} OR p.description ILIKE $${countParamIndex})`;
+      countQuery += ` AND (p.name ILIKE $${countParamIndex} OR p.sku ILIKE $${countParamIndex} OR p.barcode ILIKE $${countParamIndex} OR p.description ILIKE $${countParamIndex})`;
       countParams.push(`%${search}%`);
       countParamIndex++;
     }

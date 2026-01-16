@@ -1,0 +1,402 @@
+.container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+.productsSection,
+.cartSection {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.searchInput {
+  flex: 1;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  font-size: 16px;
+}
+
+.productsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.productCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.productCard:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
+}
+
+.productName {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.productSku {
+  font-size: 16px;
+  color: #64748b;
+}
+
+.productPrice {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cartList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 8px;
+  margin-bottom: 24px;
+}
+
+.cartItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px;
+  background: #f8fafc;
+}
+
+.cartItemInfo {
+  flex: 1;
+}
+
+.cartItemName {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.cartItemSku {
+  font-size: 16px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.cartItemPrice {
+  font-weight: 600;
+}
+
+.cartItemActions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.quantityControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 8px;
+}
+
+.qtyButton {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.qtyValue {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.removeButton {
+  border: none;
+  background: transparent;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.summary {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 16px;
+  margin-bottom: 24px;
+}
+
+.summaryRow,
+.summaryTotal,
+.discountRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.discountRow {
+  font-size: 16px;
+  color: #475569;
+}
+
+.discountInput {
+  width: 120px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  text-align: right;
+}
+
+.summaryTotal {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.customerSection {
+  margin-bottom: 24px;
+}
+
+.customerFields {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  font-size: 16px;
+}
+
+.textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.paymentSection {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.paymentLabel {
+  display: grid;
+  gap: 8px;
+  font-size: 16px;
+  color: #334155;
+}
+
+.submitButton {
+  width: 100%;
+  padding: 16px;
+  border-radius: 16px;
+  border: none;
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.clearButton {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.usbActions {
+  margin-bottom: 24px;
+}
+
+.secondaryButton {
+  width: 100%;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.receiptSection {
+  margin-top: 24px;
+  padding: 16px;
+  background: #f1f5f9;
+  border-radius: 16px;
+  border: 1px dashed #94a3b8;
+}
+
+.receiptHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.printButton {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: #2563eb;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.receiptActions {
+  margin-top: 16px;
+}
+
+.usbPrintButton {
+  width: 100%;
+  padding: 16px;
+  border-radius: 16px;
+  border: none;
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.usbPrintButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.printHint {
+  font-size: 16px;
+  color: #475569;
+  margin-top: 8px;
+}
+
+.loading,
+.emptyState {
+  padding: 16px;
+  text-align: center;
+  color: #64748b;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.printArea {
+  margin: 32px auto 0;
+  width: 320px;
+  background: #ffffff;
+  border: 1px dashed #cbd5f5;
+  padding: 16px;
+  border-radius: 16px;
+}
+
+.printHeader {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.printHeader h2 {
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+
+.printMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 16px;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.printItems {
+  border-top: 1px dashed #cbd5f5;
+  border-bottom: 1px dashed #cbd5f5;
+  padding: 16px 0;
+  margin-bottom: 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.printItemRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  font-size: 16px;
+}
+
+.printItemName {
+  font-weight: 600;
+}
+
+.printItemQty,
+.printItemPrice {
+  text-align: right;
+}
+
+.printTotals {
+  display: grid;
+  gap: 8px;
+  font-size: 16px;
+}
+
+.printTotals div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.printTotalRow {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.printFooter {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 16px;
+}
+
+@media (max-width: 1024px) {
+  .container {
+    grid-template-columns: 1fr;
+  }
+}
+

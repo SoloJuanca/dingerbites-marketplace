@@ -54,6 +54,12 @@ export default function AdminSidebar({ isOpen, onToggle }) {
       href: '/admin/orders'
     },
     {
+      id: 'pos',
+      label: 'Punto de venta',
+      icon: '🧾',
+      href: '/admin/pos'
+    },
+    {
       id: 'users',
       label: 'Usuarios',
       icon: '👥',

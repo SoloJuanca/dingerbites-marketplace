@@ -73,3 +73,33 @@ h1, h2, h3, h4, h5, h6 {
     padding: 0 24px;
   }
 }
+
+@media print {
+  @page {
+    size: 58mm auto;
+    margin: 0;
+  }
+
+  body.pos-printing {
+    margin: 0;
+    background: #ffffff;
+  }
+
+  body.pos-printing * {
+    visibility: hidden;
+  }
+
+  body.pos-printing .posPrintArea,
+  body.pos-printing .posPrintArea * {
+    visibility: visible;
+  }
+
+  body.pos-printing .posPrintArea {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 58mm;
+    padding: 8mm 4mm;
+    border: none;
+  }
+}
