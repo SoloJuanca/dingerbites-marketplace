@@ -311,6 +311,11 @@
   .nav {
     display: none;
   }
+
+  .authActions,
+  .userActions {
+    display: none;
+  }
   
   .logoText {
     font-size: 18px;
@@ -334,9 +339,5 @@
   .logoIcon {
     width: 20px;
     height: 20px;
-  }
-  
-  .cartBtn {
-    display: none;
   }
 } 

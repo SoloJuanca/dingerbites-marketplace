@@ -113,8 +113,9 @@ export default function ContactPage() {
               <div className={styles.contactCard}>
                 <Icon name="phone" size={32} className={styles.contactIcon} />
                 <h3 className={styles.contactTitle}>Teléfono</h3>
-                <p className={styles.contactText}>+52 55 1234 5678</p>
-                <p className={styles.contactSubtext}>Lun - Sáb: 10:00 AM - 8:00 PM</p>
+                <p className={styles.contactText}>+52 81 1613 2754</p>
+                <p className={styles.contactSubtext}>Lun - Vie: 10:00 AM - 8:00 PM</p>
+                <p className={styles.contactSubtext}>Sáb: 10:00 AM - 3:00 PM</p>
               </div>
               <div className={styles.contactCard}>
                 <Icon name="email" size={32} className={styles.contactIcon} />
@@ -125,8 +126,8 @@ export default function ContactPage() {
               <div className={styles.contactCard}>
                 <Icon name="location_on" size={32} className={styles.contactIcon} />
                 <h3 className={styles.contactTitle}>Ubicación</h3>
-                <p className={styles.contactText}>Colonia Roma Norte</p>
-                <p className={styles.contactSubtext}>Ciudad de México</p>
+                <p className={styles.contactText}>Lince 116, Col. Praderas de Guadalupe</p>
+                <p className={styles.contactSubtext}>Guadalupe, Nuevo León</p>
               </div>
             </div>
           </div>
@@ -180,26 +181,21 @@ export default function ContactPage() {
                   <Icon name="store" size={48} className={styles.locationIcon} />
                   <h3 className={styles.locationTitle}>Tienda Principal</h3>
                   <p className={styles.locationAddress}>
-                    Av. Álvaro Obregón 151<br/>
-                    Colonia Roma Norte<br/>
-                    06700 Ciudad de México, CDMX
+                    Lince 116, Col. Praderas de Guadalupe<br/>
+                    Guadalupe, Nuevo León<br/>
+                    67203
                   </p>
                   <div className={styles.locationDetails}>
                     <div className={styles.locationDetail}>
                       <Icon name="schedule" size={20} className={styles.detailIcon} />
                       <div>
                         <strong>Horarios de Atención:</strong><br/>
-                        Lun - Sáb: 10:00 AM - 8:00 PM<br/>
-                        Dom: 12:00 PM - 6:00 PM
+                        Lun - Vie: 11:00 AM - 8:00 PM<br/>
+                        Sáb: 10:00 AM - 3:00 PM<br/>
+                        Dom: Cerrado
                       </div>
                     </div>
-                    <div className={styles.locationDetail}>
-                      <Icon name="directions_car" size={20} className={styles.detailIcon} />
-                      <div>
-                        <strong>Estacionamiento:</strong><br/>
-                        Disponible en plaza comercial
-                      </div>
-                    </div>
+                    
                   </div>
                 </div>
               </div>
@@ -207,7 +203,7 @@ export default function ContactPage() {
                 <div className={styles.mapPlaceholder}>
                   <Icon name="map" size={64} className={styles.mapIcon} />
                   <h4>Mapa Interactivo</h4>
-                  <p>Roma Norte, Ciudad de México</p>
+                  <p>Guadalupe, Nuevo León</p>
                   <button className={styles.mapButton}>
                     <Icon name="directions" size={20} />
                     Cómo llegar

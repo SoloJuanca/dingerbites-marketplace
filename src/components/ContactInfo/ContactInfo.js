@@ -3,15 +3,15 @@ import styles from './ContactInfo.module.css';
 
 export default function ContactInfo() {
   const businessInfo = {
-    name: "Bella Belleza - Salón de Belleza",
-    address: "Lince 116 col. Praderas de Guadalupe  ",
-    city: "Guadalupe, Nuevo Leon 67203",
+    name: "Patito Montenegro",
+    address: "Lince 116, Col. Praderas de Guadalupe",
+    city: "Guadalupe, Nuevo León 67203",
     phone: "+52 81 16 13 27 54",
     //email: "info@bellabelleza.com",
     hours: {
       weekdays: "Lunes a Viernes: 11:00 AM - 8:00 PM",
       saturday: "Sábado: 10:00 AM - 3:00 PM",
-      //sunday: "Domingo: 10:00 AM - 4:00 PM"
+      sunday: "Domingo: Cerrado"
     }
   };
 
