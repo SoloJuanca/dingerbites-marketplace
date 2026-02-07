@@ -26,11 +26,21 @@ export default function AdminPOS() {
   });
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0]);
+  const [cashReceived, setCashReceived] = useState('');
   const [discountAmount, setDiscountAmount] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [lastOrder, setLastOrder] = useState(null);
   const [usbDevice, setUsbDevice] = useState(null);
   const [usbPrinting, setUsbPrinting] = useState(false);
+  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [uploadingManualImage, setUploadingManualImage] = useState(false);
+  const [savingManualItem, setSavingManualItem] = useState(false);
+  const [manualItem, setManualItem] = useState({
+    title: '',
+    price: '',
+    description: '',
+    imageUrl: ''
+  });
 
   useEffect(() => {
     const handleAfterPrint = () => {
@@ -70,6 +80,22 @@ export default function AdminPOS() {
   const total = useMemo(() => {
     return Math.max(subtotal - normalizedDiscount, 0);
   }, [subtotal, normalizedDiscount]);
+
+  const cashReceivedAmount = useMemo(() => {
+    const value = parseFloat(cashReceived);
+    return Number.isFinite(value) ? value : 0;
+  }, [cashReceived]);
+
+  const changeDue = useMemo(() => {
+    if (paymentMethod !== 'Efectivo') return 0;
+    return Math.max(cashReceivedAmount - total, 0);
+  }, [cashReceivedAmount, paymentMethod, total]);
+
+  useEffect(() => {
+    if (paymentMethod !== 'Efectivo') {
+      setCashReceived('');
+    }
+  }, [paymentMethod]);
 
   useEffect(() => {
     let isActive = true;
@@ -140,6 +166,7 @@ export default function AdminPOS() {
         }
       ];
     });
+    setSearch('');
   };
 
   const updateQuantity = (productId, quantity) => {
@@ -164,28 +191,192 @@ export default function AdminPOS() {
     setNotes('');
     setDiscountAmount(0);
     setPaymentMethod(PAYMENT_METHODS[0]);
+    setCashReceived('');
+  };
+
+  const resetManualItem = () => {
+    setManualItem({
+      title: '',
+      price: '',
+      description: '',
+      imageUrl: ''
+    });
+  };
+
+  const closeManualModal = () => {
+    setIsManualModalOpen(false);
+    resetManualItem();
+  };
+
+  const generateSlug = (name) => {
+    if (!name) return '';
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim('-');
+  };
+
+  const addManualItem = async () => {
+    const title = manualItem.title.trim();
+    const priceValue = parseFloat(manualItem.price);
+
+    if (!title || !Number.isFinite(priceValue) || priceValue <= 0) {
+      toast.error('Título y precio son obligatorios');
+      return;
+    }
+
+    setSavingManualItem(true);
+    try {
+      const description = manualItem.description.trim();
+      const baseSlug = generateSlug(title) || `pos-${Date.now()}`;
+      const buildPayload = (slug) => ({
+        name: title,
+        slug,
+        description: description || null,
+        short_description: description || null,
+        price: priceValue,
+        stock_quantity: 0,
+        low_stock_threshold: 0,
+        is_active: true,
+        images: manualItem.imageUrl
+          ? [{ url: manualItem.imageUrl.trim(), alt: title }]
+          : []
+      });
+
+      let response = await apiRequest('/api/admin/products', {
+        method: 'POST',
+        body: JSON.stringify(buildPayload(baseSlug))
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        if (errorData?.error?.toLowerCase?.().includes('slug')) {
+          const fallbackSlug = `${baseSlug}-${Date.now()}`;
+          response = await apiRequest('/api/admin/products', {
+            method: 'POST',
+            body: JSON.stringify(buildPayload(fallbackSlug))
+          });
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error('No fue posible guardar el artículo');
+      }
+
+      const data = await response.json();
+      const product = data?.product;
+      if (!product?.id) {
+        throw new Error('Producto inválido');
+      }
+
+      setCartItems((prev) => [
+        ...prev,
+        {
+          id: product.id,
+          name: product.name,
+          sku: product.sku,
+          price: parseFloat(product.price || priceValue),
+          quantity: 1,
+          isManual: true,
+          description,
+          imageUrl: manualItem.imageUrl.trim()
+        }
+      ]);
+
+      setSearch('');
+      closeManualModal();
+      toast.success('Artículo guardado y agregado');
+    } catch (error) {
+      console.error('Error creating manual product:', error);
+      toast.error('No se pudo guardar el artículo');
+    } finally {
+      setSavingManualItem(false);
+    }
+  };
+
+  const handleManualImageUpload = async (file) => {
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('El archivo debe ser una imagen');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('La imagen no puede superar 5MB');
+      return;
+    }
+
+    setUploadingManualImage(true);
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+      uploadFormData.append('folder', 'pos');
+
+      const response = await apiRequest('/api/admin/upload', {
+        method: 'POST',
+        body: uploadFormData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || 'No fue posible subir la imagen');
+      }
+
+      const data = await response.json();
+      setManualItem((prev) => ({ ...prev, imageUrl: data.url }));
+      toast.success('Imagen cargada');
+    } catch (error) {
+      console.error('Error uploading manual item image:', error);
+      toast.error('No se pudo subir la imagen');
+    } finally {
+      setUploadingManualImage(false);
+    }
   };
 
   const handleSubmit = async () => {
-    if (!customer.name.trim() || !customer.email.trim()) {
-      toast.error('Nombre y correo del cliente son obligatorios');
-      return;
-    }
     if (cartItems.length === 0) {
       toast.error('Agrega al menos un producto');
       return;
     }
+    if (paymentMethod === 'Efectivo') {
+      if (!cashReceived.trim()) {
+        toast.error('Captura el monto recibido en efectivo');
+        return;
+      }
+      if (cashReceivedAmount < total) {
+        toast.error('El monto recibido no puede ser menor al total');
+        return;
+      }
+    }
 
     setSubmitting(true);
     try {
+      const normalizedCustomerEmail = customer.email.trim();
+      const shouldSendEmail = Boolean(normalizedCustomerEmail);
       const orderPayload = {
         user_id: null,
-        items: cartItems.map((item) => ({
-          product_id: item.id,
-          quantity: item.quantity,
-          price: item.price
-        })),
-        customer_email: customer.email.trim(),
+        items: cartItems.map((item) =>
+          item.isManual
+            ? {
+                product_id: null,
+                name: item.name,
+                sku: item.sku,
+                quantity: item.quantity,
+                price: item.price,
+                is_manual: true
+              }
+            : {
+                product_id: item.id,
+                quantity: item.quantity,
+                price: item.price
+              }
+        ),
+        customer_email: normalizedCustomerEmail || 'pos@patito.local',
         customer_phone: customer.phone.trim(),
         customer_name: customer.name.trim(),
         payment_method: paymentMethod,
@@ -195,7 +386,8 @@ export default function AdminPOS() {
         shipping_amount: 0,
         discount_amount: normalizedDiscount,
         total_amount: total,
-        notes: notes.trim()
+        notes: notes.trim(),
+        skip_email: !shouldSendEmail
       };
 
       const response = await apiRequest('/api/orders', {
@@ -218,11 +410,17 @@ export default function AdminPOS() {
         subtotal,
         discount: normalizedDiscount,
         total,
-        paymentMethod
+        paymentMethod,
+        cashReceived: paymentMethod === 'Efectivo' ? cashReceivedAmount : null,
+        changeDue: paymentMethod === 'Efectivo' ? changeDue : null
       });
 
       resetSale();
-      toast.success(`Pedido ${orderNumber} creado y notificado`);
+      toast.success(
+        shouldSendEmail
+          ? `Pedido ${orderNumber} creado y notificado`
+          : `Pedido ${orderNumber} guardado. Ticket listo.`
+      );
     } catch (error) {
       console.error('Error creating POS order:', error);
       toast.error('No se pudo crear el pedido');
@@ -274,6 +472,7 @@ export default function AdminPOS() {
     const encoder = new TextEncoder();
     const lines = [];
     const now = new Date(order.createdAt);
+    const customerName = order.customer?.name?.trim() || 'Público en general';
 
     lines.push('\x1B\x40'); // Initialize
     lines.push('\x1B\x61\x01'); // Center
@@ -283,8 +482,8 @@ export default function AdminPOS() {
     lines.push('\x1B\x61\x00'); // Left
     lines.push(`Pedido: ${order.orderNumber}\n`);
     lines.push(`${now.toLocaleDateString('es-MX')} ${now.toLocaleTimeString('es-MX')}\n`);
-    lines.push(`Cliente: ${order.customer.name}\n`);
-    if (order.customer.email) {
+    lines.push(`Cliente: ${customerName}\n`);
+    if (order.customer?.email) {
       lines.push(`${order.customer.email}\n`);
     }
     lines.push('\n');
@@ -302,6 +501,10 @@ export default function AdminPOS() {
     }
     lines.push(`Total: ${formatCurrency(order.total)}\n`);
     lines.push(`Pago: ${order.paymentMethod}\n`);
+    if (order.paymentMethod === 'Efectivo' && order.cashReceived !== null) {
+      lines.push(`Recibido: ${formatCurrency(order.cashReceived)}\n`);
+      lines.push(`Cambio: ${formatCurrency(order.changeDue)}\n`);
+    }
     lines.push('\n');
     lines.push('\x1B\x61\x01'); // Center
     lines.push('Gracias por tu compra.\n');
@@ -354,6 +557,8 @@ export default function AdminPOS() {
     }
   };
 
+  const hasCustomerEmail = customer.email.trim().length > 0;
+
   return (
     <AdminLayout title="Punto de venta">
       <div className={styles.container}>
@@ -372,7 +577,20 @@ export default function AdminPOS() {
             {loadingProducts ? (
               <div className={styles.loading}>Cargando productos...</div>
             ) : !Array.isArray(products) || products.length === 0 ? (
-              <div className={styles.emptyState}>No hay productos disponibles</div>
+              <div className={styles.emptyState}>
+                <p>
+                  {search.trim()
+                    ? 'No se encontraron productos con esa búsqueda'
+                    : 'No hay productos disponibles'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsManualModalOpen(true)}
+                  className={styles.manualButton}
+                >
+                  Agregar artículo manual
+                </button>
+              </div>
             ) : (
               products.map((product) => (
                 <button
@@ -409,6 +627,7 @@ export default function AdminPOS() {
                   <div className={styles.cartItemInfo}>
                     <p className={styles.cartItemName}>{item.name}</p>
                     <p className={styles.cartItemSku}>{item.sku || 'SKU sin definir'}</p>
+                    {item.isManual && <span className={styles.manualBadge}>Manual</span>}
                     <p className={styles.cartItemPrice}>{formatCurrency(item.price)}</p>
                   </div>
                   <div className={styles.cartItemActions}>
@@ -465,18 +684,18 @@ export default function AdminPOS() {
           </div>
 
           <div className={styles.customerSection}>
-            <h3>Datos del cliente</h3>
+            <h3>Datos del cliente (opcional)</h3>
             <div className={styles.customerFields}>
               <input
                 type="text"
-                placeholder="Nombre completo"
+                placeholder="Nombre completo (opcional)"
                 value={customer.name}
                 onChange={(event) => setCustomer((prev) => ({ ...prev, name: event.target.value }))}
                 className={styles.input}
               />
               <input
                 type="email"
-                placeholder="Correo electrónico"
+                placeholder="Correo electrónico (opcional)"
                 value={customer.email}
                 onChange={(event) => setCustomer((prev) => ({ ...prev, email: event.target.value }))}
                 className={styles.input}
@@ -506,6 +725,25 @@ export default function AdminPOS() {
                 ))}
               </select>
             </label>
+            {paymentMethod === 'Efectivo' && (
+              <div className={styles.cashFields}>
+                <label className={styles.paymentLabel}>
+                  Monto recibido
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={cashReceived}
+                    onChange={(event) => setCashReceived(event.target.value)}
+                    className={styles.input}
+                  />
+                </label>
+                <div className={styles.cashSummary}>
+                  <span>Cambio</span>
+                  <span>{formatCurrency(changeDue)}</span>
+                </div>
+              </div>
+            )}
             <textarea
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
@@ -520,7 +758,11 @@ export default function AdminPOS() {
             disabled={submitting}
             className={styles.submitButton}
           >
-            {submitting ? 'Procesando...' : 'Crear pedido y enviar correo'}
+            {submitting
+              ? 'Procesando...'
+              : hasCustomerEmail
+                ? 'Crear pedido y enviar correo'
+                : 'Guardar pedido y preparar ticket'}
           </button>
 
           <div className={styles.usbActions}>
@@ -547,6 +789,66 @@ export default function AdminPOS() {
               <p className={styles.printHint}>
                 Selecciona la impresora térmica GTP501 en el diálogo de impresión.
               </p>
+              <div className={styles.previewWrapper}>
+                <h4 className={styles.previewTitle}>Vista previa del ticket</h4>
+                <div className={`${styles.printArea} posPrintArea`}>
+                  <div className={styles.printHeader}>
+                    <h2>Patito Montenegro</h2>
+                    <p>Ticket de venta</p>
+                  </div>
+                  <div className={styles.printMeta}>
+                    <span>Pedido: {lastOrder.orderNumber}</span>
+                    <span>{new Date(lastOrder.createdAt).toLocaleString('es-MX')}</span>
+                  </div>
+                  <div className={styles.printMeta}>
+                    <span>Cliente: {lastOrder.customer.name || 'Público en general'}</span>
+                    {lastOrder.customer.email && <span>{lastOrder.customer.email}</span>}
+                  </div>
+                  <div className={styles.printItems}>
+                    {lastOrder.items.map((item) => (
+                      <div key={item.id} className={styles.printItemRow}>
+                        <div className={styles.printItemName}>{item.name}</div>
+                        <div className={styles.printItemQty}>x{item.quantity}</div>
+                        <div className={styles.printItemPrice}>
+                          {formatCurrency(item.price * item.quantity)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className={styles.printTotals}>
+                    <div>
+                      <span>Subtotal</span>
+                      <span>{formatCurrency(lastOrder.subtotal)}</span>
+                    </div>
+                    {lastOrder.discount > 0 && (
+                      <div>
+                        <span>Descuento</span>
+                        <span>-{formatCurrency(lastOrder.discount)}</span>
+                      </div>
+                    )}
+                    <div className={styles.printTotalRow}>
+                      <span>Total</span>
+                      <span>{formatCurrency(lastOrder.total)}</span>
+                    </div>
+                    {lastOrder.paymentMethod === 'Efectivo' && lastOrder.cashReceived !== null && (
+                      <>
+                        <div>
+                          <span>Recibido</span>
+                          <span>{formatCurrency(lastOrder.cashReceived)}</span>
+                        </div>
+                        <div>
+                          <span>Cambio</span>
+                          <span>{formatCurrency(lastOrder.changeDue)}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <div className={styles.printFooter}>
+                    <p>Pago: {lastOrder.paymentMethod}</p>
+                    <p>Gracias por tu compra.</p>
+                  </div>
+                </div>
+              </div>
               <div className={styles.receiptActions}>
                 <button
                   type="button"
@@ -561,49 +863,84 @@ export default function AdminPOS() {
           )}
         </section>
       </div>
-
-      {lastOrder && (
-        <div className={`${styles.printArea} posPrintArea`}>
-          <div className={styles.printHeader}>
-            <h2>Patito Montenegro</h2>
-            <p>Ticket de venta</p>
-          </div>
-          <div className={styles.printMeta}>
-            <span>Pedido: {lastOrder.orderNumber}</span>
-            <span>{new Date(lastOrder.createdAt).toLocaleString('es-MX')}</span>
-          </div>
-          <div className={styles.printMeta}>
-            <span>Cliente: {lastOrder.customer.name}</span>
-            <span>{lastOrder.customer.email}</span>
-          </div>
-          <div className={styles.printItems}>
-            {lastOrder.items.map((item) => (
-              <div key={item.id} className={styles.printItemRow}>
-                <div className={styles.printItemName}>{item.name}</div>
-                <div className={styles.printItemQty}>x{item.quantity}</div>
-                <div className={styles.printItemPrice}>{formatCurrency(item.price * item.quantity)}</div>
-              </div>
-            ))}
-          </div>
-          <div className={styles.printTotals}>
-            <div>
-              <span>Subtotal</span>
-              <span>{formatCurrency(lastOrder.subtotal)}</span>
+      {isManualModalOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalCard}>
+            <div className={styles.modalHeader}>
+              <h3>Agregar artículo manual</h3>
+              <button type="button" onClick={closeManualModal} className={styles.modalClose}>
+                ✕
+              </button>
             </div>
-            {lastOrder.discount > 0 && (
-              <div>
-                <span>Descuento</span>
-                <span>-{formatCurrency(lastOrder.discount)}</span>
-              </div>
-            )}
-            <div className={styles.printTotalRow}>
-              <span>Total</span>
-              <span>{formatCurrency(lastOrder.total)}</span>
+            <div className={styles.modalBody}>
+              <label className={styles.modalField}>
+                Título
+                <input
+                  type="text"
+                  value={manualItem.title}
+                  onChange={(event) =>
+                    setManualItem((prev) => ({ ...prev, title: event.target.value }))
+                  }
+                  className={styles.input}
+                />
+              </label>
+              <label className={styles.modalField}>
+                Precio
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={manualItem.price}
+                  onChange={(event) =>
+                    setManualItem((prev) => ({ ...prev, price: event.target.value }))
+                  }
+                  className={styles.input}
+                />
+              </label>
+              <label className={styles.modalField}>
+                Descripción (opcional)
+                <textarea
+                  value={manualItem.description}
+                  onChange={(event) =>
+                    setManualItem((prev) => ({ ...prev, description: event.target.value }))
+                  }
+                  className={styles.textarea}
+                />
+              </label>
+              <label className={styles.modalField}>
+                Imagen (opcional)
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => handleManualImageUpload(event.target.files?.[0])}
+                  className={styles.input}
+                  disabled={uploadingManualImage || savingManualItem}
+                />
+                {manualItem.imageUrl && (
+                  <div className={styles.imagePreview}>
+                    <img src={manualItem.imageUrl} alt="Vista previa" />
+                  </div>
+                )}
+              </label>
             </div>
-          </div>
-          <div className={styles.printFooter}>
-            <p>Pago: {lastOrder.paymentMethod}</p>
-            <p>Gracias por tu compra.</p>
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                onClick={closeManualModal}
+                className={styles.secondaryButton}
+                disabled={savingManualItem}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={addManualItem}
+                className={styles.submitButton}
+                disabled={savingManualItem}
+              >
+                {savingManualItem ? 'Guardando...' : 'Agregar'}
+              </button>
+            </div>
           </div>
         </div>
       )}

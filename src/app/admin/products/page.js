@@ -152,6 +152,17 @@ export default function ProductsPage() {
     return { status: 'good', label: 'En Stock', color: '#10b981' };
   };
 
+  const getMissingFields = (product) => {
+    const missing = [];
+    if (!product.name?.trim()) missing.push('Nombre');
+    if (!product.price || Number(product.price) <= 0) missing.push('Precio');
+    if (!product.sku) missing.push('SKU');
+    if (!product.category_name) missing.push('Categoría');
+    if (!product.image_url) missing.push('Imagen');
+    if (!product.description && !product.short_description) missing.push('Descripción');
+    return missing;
+  };
+
   return (
     <AdminLayout title="Gestión de Productos">
       <div className={styles.container}>
@@ -250,9 +261,11 @@ export default function ProductsPage() {
               <tbody>
                 {Array.isArray(products) && products.map(product => {
                   const stockStatus = getStockStatus(product.stock_quantity, product.low_stock_threshold);
+                  const missingFields = getMissingFields(product);
+                  const isIncomplete = missingFields.length > 0;
                   
                   return (
-                    <tr key={product.id}>
+                    <tr key={product.id} className={isIncomplete ? styles.incompleteRow : undefined}>
                       <td>
                         <div className={styles.productInfo}>
                           <div className={styles.productImage}>
@@ -271,6 +284,14 @@ export default function ProductsPage() {
                           <div className={styles.productDetails}>
                             <span className={styles.productName}>{product.name}</span>
                             <span className={styles.productSlug}>{product.slug}</span>
+                            {isIncomplete && (
+                              <span
+                                className={styles.incompleteBadge}
+                                title={`Falta: ${missingFields.join(', ')}`}
+                              >
+                                Incompleto
+                              </span>
+                            )}
                           </div>
                         </div>
                       </td>

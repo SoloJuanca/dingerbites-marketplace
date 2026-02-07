@@ -289,6 +289,19 @@
   margin-top: 16px;
 }
 
+.previewWrapper {
+  margin-top: 16px;
+  display: grid;
+  gap: 16px;
+}
+
+.previewTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
 .usbPrintButton {
   width: 100%;
   padding: 16px;
@@ -318,6 +331,19 @@
   color: #64748b;
   background: #f8fafc;
   border-radius: 8px;
+  display: grid;
+  gap: 16px;
+  justify-items: center;
+}
+
+.manualButton {
+  padding: 16px 24px;
+  border-radius: 16px;
+  border: 1px dashed #94a3b8;
+  background: #ffffff;
+  color: #0f172a;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .printArea {
@@ -392,6 +418,113 @@
   margin-top: 16px;
   text-align: center;
   font-size: 16px;
+}
+
+.cashFields {
+  display: grid;
+  gap: 16px;
+}
+
+.cashSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+.manualBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 16px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 50;
+}
+
+.modalCard {
+  width: min(520px, 100%);
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.2);
+  display: grid;
+  gap: 16px;
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.modalHeader h3 {
+  margin: 0;
+}
+
+.modalClose {
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.modalBody {
+  display: grid;
+  gap: 16px;
+}
+
+.modalField {
+  display: grid;
+  gap: 8px;
+  font-size: 16px;
+  color: #334155;
+}
+
+.modalActions {
+  display: flex;
+  gap: 16px;
+}
+
+.imagePreview {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 8px;
+  background: #f8fafc;
+}
+
+.imagePreview img {
+  width: 100%;
+  height: auto;
+  max-height: 240px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.modalActions .secondaryButton,
+.modalActions .submitButton {
+  flex: 1;
 }
 
 @media (max-width: 1024px) {

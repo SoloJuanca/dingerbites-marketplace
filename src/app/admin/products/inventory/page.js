@@ -204,6 +204,17 @@ export default function InventoryPage() {
     return { status: 'good', label: 'En Stock', color: '#10b981' };
   };
 
+  const getMissingFields = (product) => {
+    const missing = [];
+    if (!product.name?.trim()) missing.push('Nombre');
+    if (!product.price || Number(product.price) <= 0) missing.push('Precio');
+    if (!product.sku) missing.push('SKU');
+    if (!product.category_name) missing.push('Categoría');
+    if (!product.image_url) missing.push('Imagen');
+    if (!product.description && !product.short_description) missing.push('Descripción');
+    return missing;
+  };
+
   const calculateInvestmentValue = (price, cost, stock) => {
     const unitCost = cost || price * 0.6; // Si no hay costo, asumimos 60% del precio
     return unitCost * stock;
@@ -356,9 +367,11 @@ export default function InventoryPage() {
                     product.cost_price, 
                     product.stock_quantity
                   );
+                  const missingFields = getMissingFields(product);
+                  const isIncomplete = missingFields.length > 0;
                   
                   return (
-                    <tr key={product.id}>
+                    <tr key={product.id} className={isIncomplete ? styles.incompleteRow : undefined}>
                       <td>
                         <div className={styles.productInfo}>
                           <div className={styles.productImage}>
@@ -377,6 +390,14 @@ export default function InventoryPage() {
                           <div className={styles.productDetails}>
                             <span className={styles.productName}>{product.name}</span>
                             <span className={styles.productSlug}>{product.slug}</span>
+                            {isIncomplete && (
+                              <span
+                                className={styles.incompleteBadge}
+                                title={`Falta: ${missingFields.join(', ')}`}
+                              >
+                                Incompleto
+                              </span>
+                            )}
                           </div>
                         </div>
                       </td>

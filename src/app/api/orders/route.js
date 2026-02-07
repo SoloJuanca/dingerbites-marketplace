@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getRows, getRow, query, transaction } from '../../../lib/database';
-import { authenticateUser } from '../../../lib/auth';
+import { authenticateUser, hashPassword } from '../../../lib/auth';
 import { sendOrderNotifications } from '../../../lib/emailService';
 
 // GET /api/orders - Get orders (user-specific, requires authentication)
@@ -112,6 +112,7 @@ export async function POST(request) {
       customer_name,
       payment_method,
       shipping_method,
+      skip_email,
       subtotal,
       tax_amount = 0,
       shipping_amount = 0,
@@ -119,9 +120,10 @@ export async function POST(request) {
       total_amount,
       address // For guest users, we'll save this
     } = body;
+    const normalizedCustomerEmail = customer_email?.toLowerCase().trim();
 
     // Validate required fields
-    if (!customer_email || !total_amount || (!items && !service_items)) {
+    if (!normalizedCustomerEmail || !total_amount || (!items && !service_items)) {
       return NextResponse.json(
         { error: 'Customer email, total amount, and at least one item are required' },
         { status: 400 }
@@ -150,11 +152,11 @@ export async function POST(request) {
       let finalShippingAddressId = shipping_address_id;
 
       // For guest users, create a basic user record if they don't exist
-      if (!user_id && customer_email) {
+      if (!user_id && normalizedCustomerEmail) {
         // Check if user already exists by email
         const existingUser = await client.query(
           'SELECT id FROM users WHERE email = $1',
-          [customer_email]
+          [normalizedCustomerEmail]
         );
 
         if (existingUser.rows.length === 0) {
@@ -163,23 +165,32 @@ export async function POST(request) {
           const firstName = nameParts[0] || '';
           const lastName = nameParts.slice(1).join(' ') || '';
 
+          const guestPassword = await hashPassword(
+            `guest-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+          );
           const createUserQuery = `
             INSERT INTO users (
-              email, first_name, last_name, phone, role, is_guest,
-              email_verified, created_at, updated_at
+              email, password_hash, first_name, last_name, phone, is_active, is_verified
             )
-            VALUES ($1, $2, $3, $4, 'customer', true, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            VALUES ($1, $2, $3, $4, $5, true, false)
             RETURNING id
           `;
 
           const newUser = await client.query(createUserQuery, [
-            customer_email,
+            normalizedCustomerEmail,
+            guestPassword,
             firstName,
             lastName,
             customer_phone || null
           ]);
 
           finalUserId = newUser.rows[0].id;
+
+          try {
+            await client.query('UPDATE users SET is_guest = true WHERE id = $1', [finalUserId]);
+          } catch (guestFlagError) {
+            console.warn('Guest flag not available:', guestFlagError?.message || guestFlagError);
+          }
 
           // If there's an address for delivery, create an address record for the guest user
           if (address && shipping_method === 'Envío a domicilio') {
@@ -230,7 +241,7 @@ export async function POST(request) {
         finalShippingAddressId || null,
         billing_address_id || null,
         notes || null,
-        customer_email,
+        normalizedCustomerEmail,
         customer_phone || null,
         payment_method || null,
         shipping_method || null
@@ -241,8 +252,40 @@ export async function POST(request) {
       // Add product items
       if (items && items.length > 0) {
         for (const item of items) {
-          const { product_id, quantity, variant_id } = item;
-          
+          const {
+            product_id,
+            quantity,
+            variant_id,
+            name,
+            sku,
+            price,
+            is_manual
+          } = item;
+          const safeQuantity = quantity || 1;
+
+          if (!product_id || is_manual) {
+            const manualName = name || 'Artículo manual';
+            const unitPrice = price || 0;
+
+            await client.query(`
+              INSERT INTO order_items (
+                order_id, product_id, product_variant_id, product_name, 
+                product_sku, quantity, unit_price, total_price
+              )
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            `, [
+              orderId,
+              null,
+              null,
+              manualName,
+              sku || null,
+              safeQuantity,
+              unitPrice,
+              unitPrice * safeQuantity
+            ]);
+            continue;
+          }
+
           // Get product details
           const product = await client.query(
             'SELECT name, price, sku FROM products WHERE id = $1',
@@ -270,9 +313,9 @@ export async function POST(request) {
             variant_id || null,
             productData.name,
             productData.sku || null,
-            quantity,
+            safeQuantity,
             unitPrice,
-            unitPrice * quantity
+            unitPrice * safeQuantity
           ]);
         }
       }
@@ -320,7 +363,7 @@ export async function POST(request) {
     const orderData = {
       order_number: result.order_number,
       customer_name: customer_name,
-      customer_email: customer_email,
+      customer_email: normalizedCustomerEmail,
       customer_phone: customer_phone,
       total_amount: total_amount,
       payment_method: payment_method,
@@ -337,6 +380,20 @@ export async function POST(request) {
       try {
         const enrichedItems = [];
         for (const item of items) {
+          if (!item.product_id || item.is_manual) {
+            const unitPrice = item.price || 0;
+            const quantity = item.quantity || 1;
+            enrichedItems.push({
+              ...item,
+              product_name: item.name || 'Artículo manual',
+              product_slug: '',
+              product_image: '',
+              unit_price: unitPrice,
+              total_price: unitPrice * quantity
+            });
+            continue;
+          }
+
           const productQuery = `
             SELECT p.name, p.price, p.sku, p.slug,
                    COALESCE(pi.image_url, '') as image_url
@@ -386,13 +443,15 @@ export async function POST(request) {
 
     // Enviar notificaciones por correo de manera asíncrona
     // No bloquear la respuesta si falla el envío de correos
-    sendOrderNotifications(orderData)
-      .then((emailResults) => {
-        console.log('Email notifications sent:', emailResults);
-      })
-      .catch((error) => {
-        console.error('Error sending email notifications:', error);
-      });
+    if (!skip_email) {
+      sendOrderNotifications(orderData)
+        .then((emailResults) => {
+          console.log('Email notifications sent:', emailResults);
+        })
+        .catch((error) => {
+          console.error('Error sending email notifications:', error);
+        });
+    }
 
     return NextResponse.json(result, { status: 201 });
 

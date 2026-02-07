@@ -175,6 +175,11 @@
   background: #f8fafc;
 }
 
+.incompleteRow {
+  background: #fffbeb;
+  box-shadow: inset 8px 0 0 #fbbf24;
+}
+
 .table tbody tr:last-child td {
   border-bottom: none;
 }
@@ -209,7 +214,7 @@
 .productDetails {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .productName {
@@ -221,6 +226,18 @@
 .productSlug {
   font-size: 12px;
   color: #6b7280;
+}
+
+.incompleteBadge {
+  align-self: flex-start;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 /* Table Content */
