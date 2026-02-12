@@ -113,7 +113,7 @@ export async function getOrderById(orderId) {
     ...order,
     status_name: status?.name ?? null,
     status_color: status?.color ?? null,
-    customer_email: order.customer_email || user?.email ?? null,
+    customer_email: (order.customer_email || user?.email) ?? null,
     first_name: user?.first_name ?? null,
     last_name: user?.last_name ?? null,
     phone: user?.phone ?? null,

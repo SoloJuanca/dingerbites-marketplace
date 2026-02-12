@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getOrderById, updateOrderStatus, cancelOrder, getOrderStatusById } from '../../../lib/firebaseOrders';
+import { getOrderById, updateOrderStatus, cancelOrder, getOrderStatusById } from '../../../../lib/firebaseOrders';
 
 // GET /api/orders/[id] - Get order by ID with details
 export async function GET(request, { params }) {
