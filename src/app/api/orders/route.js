@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
-import { getRows, getRow, query, transaction } from '../../../lib/database';
-import { authenticateUser, hashPassword } from '../../../lib/auth';
+import { authenticateUser } from '../../../lib/auth';
+import { getOrdersByUserId, getOrderStatusIdByName, createOrder } from '../../../lib/firebaseOrders';
+import { getUserByEmail, createUser } from '../../../lib/firebaseUsers';
+import { hashPassword } from '../../../lib/auth';
 import { sendOrderNotifications } from '../../../lib/emailService';
+import { db } from '../../../lib/firebaseAdmin';
 
 // GET /api/orders - Get orders (user-specific, requires authentication)
 export async function GET(request) {
   try {
-    // Authenticate user
     const user = await authenticateUser(request);
     if (!user) {
       return NextResponse.json(
@@ -16,77 +18,12 @@ export async function GET(request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
+    const status = searchParams.get('status') || '';
     const page = parseInt(searchParams.get('page')) || 1;
     const limit = parseInt(searchParams.get('limit')) || 10;
-    const offset = (page - 1) * limit;
 
-    // Build the query with filters
-    let ordersQuery = `
-      SELECT o.*, os.name as status_name, os.color as status_color,
-             u.email as customer_email, u.first_name, u.last_name
-      FROM orders o
-      JOIN order_statuses os ON o.status_id = os.id
-      LEFT JOIN users u ON o.user_id = u.id
-      WHERE 1=1
-    `;
-
-    const params = [];
-    let paramIndex = 1;
-
-    // Filter by authenticated user
-    ordersQuery += ` AND o.user_id = $${paramIndex}`;
-    params.push(user.id);
-    paramIndex++;
-
-    // Add status filter
-    if (status) {
-      ordersQuery += ` AND os.name = $${paramIndex}`;
-      params.push(status);
-      paramIndex++;
-    }
-
-    ordersQuery += ` ORDER BY o.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-    params.push(limit, offset);
-
-    const orders = await getRows(ordersQuery, params);
-
-    // Get total count for pagination
-    let countQuery = `
-      SELECT COUNT(*) as total
-      FROM orders o
-      JOIN order_statuses os ON o.status_id = os.id
-      WHERE 1=1
-    `;
-
-    const countParams = [];
-    paramIndex = 1;
-
-    // Filter by authenticated user
-    countQuery += ` AND o.user_id = $${paramIndex}`;
-    countParams.push(user.id);
-    paramIndex++;
-
-    if (status) {
-      countQuery += ` AND os.name = $${paramIndex}`;
-      countParams.push(status);
-      paramIndex++;
-    }
-
-    const totalResult = await getRow(countQuery, countParams);
-    const total = parseInt(totalResult.total);
-
-    return NextResponse.json({
-      orders,
-      pagination: {
-        total,
-        totalPages: Math.ceil(total / limit),
-        currentPage: page,
-        hasNextPage: page < Math.ceil(total / limit),
-        hasPrevPage: page > 1
-      }
-    });
-
+    const result = await getOrdersByUserId(user.id, { status, page, limit });
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching orders:', error);
     return NextResponse.json(
@@ -102,8 +39,8 @@ export async function POST(request) {
     const body = await request.json();
     const {
       user_id,
-      items, // Array of {product_id, quantity, variant_id}
-      service_items, // Array of {service_id, schedule_id, quantity}
+      items,
+      service_items,
       shipping_address_id,
       billing_address_id,
       notes,
@@ -118,343 +55,220 @@ export async function POST(request) {
       shipping_amount = 0,
       discount_amount = 0,
       total_amount,
-      address // For guest users, we'll save this
+      address
     } = body;
     const normalizedCustomerEmail = customer_email?.toLowerCase().trim();
 
-    // Validate required fields
-    if (!normalizedCustomerEmail || !total_amount || (!items && !service_items)) {
+    if (!normalizedCustomerEmail || !total_amount || (!items?.length && !service_items?.length)) {
       return NextResponse.json(
         { error: 'Customer email, total amount, and at least one item are required' },
         { status: 400 }
       );
     }
 
-    // Generate order number
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-
-    // Get default pending status
-    const pendingStatus = await getRow(
-      'SELECT id FROM order_statuses WHERE name = $1',
-      ['pending']
-    );
-
-    if (!pendingStatus) {
+    const pendingStatusId = await getOrderStatusIdByName('pending');
+    if (!pendingStatusId) {
       return NextResponse.json(
         { error: 'Order status not found' },
         { status: 500 }
       );
     }
 
-    // Create order using transaction
-    const result = await transaction(async (client) => {
-      let finalUserId = user_id;
-      let finalShippingAddressId = shipping_address_id;
+    let finalUserId = user_id;
+    let finalShippingAddressId = shipping_address_id;
 
-      // For guest users, create a basic user record if they don't exist
-      if (!user_id && normalizedCustomerEmail) {
-        // Check if user already exists by email
-        const existingUser = await client.query(
-          'SELECT id FROM users WHERE email = $1',
-          [normalizedCustomerEmail]
+    if (!user_id && normalizedCustomerEmail) {
+      let existingUser = await getUserByEmail(normalizedCustomerEmail);
+      if (!existingUser) {
+        const nameParts = customer_name ? customer_name.split(' ') : ['', ''];
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        const guestPassword = await hashPassword(
+          `guest-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
         );
+        const newUser = await createUser({
+          email: normalizedCustomerEmail,
+          password_hash: guestPassword,
+          first_name: firstName,
+          last_name: lastName,
+          phone: customer_phone || null,
+          is_guest: true
+        });
+        finalUserId = newUser.id;
 
-        if (existingUser.rows.length === 0) {
-          // Create a guest user (no password)
-          const nameParts = customer_name ? customer_name.split(' ') : ['', ''];
-          const firstName = nameParts[0] || '';
-          const lastName = nameParts.slice(1).join(' ') || '';
-
-          const guestPassword = await hashPassword(
-            `guest-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
-          );
-          const createUserQuery = `
-            INSERT INTO users (
-              email, password_hash, first_name, last_name, phone, is_active, is_verified
-            )
-            VALUES ($1, $2, $3, $4, $5, true, false)
-            RETURNING id
-          `;
-
-          const newUser = await client.query(createUserQuery, [
-            normalizedCustomerEmail,
-            guestPassword,
-            firstName,
-            lastName,
-            customer_phone || null
-          ]);
-
-          finalUserId = newUser.rows[0].id;
-
-          try {
-            await client.query('UPDATE users SET is_guest = true WHERE id = $1', [finalUserId]);
-          } catch (guestFlagError) {
-            console.warn('Guest flag not available:', guestFlagError?.message || guestFlagError);
-          }
-
-          // If there's an address for delivery, create an address record for the guest user
-          if (address && shipping_method === 'Envío a domicilio') {
-            const createAddressQuery = `
-              INSERT INTO user_addresses (
-                user_id, address_type, is_default, first_name, last_name,
-                address_line_1, city, state, postal_code, country, phone
-              )
-              VALUES ($1, 'shipping', true, $2, $3, $4, 'Ciudad', 'Estado', '00000', 'Mexico', $5)
-              RETURNING id
-            `;
-
-            const newAddress = await client.query(createAddressQuery, [
-              finalUserId,
-              firstName,
-              lastName,
-              address,
-              customer_phone || null
-            ]);
-
-            finalShippingAddressId = newAddress.rows[0].id;
-          }
-        } else {
-          finalUserId = existingUser.rows[0].id;
+        if (address && shipping_method === 'Envío a domicilio') {
+          const now = new Date().toISOString();
+          const addressRef = db.collection('user_addresses').doc();
+          await addressRef.set({
+            user_id: finalUserId,
+            address_type: 'shipping',
+            is_default: true,
+            first_name: firstName,
+            last_name: lastName,
+            address_line_1: address,
+            city: 'Ciudad',
+            state: 'Estado',
+            postal_code: '00000',
+            country: 'Mexico',
+            phone: customer_phone || null,
+            created_at: now,
+            updated_at: now
+          });
+          finalShippingAddressId = addressRef.id;
         }
+      } else {
+        finalUserId = existingUser.id;
       }
+    }
 
-      // Create the order
-      const createOrderQuery = `
-        INSERT INTO orders (
-          order_number, user_id, status_id, subtotal, tax_amount, shipping_amount, 
-          discount_amount, total_amount, shipping_address_id, billing_address_id, 
-          notes, customer_email, customer_phone, payment_method, shipping_method
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-        RETURNING id, order_number
-      `;
-
-      const order = await client.query(createOrderQuery, [
-        orderNumber,
-        finalUserId,
-        pendingStatus.id,
-        subtotal || total_amount,
-        tax_amount,
-        shipping_amount,
-        discount_amount,
-        total_amount,
-        finalShippingAddressId || null,
-        billing_address_id || null,
-        notes || null,
-        normalizedCustomerEmail,
-        customer_phone || null,
-        payment_method || null,
-        shipping_method || null
-      ]);
-
-      const orderId = order.rows[0].id;
-
-      // Add product items
-      if (items && items.length > 0) {
-        for (const item of items) {
-          const {
-            product_id,
-            quantity,
-            variant_id,
-            name,
-            sku,
-            price,
-            is_manual
-          } = item;
-          const safeQuantity = quantity || 1;
-
-          if (!product_id || is_manual) {
-            const manualName = name || 'Artículo manual';
-            const unitPrice = price || 0;
-
-            await client.query(`
-              INSERT INTO order_items (
-                order_id, product_id, product_variant_id, product_name, 
-                product_sku, quantity, unit_price, total_price
-              )
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            `, [
-              orderId,
-              null,
-              null,
-              manualName,
-              sku || null,
-              safeQuantity,
-              unitPrice,
-              unitPrice * safeQuantity
-            ]);
-            continue;
-          }
-
-          // Get product details
-          const product = await client.query(
-            'SELECT name, price, sku FROM products WHERE id = $1',
-            [product_id]
-          );
-
-          if (product.rows.length === 0) {
-            throw new Error(`Product not found: ${product_id}`);
-          }
-
-          const productData = product.rows[0];
-          const unitPrice = variant_id ? 
-            (await client.query('SELECT price FROM product_variants WHERE id = $1', [variant_id])).rows[0]?.price || productData.price :
-            productData.price;
-
-          await client.query(`
-            INSERT INTO order_items (
-              order_id, product_id, product_variant_id, product_name, 
-              product_sku, quantity, unit_price, total_price
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-          `, [
-            orderId,
-            product_id,
-            variant_id || null,
-            productData.name,
-            productData.sku || null,
-            safeQuantity,
-            unitPrice,
-            unitPrice * safeQuantity
-          ]);
+    const orderItems = [];
+    if (items && items.length > 0) {
+      for (const item of items) {
+        const { product_id, quantity, variant_id, name, sku, price, is_manual } = item;
+        const qty = quantity || 1;
+        if (!product_id || is_manual) {
+          const unitPrice = price || 0;
+          orderItems.push({
+            product_id: null,
+            product_variant_id: null,
+            product_name: name || 'Artículo manual',
+            product_sku: sku || null,
+            quantity: qty,
+            unit_price: unitPrice,
+            total_price: unitPrice * qty
+          });
+          continue;
         }
-      }
-
-      // Add service items
-      if (service_items && service_items.length > 0) {
-        for (const item of service_items) {
-          const { service_id, schedule_id, quantity = 1 } = item;
-          
-          // Get service details
-          const service = await client.query(
-            'SELECT name FROM services WHERE id = $1',
-            [service_id]
-          );
-
-          if (service.rows.length === 0) {
-            throw new Error(`Service not found: ${service_id}`);
-          }
-
-          const serviceData = service.rows[0];
-          const unitPrice = (await client.query('SELECT price FROM services WHERE id = $1', [service_id])).rows[0].price;
-
-          await client.query(`
-            INSERT INTO order_service_items (
-              order_id, service_id, service_schedule_id, service_name,
-              quantity, unit_price, total_price
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-          `, [
-            orderId,
-            service_id,
-            schedule_id || null,
-            serviceData.name,
-            quantity,
-            unitPrice,
-            unitPrice * quantity
-          ]);
+        const productDoc = await db.collection('products').doc(String(product_id)).get();
+        if (!productDoc.exists) {
+          throw new Error(`Product not found: ${product_id}`);
         }
+        const productData = productDoc.data();
+        const unitPrice = Number(productData.price) || 0;
+        orderItems.push({
+          product_id: product_id,
+          product_variant_id: variant_id || null,
+          product_name: productData.name || 'Producto',
+          product_sku: productData.sku || null,
+          quantity: qty,
+          unit_price: unitPrice,
+          total_price: unitPrice * qty
+        });
       }
+    }
 
-      return order.rows[0];
+    const orderServiceItems = [];
+    if (service_items && service_items.length > 0) {
+      for (const item of service_items) {
+        const { service_id, schedule_id, quantity = 1 } = item;
+        const serviceDoc = await db.collection('services').doc(String(service_id)).get();
+        if (!serviceDoc.exists) {
+          throw new Error(`Service not found: ${service_id}`);
+        }
+        const serviceData = serviceDoc.data();
+        const unitPrice = Number(serviceData.price) || 0;
+        orderServiceItems.push({
+          service_id,
+          service_schedule_id: schedule_id || null,
+          service_name: serviceData.name || 'Servicio',
+          quantity,
+          unit_price: unitPrice,
+          total_price: unitPrice * quantity
+        });
+      }
+    }
+
+    const result = await createOrder({
+      order_number: orderNumber,
+      user_id: finalUserId || null,
+      status_id: pendingStatusId,
+      subtotal: subtotal ?? total_amount,
+      tax_amount,
+      shipping_amount,
+      discount_amount,
+      total_amount,
+      shipping_address_id: finalShippingAddressId || null,
+      billing_address_id: billing_address_id || null,
+      notes: notes || null,
+      customer_email: normalizedCustomerEmail,
+      customer_phone: customer_phone || null,
+      payment_method: payment_method || null,
+      shipping_method: shipping_method || null,
+      items: orderItems,
+      service_items: orderServiceItems
     });
 
-    // Obtener detalles completos del pedido para los correos
     const orderData = {
       order_number: result.order_number,
-      customer_name: customer_name,
+      customer_name,
       customer_email: normalizedCustomerEmail,
-      customer_phone: customer_phone,
+      customer_phone,
       total_amount: total_amount,
-      payment_method: payment_method,
-      shipping_method: shipping_method,
+      payment_method,
+      shipping_method,
       items: items || [],
       service_items: service_items || [],
-      address: address,
-      notes: notes,
+      address,
+      notes,
       created_at: new Date()
     };
-
-    // Enriquecer los datos de items con información de productos si están disponibles
-    if (items && items.length > 0) {
+    if (items?.length) {
       try {
         const enrichedItems = [];
         for (const item of items) {
           if (!item.product_id || item.is_manual) {
-            const unitPrice = item.price || 0;
-            const quantity = item.quantity || 1;
             enrichedItems.push({
               ...item,
               product_name: item.name || 'Artículo manual',
               product_slug: '',
               product_image: '',
-              unit_price: unitPrice,
-              total_price: unitPrice * quantity
+              unit_price: item.price || 0,
+              total_price: (item.price || 0) * (item.quantity || 1)
             });
             continue;
           }
-
-          const productQuery = `
-            SELECT p.name, p.price, p.sku, p.slug,
-                   COALESCE(pi.image_url, '') as image_url
-            FROM products p
-            LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = true
-            WHERE p.id = $1
-          `;
-          const productData = await getRow(productQuery, [item.product_id]);
-          
+          const productDoc = await db.collection('products').doc(String(item.product_id)).get();
+          const p = productDoc.exists ? productDoc.data() : {};
+          const img = Array.isArray(p.images) && p.images[0] ? (p.images[0].url || p.images[0]) : p.image || '';
           enrichedItems.push({
             ...item,
-            product_name: productData?.name || 'Producto',
-            product_slug: productData?.slug || '',
-            product_image: productData?.image_url || '',
-            unit_price: productData?.price || item.price || 0,
-            total_price: (productData?.price || item.price || 0) * item.quantity
+            product_name: p.name || 'Producto',
+            product_slug: p.slug || '',
+            product_image: img,
+            unit_price: p.price || item.price || 0,
+            total_price: (p.price || item.price || 0) * (item.quantity || 1)
           });
         }
         orderData.items = enrichedItems;
-      } catch (error) {
-        console.error('Error enriching product data for email:', error);
-        // Use original items if enrichment fails
+      } catch (e) {
+        console.error('Error enriching product data for email:', e);
       }
     }
-
-    // Enriquecer los datos de servicios si están disponibles
-    if (service_items && service_items.length > 0) {
+    if (service_items?.length) {
       try {
-        const enrichedServiceItems = [];
-        for (const item of service_items) {
-          const serviceQuery = 'SELECT name, price FROM services WHERE id = $1';
-          const serviceData = await getRow(serviceQuery, [item.service_id]);
-          
-          enrichedServiceItems.push({
-            ...item,
-            service_name: serviceData?.name || 'Servicio',
-            unit_price: serviceData?.price || 0,
-            total_price: (serviceData?.price || 0) * (item.quantity || 1)
+        const enriched = [];
+        for (const s of service_items) {
+          const serviceDoc = await db.collection('services').doc(String(s.service_id)).get();
+          const sd = serviceDoc.exists ? serviceDoc.data() : {};
+          enriched.push({
+            ...s,
+            service_name: sd.name || 'Servicio',
+            unit_price: sd.price || 0,
+            total_price: (sd.price || 0) * (s.quantity || 1)
           });
         }
-        orderData.service_items = enrichedServiceItems;
-      } catch (error) {
-        console.error('Error enriching service data for email:', error);
-        // Use original service_items if enrichment fails
+        orderData.service_items = enriched;
+      } catch (e) {
+        console.error('Error enriching service data for email:', e);
       }
     }
 
-    // Enviar notificaciones por correo de manera asíncrona
-    // No bloquear la respuesta si falla el envío de correos
     if (!skip_email) {
-      sendOrderNotifications(orderData)
-        .then((emailResults) => {
-          console.log('Email notifications sent:', emailResults);
-        })
-        .catch((error) => {
-          console.error('Error sending email notifications:', error);
-        });
+      sendOrderNotifications(orderData).catch((err) => console.error('Email notifications error:', err));
     }
 
     return NextResponse.json(result, { status: 201 });
-
   } catch (error) {
     console.error('Error creating order:', error);
     return NextResponse.json(
@@ -462,4 +276,4 @@ export async function POST(request) {
       { status: 500 }
     );
   }
-} 
+}

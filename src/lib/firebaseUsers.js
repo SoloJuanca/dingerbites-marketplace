@@ -65,6 +65,7 @@ export async function createUser(userPayload) {
     is_admin: userPayload.is_admin !== undefined ? Boolean(userPayload.is_admin) : false,
     is_active: userPayload.is_active !== undefined ? Boolean(userPayload.is_active) : true,
     is_verified: userPayload.is_verified !== undefined ? Boolean(userPayload.is_verified) : false,
+    is_guest: userPayload.is_guest !== undefined ? Boolean(userPayload.is_guest) : false,
     created_at: now,
     updated_at: now,
     last_login_at: null
