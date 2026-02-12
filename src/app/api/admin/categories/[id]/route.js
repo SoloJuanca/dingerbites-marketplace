@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../../lib/auth';
-import { query, getRow } from '../../../../../lib/database';
+import {
+  CATEGORIES_COLLECTION,
+  deleteById,
+  findBySlugExcludingId,
+  getById,
+  hasProductsWithCategoryId,
+  updateById
+} from '../../../../../lib/firebaseCatalog';
 
 // PUT /api/admin/categories/[id] - Update category
 export async function PUT(request, { params }) {
@@ -18,10 +25,7 @@ export async function PUT(request, { params }) {
     const body = await request.json();
 
     // Check if category exists
-    const existingCategory = await getRow(
-      'SELECT id, slug FROM product_categories WHERE id = $1',
-      [id]
-    );
+    const existingCategory = await getById(CATEGORIES_COLLECTION, id);
 
     if (!existingCategory) {
       return NextResponse.json(
@@ -48,10 +52,7 @@ export async function PUT(request, { params }) {
 
     // Check if slug already exists (excluding current category)
     if (slug !== existingCategory.slug) {
-      const slugExists = await getRow(
-        'SELECT id FROM product_categories WHERE slug = $1 AND id != $2',
-        [slug, id]
-      );
+      const slugExists = await findBySlugExcludingId(CATEGORIES_COLLECTION, slug, id);
 
       if (slugExists) {
         return NextResponse.json(
@@ -61,29 +62,13 @@ export async function PUT(request, { params }) {
       }
     }
 
-    // Update category
-    const updateQuery = `
-      UPDATE product_categories SET
-        name = $1,
-        slug = $2,
-        description = $3,
-        image_url = $4,
-        is_active = $5,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = $6
-      RETURNING *
-    `;
-
-    const updateParams = [
+    const updatedCategory = await updateById(CATEGORIES_COLLECTION, id, {
       name,
       slug,
-      description,
-      image_url,
-      is_active,
-      id
-    ];
-
-    const updatedCategory = await getRow(updateQuery, updateParams);
+      description: description ?? null,
+      image_url: image_url ?? null,
+      is_active: is_active !== undefined ? Boolean(is_active) : existingCategory.is_active
+    });
 
     return NextResponse.json({
       success: true,
@@ -115,10 +100,7 @@ export async function DELETE(request, { params }) {
     const { id } = params;
 
     // Check if category exists
-    const existingCategory = await getRow(
-      'SELECT id, name FROM product_categories WHERE id = $1',
-      [id]
-    );
+    const existingCategory = await getById(CATEGORIES_COLLECTION, id);
 
     if (!existingCategory) {
       return NextResponse.json(
@@ -128,20 +110,15 @@ export async function DELETE(request, { params }) {
     }
 
     // Check if category has products
-    const productsCount = await getRow(
-      'SELECT COUNT(*) as count FROM products WHERE category_id = $1',
-      [id]
-    );
-
-    if (parseInt(productsCount.count) > 0) {
+    const hasProducts = await hasProductsWithCategoryId(id);
+    if (hasProducts) {
       return NextResponse.json(
         { error: 'Cannot delete category that has products. Move the products to another category first.' },
         { status: 400 }
       );
     }
 
-    // Delete category
-    await query('DELETE FROM product_categories WHERE id = $1', [id]);
+    await deleteById(CATEGORIES_COLLECTION, id);
 
     return NextResponse.json({
       success: true,

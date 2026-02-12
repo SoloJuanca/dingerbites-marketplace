@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getRows, getRow, query } from '../../../lib/database';
 import { authenticateUser } from '../../../lib/auth';
+import { db } from '../../../lib/firebaseAdmin';
+
+const WISHLIST_COLLECTION = 'wishlist_items';
+const PRODUCTS_COLLECTION = 'products';
+const CATEGORIES_COLLECTION = 'product_categories';
+const BRANDS_COLLECTION = 'product_brands';
 
 // GET /api/wishlist - Get user's wishlist items
 export async function GET(request) {
@@ -13,23 +18,61 @@ export async function GET(request) {
       );
     }
 
-    const wishlistQuery = `
-      SELECT wi.id as wishlist_id, wi.created_at as added_at,
-             p.id, p.slug, p.name, p.description, p.price, p.compare_price,
-             p.is_active, p.stock_quantity,
-             COALESCE(pi.image_url, '') as image_url,
-             pc.name as category_name,
-             pb.name as brand_name
-      FROM wishlist_items wi
-      JOIN products p ON wi.product_id = p.id
-      LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = true
-      LEFT JOIN product_categories pc ON p.category_id = pc.id
-      LEFT JOIN product_brands pb ON p.brand_id = pb.id
-      WHERE wi.user_id = $1 AND p.is_active = true
-      ORDER BY wi.created_at DESC
-    `;
+    const wishlistSnapshot = await db
+      .collection(WISHLIST_COLLECTION)
+      .where('user_id', '==', user.id)
+      .get();
 
-    const wishlistItems = await getRows(wishlistQuery, [user.id]);
+    const rawWishlistItems = wishlistSnapshot.docs
+      .map((doc) => ({ wishlist_id: doc.id, ...doc.data() }))
+      .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+
+    const productIds = [...new Set(rawWishlistItems.map((item) => String(item.product_id)).filter(Boolean))];
+    const productDocs = await Promise.all(productIds.map((id) => db.collection(PRODUCTS_COLLECTION).doc(id).get()));
+    const productsById = new Map(
+      productDocs.filter((doc) => doc.exists).map((doc) => [doc.id, { id: doc.id, ...doc.data() }])
+    );
+
+    const categoryIds = [...new Set([...productsById.values()].map((p) => p.category_id).filter(Boolean))];
+    const brandIds = [...new Set([...productsById.values()].map((p) => p.brand_id).filter(Boolean))];
+
+    const [categoryDocs, brandDocs] = await Promise.all([
+      Promise.all(categoryIds.map((id) => db.collection(CATEGORIES_COLLECTION).doc(String(id)).get())),
+      Promise.all(brandIds.map((id) => db.collection(BRANDS_COLLECTION).doc(String(id)).get()))
+    ]);
+
+    const categoriesById = new Map(categoryDocs.filter((doc) => doc.exists).map((doc) => [doc.id, doc.data()]));
+    const brandsById = new Map(brandDocs.filter((doc) => doc.exists).map((doc) => [doc.id, doc.data()]));
+
+    const wishlistItems = rawWishlistItems
+      .map((item) => {
+        const product = productsById.get(String(item.product_id));
+        if (!product || product.is_active === false) return null;
+
+        const category = product.category_id ? categoriesById.get(String(product.category_id)) : null;
+        const brand = product.brand_id ? brandsById.get(String(product.brand_id)) : null;
+        const imageUrl =
+          product.image ||
+          (Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : '') ||
+          '';
+
+        return {
+          wishlist_id: item.wishlist_id,
+          added_at: item.created_at || null,
+          id: product.id,
+          slug: product.slug || '',
+          name: product.name || '',
+          description: product.description || '',
+          price: Number(product.price || 0),
+          compare_price: product.compare_price || null,
+          is_active: product.is_active !== false,
+          stock_quantity: Number(product.stock_quantity || 0),
+          image_url: imageUrl,
+          category_name: category?.name || null,
+          brand_name: brand?.name || null
+        };
+      })
+      .filter(Boolean);
 
     return NextResponse.json({
       items: wishlistItems,
@@ -67,23 +110,23 @@ export async function POST(request) {
     }
 
     // Check if product exists and is active
-    const product = await getRow(
-      'SELECT id, name FROM products WHERE id = $1 AND is_active = true',
-      [productId]
-    );
+    const productDoc = await db.collection(PRODUCTS_COLLECTION).doc(String(productId)).get();
+    const product = productDoc.exists ? { id: productDoc.id, ...productDoc.data() } : null;
 
-    if (!product) {
+    if (!product || product.is_active === false) {
       return NextResponse.json(
         { error: 'Product not found' },
         { status: 404 }
       );
     }
 
-    // Check if item is already in wishlist
-    const existingItem = await getRow(
-      'SELECT id FROM wishlist_items WHERE user_id = $1 AND product_id = $2',
-      [user.id, productId]
-    );
+    const existingSnapshot = await db
+      .collection(WISHLIST_COLLECTION)
+      .where('user_id', '==', user.id)
+      .where('product_id', '==', String(productId))
+      .limit(1)
+      .get();
+    const existingItem = !existingSnapshot.empty ? existingSnapshot.docs[0] : null;
 
     if (existingItem) {
       return NextResponse.json(
@@ -92,18 +135,18 @@ export async function POST(request) {
       );
     }
 
-    // Add to wishlist
-    const insertQuery = `
-      INSERT INTO wishlist_items (user_id, product_id)
-      VALUES ($1, $2)
-      RETURNING id, created_at
-    `;
-
-    const result = await getRow(insertQuery, [user.id, productId]);
+    const now = new Date().toISOString();
+    const docRef = db.collection(WISHLIST_COLLECTION).doc();
+    await docRef.set({
+      user_id: user.id,
+      product_id: String(productId),
+      created_at: now,
+      updated_at: now
+    });
 
     return NextResponse.json({
       success: true,
-      wishlistItemId: result.id,
+      wishlistItemId: docRef.id,
       message: 'Product added to wishlist'
     }, { status: 201 });
 
@@ -137,20 +180,22 @@ export async function DELETE(request) {
       );
     }
 
-    // Remove from wishlist
-    const deleteQuery = `
-      DELETE FROM wishlist_items 
-      WHERE user_id = $1 AND product_id = $2
-    `;
+    const snapshot = await db
+      .collection(WISHLIST_COLLECTION)
+      .where('user_id', '==', user.id)
+      .where('product_id', '==', String(productId))
+      .get();
 
-    const result = await query(deleteQuery, [user.id, productId]);
-
-    if (result.rowCount === 0) {
+    if (snapshot.empty) {
       return NextResponse.json(
         { error: 'Item not found in wishlist' },
         { status: 404 }
       );
     }
+
+    const batch = db.batch();
+    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
 
     return NextResponse.json({
       success: true,

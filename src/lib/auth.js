@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { getRow } from './database';
+import { getUserById } from './firebaseUsers';
 
 // JWT secret key
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -45,10 +45,7 @@ export async function getUserFromToken(token) {
     return null;
   }
 
-  const user = await getRow(
-    'SELECT id, email, first_name, last_name, role, is_active FROM users WHERE id = $1',
-    [decoded.userId]
-  );
+  const user = await getUserById(decoded.userId);
 
   return user && user.is_active ? user : null;
 }

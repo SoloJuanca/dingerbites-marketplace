@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { confirmToast } from '../../lib/toastHelpers';
 import { useAuth } from '../../lib/AuthContext';
@@ -13,9 +14,18 @@ import styles from './profile.module.css';
 
 export default function ProfilePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, isAuthenticated, isLoading, apiRequest } = useAuth();
   const { items: wishlistItems } = useWishlist();
   const [activeTab, setActiveTab] = useState('orders');
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    const validTabs = ['orders', 'wishlist', 'addresses', 'account'];
+    if (tab && validTabs.includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
   const [orders, setOrders] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);

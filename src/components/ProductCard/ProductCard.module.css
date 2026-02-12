@@ -52,13 +52,13 @@
 
 .wishlistBtn:hover {
   background: rgba(255, 255, 255, 1);
-  color: #ec407a;
+  color: var(--brand-primary);;
   transform: scale(1.1);
 }
 
 .wishlistActive {
   background: rgba(255, 255, 255, 1);
-  color: #ec407a;
+  color: var(--brand-primary);;
 }
 
 .wishlistActive:hover {
@@ -101,7 +101,7 @@
 }
 
 .addBtn {
-  background: #ec407a;
+  background: var(--brand-primary);;
   color: white;
   border: none;
   padding: 8px 16px;

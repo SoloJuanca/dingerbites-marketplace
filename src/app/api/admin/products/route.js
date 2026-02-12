@@ -1,7 +1,35 @@
 import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../lib/auth';
-import { query, getRow } from '../../../../lib/database';
-import { createProductFeatures } from '../../../../lib/products';
+import { db } from '../../../../lib/firebaseAdmin';
+
+const PRODUCTS_COLLECTION = 'products';
+const CATEGORIES_COLLECTION = 'product_categories';
+const BRANDS_COLLECTION = 'product_brands';
+
+function paginate(items, page, limit) {
+  const safePage = Math.max(1, Number(page) || 1);
+  const safeLimit = Math.max(1, Number(limit) || 20);
+  const total = items.length;
+  const totalPages = Math.ceil(total / safeLimit);
+  const start = (safePage - 1) * safeLimit;
+  const data = items.slice(start, start + safeLimit);
+
+  return {
+    data,
+    pagination: {
+      page: safePage,
+      limit: safeLimit,
+      total,
+      totalPages
+    }
+  };
+}
+
+function toNumber(value, fallback = 0) {
+  if (value === null || value === undefined || value === '') return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
 
 // GET /api/admin/products - Get all products with filters
 export async function GET(request) {
@@ -23,112 +51,62 @@ export async function GET(request) {
     const brand = searchParams.get('brand') || '';
     const status = searchParams.get('status') || 'all';
     
-    const offset = (page - 1) * limit;
+    const productSnapshot = await db.collection(PRODUCTS_COLLECTION).get();
+    let products = productSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data()
+    }));
 
-    // Build the query with filters
-    let productsQuery = `
-      SELECT 
-        p.*,
-        pc.name as category_name,
-        pb.name as brand_name,
-        COALESCE(pi.image_url, '') as image_url
-      FROM products p
-      LEFT JOIN product_categories pc ON p.category_id = pc.id
-      LEFT JOIN product_brands pb ON p.brand_id = pb.id
-      LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = true
-      WHERE 1=1
-    `;
-
-    const params = [];
-    let paramIndex = 1;
-
-    // Add search filter
     if (search) {
-      productsQuery += ` AND (p.name ILIKE $${paramIndex} OR p.sku ILIKE $${paramIndex} OR p.barcode ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex})`;
-      params.push(`%${search}%`);
-      paramIndex++;
-    }
-
-    // Add category filter
-    if (category) {
-      productsQuery += ` AND p.category_id = $${paramIndex}`;
-      params.push(category);
-      paramIndex++;
-    }
-
-    // Add brand filter
-    if (brand) {
-      productsQuery += ` AND p.brand_id = $${paramIndex}`;
-      params.push(brand);
-      paramIndex++;
-    }
-
-    // Add status filter
-    if (status !== 'all') {
-      const isActive = status === 'active';
-      productsQuery += ` AND p.is_active = $${paramIndex}`;
-      params.push(isActive);
-      paramIndex++;
-    }
-
-    // Add pagination
-    productsQuery += ` ORDER BY p.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-    params.push(limit, offset);
-
-    // Execute query
-    const products = await query(productsQuery, params);
-
-    // Get total count for pagination
-    let countQuery = `
-      SELECT COUNT(*) as total
-      FROM products p
-      LEFT JOIN product_categories pc ON p.category_id = pc.id
-      LEFT JOIN product_brands pb ON p.brand_id = pb.id
-      WHERE 1=1
-    `;
-
-    const countParams = [];
-    let countParamIndex = 1;
-
-    // Add the same filters to count query
-    if (search) {
-      countQuery += ` AND (p.name ILIKE $${countParamIndex} OR p.sku ILIKE $${countParamIndex} OR p.barcode ILIKE $${countParamIndex} OR p.description ILIKE $${countParamIndex})`;
-      countParams.push(`%${search}%`);
-      countParamIndex++;
+      const term = search.toLowerCase();
+      products = products.filter((p) => {
+        const haystack = `${p.name || ''} ${p.sku || ''} ${p.barcode || ''} ${p.description || ''}`.toLowerCase();
+        return haystack.includes(term);
+      });
     }
 
     if (category) {
-      countQuery += ` AND p.category_id = $${countParamIndex}`;
-      countParams.push(category);
-      countParamIndex++;
+      products = products.filter((p) => String(p.category_id || '') === String(category));
     }
 
     if (brand) {
-      countQuery += ` AND p.brand_id = $${countParamIndex}`;
-      countParams.push(brand);
-      countParamIndex++;
+      products = products.filter((p) => String(p.brand_id || '') === String(brand));
     }
 
     if (status !== 'all') {
       const isActive = status === 'active';
-      countQuery += ` AND p.is_active = $${countParamIndex}`;
-      countParams.push(isActive);
-      countParamIndex++;
+      products = products.filter((p) => Boolean(p.is_active) === isActive);
     }
 
-    const countResult = await getRow(countQuery, countParams);
-    const total = parseInt(countResult?.total || 0);
-    const totalPages = Math.ceil(total / limit);
+    const categoryIds = [...new Set(products.map((p) => p.category_id).filter(Boolean))];
+    const brandIds = [...new Set(products.map((p) => p.brand_id).filter(Boolean))];
+
+    const [categoryDocs, brandDocs] = await Promise.all([
+      Promise.all(categoryIds.map((id) => db.collection(CATEGORIES_COLLECTION).doc(String(id)).get())),
+      Promise.all(brandIds.map((id) => db.collection(BRANDS_COLLECTION).doc(String(id)).get()))
+    ]);
+
+    const categoriesById = new Map(categoryDocs.filter((doc) => doc.exists).map((doc) => [doc.id, doc.data()]));
+    const brandsById = new Map(brandDocs.filter((doc) => doc.exists).map((doc) => [doc.id, doc.data()]));
+
+    products = products
+      .map((p) => ({
+        ...p,
+        category_name: p.category_id ? categoriesById.get(String(p.category_id))?.name || null : null,
+        brand_name: p.brand_id ? brandsById.get(String(p.brand_id))?.name || null : null,
+        image_url:
+          p.image ||
+          (Array.isArray(p.images) && p.images.length > 0 ? p.images[0]?.url || p.images[0] : '') ||
+          ''
+      }))
+      .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+
+    const { data, pagination } = paginate(products, page, limit);
 
     return NextResponse.json({
       success: true,
-      products,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages
-      }
+      products: data,
+      pagination
     });
 
   } catch (error) {
@@ -196,11 +174,12 @@ export async function POST(request) {
       );
     }
 
-    // Check if slug already exists
-    const existingProduct = await getRow(
-      'SELECT id FROM products WHERE slug = $1',
-      [slug]
-    );
+    const existingProductSnapshot = await db
+      .collection(PRODUCTS_COLLECTION)
+      .where('slug', '==', slug)
+      .limit(1)
+      .get();
+    const existingProduct = !existingProductSnapshot.empty ? existingProductSnapshot.docs[0] : null;
 
     if (existingProduct) {
       return NextResponse.json(
@@ -209,67 +188,59 @@ export async function POST(request) {
       );
     }
 
-    // Create product
-    const insertQuery = `
-      INSERT INTO products (
-        name, slug, description, short_description, price, compare_price, cost_price,
-        sku, barcode, weight_grams, dimensions_cm, category_id, brand_id,
-        stock_quantity, low_stock_threshold, allow_backorders,
-        is_active, is_featured, is_bestseller,
-        meta_title, meta_description, meta_keywords
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
-      ) RETURNING *
-    `;
+    const now = new Date().toISOString();
+    const normalizedImages = Array.isArray(images)
+      ? images
+          .map((img, idx) => {
+            if (typeof img === 'string') {
+              return { url: img, alt: '', is_primary: idx === 0, sort_order: idx };
+            }
+            if (img?.url) {
+              return {
+                url: img.url,
+                alt: img.alt || img.name || '',
+                is_primary: idx === 0,
+                sort_order: idx
+              };
+            }
+            return null;
+          })
+          .filter(Boolean)
+      : [];
 
-    const insertParams = [
-      name, slug, description, short_description, 
-      price || 0, // Default to 0 for drafts
-      compare_price, cost_price,
-      sku, barcode, weight_grams, dimensions_cm, category_id, brand_id,
-      stock_quantity || 0, low_stock_threshold || 5, allow_backorders || false,
-      is_active !== undefined ? is_active : false, // Default to false (draft)
-      is_featured || false, is_bestseller || false,
-      meta_title, meta_description, meta_keywords
-    ];
+    const docRef = db.collection(PRODUCTS_COLLECTION).doc();
+    const newProduct = {
+      id: docRef.id,
+      name,
+      slug,
+      description: description || '',
+      short_description: short_description || '',
+      price: toNumber(price, 0),
+      compare_price: compare_price !== undefined ? toNumber(compare_price, 0) : null,
+      cost_price: cost_price !== undefined ? toNumber(cost_price, 0) : null,
+      sku: sku || null,
+      barcode: barcode || null,
+      weight_grams: weight_grams !== undefined ? toNumber(weight_grams, 0) : null,
+      dimensions_cm: dimensions_cm || null,
+      category_id: category_id || null,
+      brand_id: brand_id || null,
+      stock_quantity: toNumber(stock_quantity, 0),
+      low_stock_threshold: toNumber(low_stock_threshold, 5),
+      allow_backorders: Boolean(allow_backorders),
+      is_active: is_active !== undefined ? Boolean(is_active) : false,
+      is_featured: Boolean(is_featured),
+      is_bestseller: Boolean(is_bestseller),
+      meta_title: meta_title || null,
+      meta_description: meta_description || null,
+      meta_keywords: meta_keywords || null,
+      features: Array.isArray(features) ? features : [],
+      images: normalizedImages,
+      image: normalizedImages[0]?.url || '',
+      created_at: now,
+      updated_at: now
+    };
 
-    const newProduct = await getRow(insertQuery, insertParams);
-
-    // Handle product images if provided
-    if (images && Array.isArray(images) && images.length > 0) {
-      try {
-        for (let i = 0; i < images.length; i++) {
-          const image = images[i];
-          if (image.url) {
-            const imageInsertQuery = `
-              INSERT INTO product_images (product_id, image_url, alt_text, is_primary, sort_order)
-              VALUES ($1, $2, $3, $4, $5)
-            `;
-            const imageParams = [
-              newProduct.id,
-              image.url,
-              image.alt || image.name || '',
-              i === 0, // First image is primary
-              i
-            ];
-            await query(imageInsertQuery, imageParams);
-          }
-        }
-      } catch (imageError) {
-        console.error('Error inserting product images:', imageError);
-        // Don't fail the entire request if images fail, but log the error
-      }
-    }
-
-    // Handle product features if provided
-    if (features && Array.isArray(features) && features.length > 0) {
-      try {
-        await createProductFeatures(newProduct.id, features);
-      } catch (featuresError) {
-        console.error('Error inserting product features:', featuresError);
-        // Don't fail the entire request if features fail, but log the error
-      }
-    }
+    await docRef.set(newProduct);
 
     return NextResponse.json({
       success: true,

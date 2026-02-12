@@ -10,7 +10,7 @@
 
 /* Hero Section */
 .hero {
-  background: linear-gradient(135deg, #fce4ec 0%, #f8bbd9 100%);
+  background: linear-gradient(135deg, #e09fa6 0%, #f8bbd9 100%);
   padding: 120px 0 80px;
   min-height: 500px;
 }
@@ -36,7 +36,7 @@
 }
 
 .highlight {
-  color: #ec407a;
+  color: var(--brand-primary);;
 }
 
 .heroSubtitle {
@@ -92,7 +92,7 @@
 }
 
 .contactIcon {
-  color: #ec407a;
+  color: var(--brand-primary);;
   margin-bottom: 24px;
 }
 
@@ -174,7 +174,7 @@
 }
 
 .faqQuestion.active {
-  background: #ec407a;
+  background: var(--brand-primary);;
   color: white;
 }
 
@@ -238,7 +238,7 @@
 }
 
 .locationIcon {
-  color: #ec407a;
+  color: var(--brand-primary);;
   margin-bottom: 24px;
 }
 
@@ -269,7 +269,7 @@
 }
 
 .detailIcon {
-  color: #ec407a;
+  color: var(--brand-primary);;
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -288,7 +288,7 @@
 }
 
 .mapIcon {
-  color: #ec407a;
+  color: var(--brand-primary);;
   margin-bottom: 24px;
 }
 
@@ -304,7 +304,7 @@
 }
 
 .mapButton {
-  background: #ec407a;
+  background: var(--brand-primary);;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -375,9 +375,9 @@
 }
 
 .socialButton:hover {
-  background: #ec407a;
+  background: var(--brand-primary);;
   color: white;
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
 }
 
 .form {
@@ -421,7 +421,7 @@
 .formSelect:focus,
 .formTextarea:focus {
   outline: none;
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
 }
 
 .formTextarea {
@@ -430,7 +430,7 @@
 }
 
 .formButton {
-  background: #ec407a;
+  background: var(--brand-primary);;
   color: white;
   border: none;
   padding: 16px 32px;

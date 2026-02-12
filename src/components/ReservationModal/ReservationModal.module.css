@@ -81,7 +81,7 @@
 }
 
 .detailIcon {
-  color: #ec407a;
+  color: var(--brand-primary);;
 }
 
 .includesSection {
@@ -144,7 +144,7 @@
 }
 
 .scheduleEnabled:hover {
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
   background-color: #fef7f0;
 }
 
@@ -246,7 +246,7 @@
 
 .formInput:focus {
   outline: none;
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
   box-shadow: 0 0 0 3px rgba(236, 64, 122, 0.1);
 }
 
@@ -274,7 +274,7 @@
 }
 
 .submitBtn {
-  background: #ec407a;
+  background: var(--brand-primary);;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -339,7 +339,7 @@
 }
 
 .closeConfirmBtn {
-  background: #ec407a;
+  background: var(--brand-primary);;
   color: white;
   border: none;
   padding: 12px 32px;

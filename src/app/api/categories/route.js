@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getRows, getRow, query } from '../../../lib/database';
+import {
+  CATEGORIES_COLLECTION,
+  createCategory,
+  findBySlug,
+  listCollection
+} from '../../../lib/firebaseCatalog';
 
 // GET /api/categories - Get all categories
 export async function GET(request) {
@@ -7,32 +12,16 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page')) || 1;
     const limit = parseInt(searchParams.get('limit')) || 20;
-    const offset = (page - 1) * limit;
-
-    const categoriesQuery = `
-      SELECT id, name, slug, description, image_url, is_active, sort_order, created_at
-      FROM product_categories 
-      WHERE is_active = true
-      ORDER BY sort_order ASC, name ASC
-      LIMIT $1 OFFSET $2
-    `;
-
-    const categories = await getRows(categoriesQuery, [limit, offset]);
-
-    // Get total count
-    const countQuery = `SELECT COUNT(*) as total FROM product_categories WHERE is_active = true`;
-    const totalResult = await getRow(countQuery);
-    const total = parseInt(totalResult.total);
+    const { items: categories, pagination } = await listCollection(CATEGORIES_COLLECTION, {
+      page,
+      limit,
+      onlyActive: true,
+      orderBy: 'sort_order'
+    });
 
     return NextResponse.json({
       categories,
-      pagination: {
-        total,
-        totalPages: Math.ceil(total / limit),
-        currentPage: page,
-        hasNextPage: page < Math.ceil(total / limit),
-        hasPrevPage: page > 1
-      }
+      pagination
     });
 
   } catch (error) {
@@ -68,10 +57,7 @@ export async function POST(request) {
       .replace(/\s+/g, '-');
 
     // Check if category already exists
-    const existingCategory = await getRow(
-      'SELECT id FROM product_categories WHERE slug = $1',
-      [slug]
-    );
+    const existingCategory = await findBySlug(CATEGORIES_COLLECTION, slug);
 
     if (existingCategory) {
       return NextResponse.json(
@@ -80,20 +66,13 @@ export async function POST(request) {
       );
     }
 
-    // Create category
-    const createCategoryQuery = `
-      INSERT INTO product_categories (name, slug, description, image_url, sort_order)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING id, name, slug, description, image_url, sort_order, created_at
-    `;
-
-    const category = await getRow(createCategoryQuery, [
+    const category = await createCategory({
       name,
       slug,
-      description || null,
-      image_url || null,
+      description,
+      image_url,
       sort_order
-    ]);
+    });
 
     return NextResponse.json(category, { status: 201 });
 

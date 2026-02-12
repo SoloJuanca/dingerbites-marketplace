@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getRow, query } from '../../../../lib/database';
 import { hashPassword, generateToken } from '../../../../lib/auth';
+import { createUser, getUserByEmail } from '../../../../lib/firebaseUsers';
 
 // POST /api/auth/register - User registration
 export async function POST(request) {
@@ -34,10 +34,7 @@ export async function POST(request) {
     }
 
     // Check if user already exists
-    const existingUser = await getRow(
-      'SELECT id FROM users WHERE email = $1',
-      [email.toLowerCase()]
-    );
+    const existingUser = await getUserByEmail(email);
 
     if (existingUser) {
       return NextResponse.json(
@@ -49,22 +46,17 @@ export async function POST(request) {
     // Hash password
     const passwordHash = await hashPassword(password);
 
-    // Create user
-    const createUserQuery = `
-      INSERT INTO users (
-        email, password_hash, first_name, last_name, phone, is_active, is_verified
-      )
-      VALUES ($1, $2, $3, $4, $5, true, false)
-      RETURNING id, email, first_name, last_name, phone, is_active, is_verified, created_at
-    `;
-
-    const user = await getRow(createUserQuery, [
-      email.toLowerCase(),
-      passwordHash,
-      firstName,
-      lastName,
-      phone || null
-    ]);
+    const user = await createUser({
+      email: email.toLowerCase(),
+      password_hash: passwordHash,
+      first_name: firstName,
+      last_name: lastName,
+      phone: phone || null,
+      is_active: true,
+      is_verified: false,
+      is_admin: false,
+      role: 'user'
+    });
 
     if (!user) {
       return NextResponse.json(

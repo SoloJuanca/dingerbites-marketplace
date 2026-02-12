@@ -1,6 +1,6 @@
 .howItWorks {
   padding: 80px 0;
-  background: #fce4ec;
+  background: var(--brand-surface);
 }
 
 .container {
@@ -43,7 +43,7 @@
 .stepIcon {
   width: 80px;
   height: 80px;
-  background: #f8bbd9;
+  background: rgba(212, 61, 76, 0.1);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -52,7 +52,7 @@
 }
 
 .icon {
-  color: #ec407a;
+  color: var(--brand-primary);
 }
 
 .stepTitle {

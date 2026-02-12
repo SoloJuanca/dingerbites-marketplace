@@ -37,7 +37,7 @@
 .price {
   font-size: 28px;
   font-weight: 700;
-  color: #ec407a;
+  color: var(--brand-primary);;
   line-height: 1;
 }
 
@@ -163,7 +163,7 @@
 .totalAmount {
   font-size: 20px;
   font-weight: 700;
-  color: #ec407a;
+  color: var(--brand-primary);;
 }
 
 .actions {
@@ -173,7 +173,7 @@
 }
 
 .addToCartBtn {
-  background-color: #ec407a;
+  background-color: var(--brand-primary);;
   color: white;
   border: none;
   padding: 16px 24px;
@@ -201,8 +201,8 @@
 
 .buyNowBtn {
   background: none;
-  color: #ec407a;
-  border: 2px solid #ec407a;
+  color: var(--brand-primary);;
+  border: 2px solid var(--brand-primary);;
   padding: 14px 24px;
   border-radius: 8px;
   font-size: 16px;
@@ -216,7 +216,7 @@
 }
 
 .buyNowBtn:hover {
-  background-color: #ec407a;
+  background-color: var(--brand-primary);;
   color: white;
   transform: translateY(-1px);
 }
@@ -236,7 +236,7 @@
 }
 
 .featureIcon {
-  color: #ec407a;
+  color: var(--brand-primary);;
   flex-shrink: 0;
   margin-top: 2px;
 }

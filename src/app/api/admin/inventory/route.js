@@ -1,6 +1,35 @@
 import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../lib/auth';
-import { query, getRow } from '../../../../lib/database';
+import { db } from '../../../../lib/firebaseAdmin';
+
+const PRODUCTS_COLLECTION = 'products';
+const CATEGORIES_COLLECTION = 'product_categories';
+const BRANDS_COLLECTION = 'product_brands';
+
+function toNumber(value, fallback = 0) {
+  if (value === null || value === undefined || value === '') return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function paginate(items, page, limit) {
+  const safePage = Math.max(1, Number(page) || 1);
+  const safeLimit = Math.max(1, Number(limit) || 20);
+  const total = items.length;
+  const totalPages = Math.ceil(total / safeLimit);
+  const start = (safePage - 1) * safeLimit;
+  const data = items.slice(start, start + safeLimit);
+
+  return {
+    data,
+    pagination: {
+      page: safePage,
+      limit: safeLimit,
+      total,
+      totalPages
+    }
+  };
+}
 
 // GET /api/admin/inventory - Get inventory data with stats and filtering
 export async function GET(request) {
@@ -22,153 +51,101 @@ export async function GET(request) {
     const brand = searchParams.get('brand') || '';
     const stockStatus = searchParams.get('stockStatus') || 'all';
     
-    const offset = (page - 1) * limit;
+    const snapshot = await db.collection(PRODUCTS_COLLECTION).get();
+    let products = snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter((p) => p.is_active !== false);
 
-    // Build the main products query with filters
-    let productsQuery = `
-      SELECT 
-        p.*,
-        pc.name as category_name,
-        pb.name as brand_name,
-        COALESCE(pi.image_url, '') as image_url
-      FROM products p
-      LEFT JOIN product_categories pc ON p.category_id = pc.id
-      LEFT JOIN product_brands pb ON p.brand_id = pb.id
-      LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = true
-      WHERE p.is_active = true
-    `;
-
-    const params = [];
-    let paramIndex = 1;
-
-    // Add search filter
     if (search) {
-      productsQuery += ` AND (p.name ILIKE $${paramIndex} OR p.sku ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex})`;
-      params.push(`%${search}%`);
-      paramIndex++;
-    }
-
-    // Add category filter
-    if (category) {
-      productsQuery += ` AND p.category_id = $${paramIndex}`;
-      params.push(category);
-      paramIndex++;
-    }
-
-    // Add brand filter
-    if (brand) {
-      productsQuery += ` AND p.brand_id = $${paramIndex}`;
-      params.push(brand);
-      paramIndex++;
-    }
-
-    // Add stock status filter
-    if (stockStatus !== 'all') {
-      switch (stockStatus) {
-        case 'out_of_stock':
-          productsQuery += ` AND p.stock_quantity = 0`;
-          break;
-        case 'low_stock':
-          productsQuery += ` AND p.stock_quantity > 0 AND p.stock_quantity <= p.low_stock_threshold`;
-          break;
-        case 'in_stock':
-          productsQuery += ` AND p.stock_quantity > p.low_stock_threshold`;
-          break;
-      }
-    }
-
-    // Add pagination
-    productsQuery += ` ORDER BY p.stock_quantity ASC, p.name ASC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-    params.push(limit, offset);
-
-    // Execute main products query
-    const products = await query(productsQuery, params);
-
-    // Get total count for pagination (using same filters)
-    let countQuery = `
-      SELECT COUNT(*) as total
-      FROM products p
-      LEFT JOIN product_categories pc ON p.category_id = pc.id
-      LEFT JOIN product_brands pb ON p.brand_id = pb.id
-      WHERE p.is_active = true
-    `;
-
-    const countParams = [];
-    let countParamIndex = 1;
-
-    // Add the same filters to count query
-    if (search) {
-      countQuery += ` AND (p.name ILIKE $${countParamIndex} OR p.sku ILIKE $${countParamIndex} OR p.description ILIKE $${countParamIndex})`;
-      countParams.push(`%${search}%`);
-      countParamIndex++;
+      const term = search.toLowerCase();
+      products = products.filter((p) =>
+        `${p.name || ''} ${p.sku || ''} ${p.description || ''}`.toLowerCase().includes(term)
+      );
     }
 
     if (category) {
-      countQuery += ` AND p.category_id = $${countParamIndex}`;
-      countParams.push(category);
-      countParamIndex++;
+      products = products.filter((p) => String(p.category_id || '') === String(category));
     }
 
     if (brand) {
-      countQuery += ` AND p.brand_id = $${countParamIndex}`;
-      countParams.push(brand);
-      countParamIndex++;
+      products = products.filter((p) => String(p.brand_id || '') === String(brand));
     }
 
-    if (stockStatus !== 'all') {
-      switch (stockStatus) {
-        case 'out_of_stock':
-          countQuery += ` AND p.stock_quantity = 0`;
-          break;
-        case 'low_stock':
-          countQuery += ` AND p.stock_quantity > 0 AND p.stock_quantity <= p.low_stock_threshold`;
-          break;
-        case 'in_stock':
-          countQuery += ` AND p.stock_quantity > p.low_stock_threshold`;
-          break;
+    if (stockStatus === 'out_of_stock') {
+      products = products.filter((p) => toNumber(p.stock_quantity, 0) === 0);
+    } else if (stockStatus === 'low_stock') {
+      products = products.filter((p) => {
+        const stock = toNumber(p.stock_quantity, 0);
+        const threshold = toNumber(p.low_stock_threshold, 5);
+        return stock > 0 && stock <= threshold;
+      });
+    } else if (stockStatus === 'in_stock') {
+      products = products.filter((p) => {
+        const stock = toNumber(p.stock_quantity, 0);
+        const threshold = toNumber(p.low_stock_threshold, 5);
+        return stock > threshold;
+      });
+    }
+
+    const categoryIds = [...new Set(products.map((p) => p.category_id).filter(Boolean))];
+    const brandIds = [...new Set(products.map((p) => p.brand_id).filter(Boolean))];
+
+    const [categoryDocs, brandDocs] = await Promise.all([
+      Promise.all(categoryIds.map((id) => db.collection(CATEGORIES_COLLECTION).doc(String(id)).get())),
+      Promise.all(brandIds.map((id) => db.collection(BRANDS_COLLECTION).doc(String(id)).get()))
+    ]);
+
+    const categoriesById = new Map(categoryDocs.filter((doc) => doc.exists).map((doc) => [doc.id, doc.data()]));
+    const brandsById = new Map(brandDocs.filter((doc) => doc.exists).map((doc) => [doc.id, doc.data()]));
+
+    products = products
+      .map((p) => ({
+        ...p,
+        stock_quantity: toNumber(p.stock_quantity, 0),
+        low_stock_threshold: toNumber(p.low_stock_threshold, 5),
+        category_name: p.category_id ? categoriesById.get(String(p.category_id))?.name || null : null,
+        brand_name: p.brand_id ? brandsById.get(String(p.brand_id))?.name || null : null,
+        image_url:
+          p.image ||
+          (Array.isArray(p.images) && p.images.length > 0 ? p.images[0]?.url || p.images[0] : '') ||
+          ''
+      }))
+      .sort((a, b) => {
+        const byStock = a.stock_quantity - b.stock_quantity;
+        if (byStock !== 0) return byStock;
+        return String(a.name || '').localeCompare(String(b.name || ''));
+      });
+
+    const { data, pagination } = paginate(products, page, limit);
+
+    const stats = products.reduce(
+      (acc, product) => {
+        const stock = toNumber(product.stock_quantity, 0);
+        const threshold = toNumber(product.low_stock_threshold, 5);
+        const price = toNumber(product.price, 0);
+        const cost = product.cost_price !== null && product.cost_price !== undefined
+          ? toNumber(product.cost_price, 0)
+          : price * 0.6;
+
+        acc.totalProducts += 1;
+        acc.totalInvestment += cost * stock;
+        if (stock === 0) acc.outOfStockItems += 1;
+        else if (stock <= threshold) acc.lowStockItems += 1;
+        return acc;
+      },
+      {
+        totalInvestment: 0,
+        totalProducts: 0,
+        lowStockItems: 0,
+        outOfStockItems: 0
       }
-    }
-
-    const countResult = await getRow(countQuery, countParams);
-    const total = parseInt(countResult?.total || 0);
-    const totalPages = Math.ceil(total / limit);
-
-    // Calculate inventory statistics
-    const statsQuery = `
-      SELECT 
-        COUNT(*) as total_products,
-        SUM(
-          CASE 
-            WHEN p.cost_price IS NOT NULL AND p.cost_price > 0 
-            THEN p.cost_price * p.stock_quantity
-            ELSE p.price * 0.6 * p.stock_quantity
-          END
-        ) as total_investment,
-        COUNT(CASE WHEN p.stock_quantity = 0 THEN 1 END) as out_of_stock_items,
-        COUNT(CASE WHEN p.stock_quantity > 0 AND p.stock_quantity <= p.low_stock_threshold THEN 1 END) as low_stock_items
-      FROM products p
-      WHERE p.is_active = true
-    `;
-
-    const statsResult = await getRow(statsQuery);
-    
-    const stats = {
-      totalInvestment: parseFloat(statsResult?.total_investment || 0),
-      totalProducts: parseInt(statsResult?.total_products || 0),
-      lowStockItems: parseInt(statsResult?.low_stock_items || 0),
-      outOfStockItems: parseInt(statsResult?.out_of_stock_items || 0)
-    };
+    );
 
     return NextResponse.json({
       success: true,
-      products: products.rows || [],
+      products: data,
       stats,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages
-      }
+      pagination
     });
 
   } catch (error) {

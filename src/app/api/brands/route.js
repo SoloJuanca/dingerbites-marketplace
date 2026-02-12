@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getRows, getRow, query } from '../../../lib/database';
+import {
+  BRANDS_COLLECTION,
+  createBrand,
+  findBySlug,
+  listCollection
+} from '../../../lib/firebaseCatalog';
 
 // GET /api/brands - Get all brands
 export async function GET(request) {
@@ -7,32 +12,16 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page')) || 1;
     const limit = parseInt(searchParams.get('limit')) || 20;
-    const offset = (page - 1) * limit;
-
-    const brandsQuery = `
-      SELECT id, name, slug, description, logo_url, website_url, is_active, created_at
-      FROM product_brands 
-      WHERE is_active = true
-      ORDER BY name ASC
-      LIMIT $1 OFFSET $2
-    `;
-
-    const brands = await getRows(brandsQuery, [limit, offset]);
-
-    // Get total count
-    const countQuery = `SELECT COUNT(*) as total FROM product_brands WHERE is_active = true`;
-    const totalResult = await getRow(countQuery);
-    const total = parseInt(totalResult.total);
+    const { items: brands, pagination } = await listCollection(BRANDS_COLLECTION, {
+      page,
+      limit,
+      onlyActive: true,
+      orderBy: 'name'
+    });
 
     return NextResponse.json({
       brands,
-      pagination: {
-        total,
-        totalPages: Math.ceil(total / limit),
-        currentPage: page,
-        hasNextPage: page < Math.ceil(total / limit),
-        hasPrevPage: page > 1
-      }
+      pagination
     });
 
   } catch (error) {
@@ -68,10 +57,7 @@ export async function POST(request) {
       .replace(/\s+/g, '-');
 
     // Check if brand already exists
-    const existingBrand = await getRow(
-      'SELECT id FROM product_brands WHERE slug = $1',
-      [slug]
-    );
+    const existingBrand = await findBySlug(BRANDS_COLLECTION, slug);
 
     if (existingBrand) {
       return NextResponse.json(
@@ -80,20 +66,13 @@ export async function POST(request) {
       );
     }
 
-    // Create brand
-    const createBrandQuery = `
-      INSERT INTO product_brands (name, slug, description, logo_url, website_url)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING id, name, slug, description, logo_url, website_url, created_at
-    `;
-
-    const brand = await getRow(createBrandQuery, [
+    const brand = await createBrand({
       name,
       slug,
-      description || null,
-      logo_url || null,
-      website_url || null
-    ]);
+      description,
+      logo_url,
+      website_url
+    });
 
     return NextResponse.json(brand, { status: 201 });
 

@@ -56,7 +56,7 @@
 }
 
 .continueShopping {
-  background: #ec407a;
+  background: var(--brand-primary);;
   color: white;
   padding: 16px 32px;
   border-radius: 8px;

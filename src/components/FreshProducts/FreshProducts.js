@@ -10,8 +10,8 @@ export default function FreshProducts() {
           <div className={styles.imageContent}>
             <div className={styles.productImage}>
               <Image
-                src="https://images.unsplash.com/photo-1515688594390-b649af70d282?w=500&h=400&fit=crop&crop=center"
-                alt="Productos premium de belleza"
+                src="https://images.unsplash.com/photo-1529699211952-734e80c4d42b?w=500&h=400&fit=crop&crop=center"
+                alt="Mesa con juegos de mesa modernos"
                 width={500}
                 height={400}
                 className={styles.image}
@@ -20,10 +20,10 @@ export default function FreshProducts() {
           </div>
           <div className={styles.textContent}>
             <h2 className={styles.title}>
-              Tu tienda en línea de <span className={styles.highlight}>material para uñas</span> donde la calidad y confianza son nuestra prioridad
+              Seleccion curada de <span className={styles.highlight}>juegos de mesa</span> para todos los niveles
             </h2>
             <p className={styles.subtitle}>
-              Descubre una amplia variedad de productos profesionales diseñados para que las uñas luzcan perfectas. ¡Únete a nuestra comunidad de clientes satisfechos y dale a tus uñas el cuidado que se merecen.
+              Desde juegos familiares hasta euros exigentes: te ayudamos a encontrar experiencias memorables para reuniones, torneos y noches de juego en casa.
             </p>
             <Link href="/about" className={styles.learnBtn}>Conoce más</Link>
           </div>

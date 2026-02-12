@@ -83,7 +83,7 @@
 
 .input:focus {
   outline: none;
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
   box-shadow: 0 0 0 4px rgba(236, 64, 122, 0.1);
 }
 
@@ -118,7 +118,7 @@
 }
 
 .submitBtn {
-  background: #ec407a;
+  background: var(--brand-primary);;
   color: white;
   border: none;
   padding: 16px 24px;
@@ -165,7 +165,7 @@
 }
 
 .registerLink {
-  color: #ec407a;
+  color: var(--brand-primary);;
   text-decoration: none;
   font-weight: 600;
   transition: color 0.2s ease;

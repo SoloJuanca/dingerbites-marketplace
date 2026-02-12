@@ -25,13 +25,13 @@
 
 .pageBtn:hover:not(.disabled) {
   background-color: #f8f9fa;
-  border-color: #ec407a;
-  color: #ec407a;
+  border-color: var(--brand-primary);;
+  color: var(--brand-primary);;
 }
 
 .pageBtn.active {
-  background-color: #ec407a;
-  border-color: #ec407a;
+  background-color: var(--brand-primary);;
+  border-color: var(--brand-primary);;
   color: white;
 }
 

@@ -69,7 +69,7 @@
 }
 
 .category {
-  background-color: #ec407a;
+  background-color: var(--brand-primary);;
   color: white;
   padding: 4px 8px;
   border-radius: 12px;
@@ -101,7 +101,7 @@
 }
 
 .detailIcon {
-  color: #ec407a;
+  color: var(--brand-primary);;
 }
 
 .includes {
@@ -137,7 +137,7 @@
 
 .includesMore {
   font-size: 12px;
-  color: #ec407a;
+  color: var(--brand-primary);;
   font-weight: 500;
   margin-top: 4px;
 }
@@ -160,7 +160,7 @@
 }
 
 .reserveBtn {
-  background: #ec407a;
+  background: var(--brand-primary);;
   color: white;
   border: none;
   padding: 10px 20px;

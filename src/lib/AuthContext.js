@@ -1,9 +1,27 @@
 'use client';
 
-import { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import { isTokenExpired, shouldRefreshToken } from './auth-client';
 
 const AuthContext = createContext();
+
+function hasUserChanges(currentUser, nextUser) {
+  if (!currentUser || !nextUser) return false;
+  const keysToCheck = [
+    'id',
+    'email',
+    'first_name',
+    'last_name',
+    'phone',
+    'role',
+    'is_admin',
+    'is_active',
+    'is_verified',
+    'updated_at'
+  ];
+
+  return keysToCheck.some((key) => currentUser[key] !== nextUser[key]);
+}
 
 // Auth reducer to manage authentication state
 function authReducer(state, action) {
@@ -33,6 +51,7 @@ function authReducer(state, action) {
       };
 
     case 'UPDATE_USER':
+      if (!state.user) return state;
       return {
         ...state,
         user: { ...state.user, ...action.payload }
@@ -53,18 +72,16 @@ const initialState = {
 
 export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  const userRef = useRef(state.user);
+
+  useEffect(() => {
+    userRef.current = state.user;
+  }, [state.user]);
 
   // Logout function
   const logout = useCallback(() => {
-    console.log('🚪 Logging out user...');
-    console.log('Current auth state before logout:', {
-      isAuthenticated: state.isAuthenticated,
-      hasToken: !!state.token,
-      hasUser: !!state.user
-    });
     dispatch({ type: 'LOGOUT' });
-    console.log('✅ Logout dispatch completed');
-  }, [state.isAuthenticated, state.token, state.user]);
+  }, []);
 
   // Token refresh function
   const refreshToken = useCallback(async () => {
@@ -116,10 +133,16 @@ export function AuthProvider({ children }) {
         valid: data.valid,
         error: data.error
       });
-      return data.valid;
+      return {
+        valid: Boolean(data.valid),
+        user: data.user || null
+      };
     } catch (error) {
       console.error('❌ Error validating token with server:', error);
-      return false;
+      return {
+        valid: false,
+        user: null
+      };
     }
   }, []);
 
@@ -135,11 +158,18 @@ export function AuthProvider({ children }) {
     }
 
     // Validate token with server
-    const isValidOnServer = await validateTokenWithServer(state.token);
-    if (!isValidOnServer) {
+    const validationResult = await validateTokenWithServer(state.token);
+    if (!validationResult.valid) {
       console.log('Token invalid on server, logging out user');
       logout();
       return;
+    }
+
+    if (validationResult.user && hasUserChanges(userRef.current, validationResult.user)) {
+      dispatch({
+        type: 'UPDATE_USER',
+        payload: validationResult.user
+      });
     }
 
     // If token should be refreshed (expires within 24 hours), refresh it
@@ -167,8 +197,8 @@ export function AuthProvider({ children }) {
           }
 
           // Validate token with server
-          const isValidOnServer = await validateTokenWithServer(token);
-          if (!isValidOnServer) {
+          const validationResult = await validateTokenWithServer(token);
+          if (!validationResult.valid) {
             console.log('Stored token is invalid on server, clearing auth state');
             localStorage.removeItem('auth_token');
             localStorage.removeItem('auth_user');
@@ -176,7 +206,8 @@ export function AuthProvider({ children }) {
             return;
           }
 
-          const user = JSON.parse(userString);
+          const localUser = JSON.parse(userString);
+          const user = validationResult.user || localUser;
           dispatch({ 
             type: 'LOGIN', 
             payload: { user, token } 

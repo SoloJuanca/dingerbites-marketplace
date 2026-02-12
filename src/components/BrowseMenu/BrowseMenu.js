@@ -6,53 +6,43 @@ import ProductCard from '../ProductCard/ProductCard';
 import styles from './BrowseMenu.module.css';
 
 export default function BrowseMenu() {
-  const [activeTab, setActiveTab] = useState('extractor');
+  const [activeTab, setActiveTab] = useState('');
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Define the target categories
-  const targetCategories = [
-    { id: 'extractor', label: 'Extractor', className: 'burgerBtn' },
-    { id: 'lamparas-de-secado', label: 'Lámparas de Secado', className: 'sidesBtn' },
-    { id: 'drill', label: 'Drill', className: 'drinksBtn' }
-  ];
-
-  // Fetch categories and their products
+  // Fetch categories and build highlighted groups with products
   useEffect(() => {
     const fetchCategoriesAndProducts = async () => {
       try {
         setLoading(true);
-        
-        // First, get all categories
+
         const categoriesResponse = await fetch('/api/categories');
         const categoriesData = await categoriesResponse.json();
-        
-        // Filter to only show the target categories that exist and have products
+
+        const catalogCategories = Array.isArray(categoriesData.categories) ? categoriesData.categories : [];
+        const candidateCategories = catalogCategories.slice(0, 6);
         const availableCategories = [];
-        
-        for (const targetCategory of targetCategories) {
-          // Find if this category exists in the database
-          const dbCategory = categoriesData.categories?.find(cat => cat.slug === targetCategory.id);
-          
-          if (dbCategory) {
-            // Check if this category has products
-            const productsResponse = await fetch(`/api/products?category=${targetCategory.id}&limit=6`);
-            const productsData = await productsResponse.json();
-            
-            if (productsData.products && productsData.products.length > 0) {
-              availableCategories.push({
-                ...targetCategory,
-                dbCategory,
-                products: productsData.products
-              });
-            }
+
+        for (const category of candidateCategories) {
+          const productsResponse = await fetch(`/api/products?category=${category.slug}&limit=6`);
+          const productsData = await productsResponse.json();
+
+          if (productsData.products && productsData.products.length > 0) {
+            availableCategories.push({
+              id: category.slug,
+              label: category.name,
+              products: productsData.products
+            });
+          }
+
+          if (availableCategories.length === 3) {
+            break;
           }
         }
-        
+
         setCategories(availableCategories);
-        
-        // Set the first available category as active, or default to first target category
+
         if (availableCategories.length > 0) {
           const firstCategory = availableCategories[0];
           setActiveTab(firstCategory.id);
@@ -61,7 +51,6 @@ export default function BrowseMenu() {
           setActiveTab('');
           setProducts([]);
         }
-        
       } catch (error) {
         console.error('Error fetching categories and products:', error);
         setCategories([]);
@@ -92,7 +81,7 @@ export default function BrowseMenu() {
       <section className={styles.browseMenu}>
         <div className={styles.container}>
           <div className={styles.header}>
-            <h2 className={styles.title}>Explora nuestra colección</h2>
+            <h2 className={styles.title}>Explora nuestra coleccion</h2>
             <p className={styles.subtitle}>Cargando productos...</p>
           </div>
         </div>
@@ -106,15 +95,14 @@ export default function BrowseMenu() {
       <section className={styles.browseMenu}>
         <div className={styles.container}>
           <div className={styles.header}>
-            <h2 className={styles.title}>Explora nuestra colección</h2>
+            <h2 className={styles.title}>Explora nuestra coleccion</h2>
             <p className={styles.subtitle}>
-              Descubre nuestros productos premium y realiza un pedido en línea, o{' '}
-              <a href="#phone" className={styles.phoneLink}>visita</a> nuestra tienda para 
-              consultas personalizadas. Calidad premium, resultados hermosos.
+              Descubre juegos para todos los gustos: cooperativos, estrategicos, familiares y party games.
+              Encuentra el titulo ideal para tu siguiente noche de juego.
             </p>
           </div>
           <div className={styles.footer}>
-            <Link href="/catalog" className={styles.seeFullBtn}>Ver Catálogo Completo</Link>
+            <Link href="/catalog" className={styles.seeFullBtn}>Ver catalogo completo</Link>
           </div>
         </div>
       </section>
@@ -125,17 +113,16 @@ export default function BrowseMenu() {
     <section className={styles.browseMenu}>
       <div className={styles.container}>
         <div className={styles.header}>
-          <h2 className={styles.title}>Explora nuestra colección</h2>
+          <h2 className={styles.title}>Explora nuestra coleccion</h2>
           <p className={styles.subtitle}>
-            Descubre nuestros productos premium y realiza un pedido en línea, o{' '}
-            <a href="#phone" className={styles.phoneLink}>visita</a> nuestra tienda para 
-            consultas personalizadas. Calidad premium, resultados hermosos.
+            Descubre juegos para todos los gustos: cooperativos, estrategicos, familiares y party games.
+            Encuentra el titulo ideal para tu siguiente noche de juego.
           </p>
           <div className={styles.buttons}>
             {categories.map((category) => (
               <button
                 key={category.id}
-                className={`${styles[category.className]} ${activeTab === category.id ? styles.active : ''}`}
+                className={`${styles.categoryBtn} ${activeTab === category.id ? styles.active : ''}`}
                 onClick={() => handleTabChange(category.id)}
               >
                 {category.label}
@@ -149,7 +136,7 @@ export default function BrowseMenu() {
           ))}
         </div>
         <div className={styles.footer}>
-          <Link href="/catalog" className={styles.seeFullBtn}>Ver Colección Completa</Link>
+          <Link href="/catalog" className={styles.seeFullBtn}>Ver catalogo completo</Link>
         </div>
       </div>
     </section>

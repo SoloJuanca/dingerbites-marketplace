@@ -46,7 +46,7 @@
 }
 
 .highlight {
-  color: #ec407a;
+  color: var(--brand-primary);
 }
 
 .subtitle {
@@ -57,7 +57,7 @@
 }
 
 .learnBtn {
-  background: #ec407a;
+  background: var(--brand-primary);
   color: white;
   border: none;
   padding: 16px 32px;
@@ -69,7 +69,7 @@
 }
 
 .learnBtn:hover {
-  background: #ad1457;
+  background: var(--brand-primary-hover);
 }
 
 /* Tablet Design */

@@ -75,7 +75,7 @@
 }
 
 .indicator.active {
-  background: #ec407a;
+  background: var(--brand-primary);;
   transform: scale(1.2);
 }
 
@@ -127,7 +127,7 @@
 }
 
 .thumbnail.activeThumbnail {
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
   transform: scale(1.05);
 }
 

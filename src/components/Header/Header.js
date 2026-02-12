@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Icon from '../Icon/Icon';
@@ -10,12 +11,25 @@ import styles from './Header.module.css';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const { getTotalItems } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
+  const userMenuRef = useRef(null);
 
   useEffect(() => {
     setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    const onClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
   }, []);
 
   const toggleMenu = () => {
@@ -26,12 +40,22 @@ export default function Header() {
     setIsMenuOpen(false);
   };
 
+  const handleLogout = () => {
+    setIsUserMenuOpen(false);
+    setIsMenuOpen(false);
+    logout();
+  };
+  console.log(user);
+  const isAdminUser = user?.role === 'admin' || user?.role === 'superadmin' || user?.is_admin === true;
+  const displayName = user?.first_name || user?.email?.split('@')[0] || 'Mi cuenta';
+  const userInitial = displayName?.charAt(0)?.toUpperCase() || 'U';
+
   return (
     <header className={styles.header}>
       <div className={styles.container}>
         <div className={styles.logo}>
           <Link href="/" className={styles.logoText} onClick={closeMenu}>
-            <Image src="/logo.png" alt="Logo" width={100} height={100} />
+            <Image src="/logo-wildshot.jpg" alt="Wildshot Games" width={280} height={64} priority />
           </Link>
         </div>
         
@@ -48,17 +72,52 @@ export default function Header() {
             <>
               {isAuthenticated ? (
                 <div className={styles.userActions}>
-                  <Link href="/profile" className={styles.userBtn} title={`Hola, ${user?.first_name}`}>
-                    <Icon name="person" size={24} />
-                    <span className={styles.userName}>{user?.first_name}</span>
-                  </Link>
-                  <button 
-                    onClick={logout} 
-                    className={styles.logoutBtn}
-                    title="Cerrar sesión"
-                  >
-                    <Icon name="logout" size={20} />
-                  </button>
+                  <div className={styles.userMenu} ref={userMenuRef}>
+                    <button
+                      className={styles.userMenuTrigger}
+                      onClick={() => setIsUserMenuOpen((prev) => !prev)}
+                      aria-expanded={isUserMenuOpen}
+                      aria-haspopup="menu"
+                      title={`Hola, ${displayName}`}
+                    >
+                      {user?.profile_image ? (
+                        <Image
+                          src={user.profile_image}
+                          alt={displayName}
+                          width={32}
+                          height={32}
+                          className={styles.avatarImage}
+                        />
+                      ) : (
+                        <span className={styles.avatarFallback}>{userInitial}</span>
+                      )}
+                      <span className={styles.userName}>{displayName}</span>
+                      <Icon name="expand_more" size={18} />
+                    </button>
+
+                    {isUserMenuOpen && (
+                      <div className={styles.userDropdown} role="menu">
+                        <Link href="/profile" className={styles.userDropdownItem} onClick={() => setIsUserMenuOpen(false)}>
+                          <Icon name="person" size={18} />
+                          Mi perfil
+                        </Link>
+                        <Link href="/profile?tab=wishlist" className={styles.userDropdownItem} onClick={() => setIsUserMenuOpen(false)}>
+                          <Icon name="favorite" size={18} />
+                          Favoritos
+                        </Link>
+                        {isAdminUser && (
+                          <Link href="/admin" className={styles.userDropdownItem} onClick={() => setIsUserMenuOpen(false)}>
+                            <Icon name="admin_panel_settings" size={18} />
+                            Administrador
+                          </Link>
+                        )}
+                        <button onClick={handleLogout} className={styles.userDropdownItemLogout}>
+                          <Icon name="logout" size={18} />
+                          Cerrar sesión
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className={styles.authActions}>
@@ -115,8 +174,16 @@ export default function Header() {
                 <Link href="/profile" className={styles.mobileNavLink} onClick={closeMenu}>
                   Mi Perfil
                 </Link>
+                <Link href="/profile?tab=wishlist" className={styles.mobileNavLink} onClick={closeMenu}>
+                  Favoritos
+                </Link>
+                {isAdminUser && (
+                  <Link href="/admin" className={styles.mobileNavLink} onClick={closeMenu}>
+                    Administrador
+                  </Link>
+                )}
                 <button 
-                  onClick={() => { logout(); closeMenu(); }} 
+                  onClick={handleLogout}
                   className={styles.mobileNavLink}
                 >
                   Cerrar Sesión

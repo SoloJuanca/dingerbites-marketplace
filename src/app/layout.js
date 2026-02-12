@@ -20,14 +20,14 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: {
-    default: "Patito Montenegro",
-    template: "%s | Patito Montenegro"
+    default: "Wildshot Games",
+    template: "%s | Wildshot Games"
   },
-  description: "Tu tienda online de confianza con los mejores productos de uñas y belleza en México.",
-  keywords: ["tienda online", "e-commerce", "productos", "compras", "México", "uñas", "belleza", "Nuevo León", "Monterrey", "Guadalupe"],
-  authors: [{ name: "Patito Montenegro" }],
-  creator: "Patito Montenegro",
-  publisher: "Patito Montenegro",
+  description: "Tienda online de juegos de mesa: familiares, estrategicos, party games y novedades para toda tu mesa.",
+  keywords: ["juegos de mesa", "board games", "tienda online", "e-commerce", "compras", "Mexico", "familiares", "estrategia", "party games"],
+  authors: [{ name: "Wildshot Games" }],
+  creator: "Wildshot Games",
+  publisher: "Wildshot Games",
   formatDetection: {
     email: false,
     address: false,
@@ -35,18 +35,18 @@ export const metadata = {
   },
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'),
   openGraph: {
-    title: "Patito Montenegro",
-    description: "Tu tienda online de confianza con los mejores productos de uñas y belleza en México.",
+    title: "Wildshot Games",
+    description: "Tienda online de juegos de mesa: familiares, estrategicos, party games y novedades para toda tu mesa.",
     url: "/",
-    siteName: "Patito Montenegro",
+    siteName: "Wildshot Games",
     locale: "es_MX",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Patito Montenegro",
-    description: "Tu tienda online de confianza con los mejores productos de uñas y belleza en México.",
-    creator: "@patitomontenegro",
+    title: "Wildshot Games",
+    description: "Tienda online de juegos de mesa: familiares, estrategicos, party games y novedades para toda tu mesa.",
+    creator: "@wildshotgames",
   },
   robots: {
     index: true,

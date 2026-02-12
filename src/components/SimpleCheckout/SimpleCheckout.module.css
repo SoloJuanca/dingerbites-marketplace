@@ -33,18 +33,18 @@
 }
 
 .backToCart {
-  color: #ec407a;
+  color: var(--brand-primary);;
   text-decoration: none;
   font-weight: 600;
   font-size: 14px;
   padding: 8px 16px;
-  border: 2px solid #ec407a;
+  border: 2px solid var(--brand-primary);;
   border-radius: 8px;
   transition: all 0.2s ease;
 }
 
 .backToCart:hover {
-  background: #ec407a;
+  background: var(--brand-primary);;
   color: white;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(236, 64, 122, 0.2);
@@ -134,7 +134,7 @@
 .inputGroup input:focus,
 .inputGroup textarea:focus {
   outline: none;
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
 }
 
 .inputGroup input.error,
@@ -350,7 +350,7 @@
 }
 
 .radioOption:hover {
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
   background: #fef7f7;
 }
 
@@ -358,7 +358,7 @@
   margin: 0;
   width: 20px;
   height: 20px;
-  accent-color: #ec407a;
+  accent-color: var(--brand-primary);;
 }
 
 .radioOption input[type="radio"]:checked + .radioLabel {
@@ -366,7 +366,7 @@
 }
 
 .radioOption:has(input[type="radio"]:checked) {
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
   background: #fef7f7;
 }
 
@@ -394,7 +394,7 @@
 }
 
 .submitButton {
-  background: #ec407a;
+  background: var(--brand-primary);;
   color: white;
   border: none;
   padding: 16px 32px;

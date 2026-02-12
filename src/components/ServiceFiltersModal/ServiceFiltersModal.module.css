@@ -173,12 +173,12 @@
 
 .categoryBtn:hover {
   background-color: #f8f9fa;
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
 }
 
 .categoryBtn.active {
-  background-color: #ec407a;
-  border-color: #ec407a;
+  background-color: var(--brand-primary);;
+  border-color: var(--brand-primary);;
   color: white;
 }
 
@@ -203,12 +203,12 @@
 
 .levelBtn:hover {
   background-color: #f8f9fa;
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
 }
 
 .levelBtn.active {
-  background-color: #ec407a;
-  border-color: #ec407a;
+  background-color: var(--brand-primary);;
+  border-color: var(--brand-primary);;
   color: white;
 }
 
@@ -241,7 +241,7 @@
 
 .priceInput:focus {
   outline: none;
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
   box-shadow: 0 0 0 3px rgba(236, 64, 122, 0.1);
 }
 
@@ -253,7 +253,7 @@
 }
 
 .priceBtn {
-  background-color: #ec407a;
+  background-color: var(--brand-primary);;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -300,7 +300,7 @@
 
 .applyBtn {
   flex: 2;
-  background-color: #ec407a;
+  background-color: var(--brand-primary);;
   color: white;
   border: none;
   padding: 14px 20px;

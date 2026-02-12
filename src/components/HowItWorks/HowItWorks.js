@@ -4,19 +4,19 @@ import styles from './HowItWorks.module.css';
 export default function HowItWorks() {
   const steps = [
     {
-      icon: 'palette',
-      title: 'Explora y dejate inspirar',
-      description: 'Explora y dejate inspirar por nuestra selección de materiales profesionales para uñas. Navega y sorprendete con todo lo nuevo que traemos para ti.'
+      icon: 'explore',
+      title: 'Explora por tipo de juego',
+      description: 'Filtra por dificultad, duracion, numero de jugadores y tematica para encontrar rapido lo que mejor se adapta a tu mesa.'
     },
     {
       icon: 'shopping_cart',
-      title: 'Agrega tus favoritos',
-      description: '¡Agrega tus favoritos al carrito y empieza a disfrutar de la mejor calidad!'
+      title: 'Arma tu carrito',
+      description: 'Compara titulos, agrega expansiones y completa tu pedido en pocos pasos con una experiencia de compra simple.'
     },
     {
       icon: 'local_shipping',
-      title: 'Envíos seguros y puntuales',
-      description: 'Reciba sus productos con embalaje profesional y atención dedicada. Comprometidos con la calidad hasta tu puerta.'
+      title: 'Recibe y juega',
+      description: 'Empacamos con cuidado y enviamos a todo Mexico para que tus juegos lleguen listos para la siguiente partida.'
     }
   ];
 
@@ -24,7 +24,7 @@ export default function HowItWorks() {
     <section className={styles.howItWorks}>
       <div className={styles.container}>
         <div className={styles.header}>
-          <h2 className={styles.title}>Cómo funciona.</h2>
+          <h2 className={styles.title}>Como funciona</h2>
         </div>
         <div className={styles.steps}>
           {steps.map((step, index) => (

@@ -39,13 +39,13 @@
 }
 
 .option:hover {
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(236, 64, 122, 0.15);
 }
 
 .option.selected {
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
   background: #fef7f7;
   box-shadow: 0 8px 25px rgba(236, 64, 122, 0.15);
 }
@@ -208,7 +208,7 @@
 }
 
 .nextButton {
-  background: #ec407a;
+  background: var(--brand-primary);;
   color: white;
   border: none;
   padding: 16px 32px;

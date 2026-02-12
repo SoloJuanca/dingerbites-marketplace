@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../lib/auth';
 import { uploadImage, deleteImage, validateImageFile } from '../../../../lib/blobStorage';
 
-// POST /api/admin/upload - Upload images to Vercel Blob
+// POST /api/admin/upload - Upload images to Firebase Storage
 export async function POST(request) {
   try {
     // Authenticate admin user
@@ -34,7 +34,7 @@ export async function POST(request) {
       );
     }
 
-    // Upload to Vercel Blob
+    // Upload to Firebase Storage
     const result = await uploadImage(file, folder);
 
     if (!result.success) {
@@ -61,7 +61,7 @@ export async function POST(request) {
   }
 }
 
-// DELETE /api/admin/upload - Delete image from Vercel Blob
+// DELETE /api/admin/upload - Delete image from Firebase Storage
 export async function DELETE(request) {
   try {
     // Authenticate admin user
@@ -83,7 +83,7 @@ export async function DELETE(request) {
       );
     }
 
-    // Delete from Vercel Blob
+    // Delete from Firebase Storage
     const result = await deleteImage(imageUrl);
 
     if (!result.success) {

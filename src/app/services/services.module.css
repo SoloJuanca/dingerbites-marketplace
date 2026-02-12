@@ -60,7 +60,7 @@
 
 .filterButton {
   display: none;
-  background-color: #ec407a;
+  background-color: var(--brand-primary);;
   color: white;
   border: none;
   padding: 12px 16px;

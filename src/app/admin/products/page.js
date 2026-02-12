@@ -47,7 +47,7 @@ export default function ProductsPage() {
       const response = await apiRequest(`/api/admin/products?${params}`);
       if (response.ok) {
         const data = await response.json();
-        setProducts(data.products.rows || []);
+        setProducts(data.products || []);
         setPagination(prev => ({
           ...prev,
           total: data.pagination?.total || 0,
@@ -73,18 +73,12 @@ export default function ProductsPage() {
 
       if (categoriesResponse.ok) {
         const categoriesData = await categoriesResponse.json();
-        console.log('Categories response:', categoriesData);
         setCategories(categoriesData.categories || []);
-      } else {
-        console.error('Categories API error:', categoriesResponse.status, categoriesResponse.statusText);
       }
 
       if (brandsResponse.ok) {
         const brandsData = await brandsResponse.json();
-        console.log('Brands response:', brandsData);
         setBrands(brandsData.brands || []);
-      } else {
-        console.error('Brands API error:', brandsResponse.status, brandsResponse.statusText);
       }
     } catch (error) {
       console.error('Error loading filters data:', error);
@@ -194,14 +188,13 @@ export default function ProductsPage() {
           </div>
 
           <div className={styles.filterGroup}>
-          {console.log('Categories:', categories)}
             <select
               value={filters.category}
               onChange={(e) => handleFilterChange('category', e.target.value)}
               className={styles.filterSelect}
             >
               <option value="">Todas las categorías</option>
-              {Array.isArray(categories.rows) && categories.rows.map(category => (
+              {Array.isArray(categories) && categories.map(category => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>
@@ -216,7 +209,7 @@ export default function ProductsPage() {
               className={styles.filterSelect}
             >
               <option value="">Todas las marcas</option>
-              {Array.isArray(brands.rows) && brands.rows.map(brand => (
+              {Array.isArray(brands) && brands.map(brand => (
                 <option key={brand.id} value={brand.id}>
                   {brand.name}
                 </option>

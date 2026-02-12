@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../lib/auth';
-import { query, getRow } from '../../../../lib/database';
+import {
+  CATEGORIES_COLLECTION,
+  createCategory,
+  findBySlug,
+  listCollection
+} from '../../../../lib/firebaseCatalog';
 
 // GET /api/admin/categories - Get all categories
 export async function GET(request) {
@@ -14,10 +19,12 @@ export async function GET(request) {
       );
     }
 
-    // Get all categories
-    const categories = await query(
-      'SELECT id, name, slug, description, image_url, is_active, sort_order FROM product_categories ORDER BY sort_order ASC, name ASC'
-    );
+    const { items: categories } = await listCollection(CATEGORIES_COLLECTION, {
+      page: 1,
+      limit: 500,
+      onlyActive: false,
+      orderBy: 'sort_order'
+    });
 
     return NextResponse.json({
       success: true,
@@ -63,10 +70,7 @@ export async function POST(request) {
     }
 
     // Check if slug already exists
-    const existingCategory = await getRow(
-      'SELECT id FROM product_categories WHERE slug = $1',
-      [slug]
-    );
+    const existingCategory = await findBySlug(CATEGORIES_COLLECTION, slug);
 
     if (existingCategory) {
       return NextResponse.json(
@@ -75,24 +79,13 @@ export async function POST(request) {
       );
     }
 
-    // Create category
-    const insertQuery = `
-      INSERT INTO product_categories (
-        name, slug, description, image_url, is_active, sort_order
-      ) VALUES (
-        $1, $2, $3, $4, $5, 0
-      ) RETURNING *
-    `;
-
-    const insertParams = [
+    const newCategory = await createCategory({
       name,
       slug,
       description,
       image_url,
-      is_active !== undefined ? is_active : true
-    ];
-
-    const newCategory = await getRow(insertQuery, insertParams);
+      is_active: is_active !== undefined ? is_active : true
+    });
 
     return NextResponse.json({
       success: true,

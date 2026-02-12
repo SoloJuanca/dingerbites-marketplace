@@ -32,7 +32,7 @@
 }
 
 .phoneLink {
-  color: #ec407a;
+  color: var(--brand-primary);
   text-decoration: none;
 }
 
@@ -47,53 +47,32 @@
   flex-wrap: wrap;
 }
 
-.burgerBtn,
-.sidesBtn,
-.drinksBtn {
+.categoryBtn {
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   border: none;
-}
-
-.burgerBtn {
   background: #f7fafc;
   color: #4a5568;
   border: 1px solid #e2e8f0;
 }
 
-.burgerBtn:hover {
-  background: #edf2f7;
-}
-
-.sidesBtn,
-.drinksBtn {
-  background: #f7fafc;
-  color: #4a5568;
-  border: 1px solid #e2e8f0;
-}
-
-.sidesBtn:hover,
-.drinksBtn:hover {
+.categoryBtn:hover {
   background: #edf2f7;
 }
 
 /* Active state for all buttons */
-.burgerBtn.active,
-.sidesBtn.active,
-.drinksBtn.active {
-  background: #ec407a;
+.categoryBtn.active {
+  background: var(--brand-primary);
   color: white;
-  border: 1px solid #ec407a;
+  border: 1px solid var(--brand-primary);
 }
 
-.burgerBtn.active:hover,
-.sidesBtn.active:hover,
-.drinksBtn.active:hover {
-  background: #ad1457;
-  border: 1px solid #ad1457;
+.categoryBtn.active:hover {
+  background: var(--brand-primary-hover);
+  border: 1px solid var(--brand-primary-hover);
 }
 
 .products {
@@ -108,7 +87,7 @@
 }
 
 .seeFullBtn {
-  background: #ec407a;
+  background: var(--brand-primary);
   color: white;
   border: none;
   padding: 16px 32px;
@@ -120,7 +99,7 @@
 }
 
 .seeFullBtn:hover {
-  background: #ad1457;
+  background: var(--brand-primary-hover);
 }
 
 /* Tablet Design */
@@ -165,9 +144,7 @@
     gap: 12px;
   }
   
-  .burgerBtn,
-  .sidesBtn,
-  .drinksBtn {
+  .categoryBtn {
     padding: 10px 20px;
     font-size: 14px;
   }
@@ -210,9 +187,7 @@
     margin: 0 auto 24px;
   }
   
-  .burgerBtn,
-  .sidesBtn,
-  .drinksBtn {
+  .categoryBtn {
     padding: 8px 16px;
     font-size: 13px;
     width: 100%;

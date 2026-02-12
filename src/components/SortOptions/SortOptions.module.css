@@ -24,7 +24,7 @@
 
 .sortSelect:focus {
   outline: none;
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
   box-shadow: 0 0 0 3px rgba(236, 64, 122, 0.1);
 }
 

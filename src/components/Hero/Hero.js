@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import Icon from '../Icon/Icon';
 import styles from './Hero.module.css';
@@ -10,17 +9,17 @@ export default function Hero() {
         <div className={styles.content}>
           <div className={styles.textContent}>
             <h1 className={styles.title}>
-              Todo lo que necesitas para crear, <span className={styles.highlight}>uñas</span> hermosas.
+              Tu tienda para descubrir <span className={styles.highlight}>juegos de mesa</span> increibles.
             </h1>
             <p className={styles.subtitle}>
-              ¡Bienvenida a tu tienda favorita de uñas, Patito Montenegro! Encuentra todo lo que necesitas para crear uñas hermosas, material profesional y ¡lo más nuevo en el mundo de las uñas!
+              En Wildshot Games encuentras juegos familiares, estrategicos y party games para cada mesa. Compra facil, envios rapidos y asesoramiento para elegir el titulo ideal.
             </p>
-            <Link href="/catalog" className={styles.orderBtn}>Ver Colección</Link>
+            <Link href="/catalog" className={styles.orderBtn}>Ver Catalogo</Link>
             <div className={styles.stats}>
               <div className={styles.stat}>
                 <span className={styles.statText}>
                   <Icon name="star" size={16} className={styles.starIcon} filled />
-                  Envíos a todo el México
+                  Envio a todo Mexico
                 </span>
               </div>
             </div>

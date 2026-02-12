@@ -1,18 +1,29 @@
 import { NextResponse } from 'next/server';
-import { getRow, query } from '../../../../lib/database';
+import {
+  BRANDS_COLLECTION,
+  deleteById,
+  findBySlugExcludingId,
+  getById,
+  hasProductsWithBrandId,
+  updateById
+} from '../../../../lib/firebaseCatalog';
+
+function generateSlug(value) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, '')
+    .trim()
+    .replace(/\s+/g, '-');
+}
 
 // GET /api/brands/[id] - Get brand by ID
 export async function GET(request, { params }) {
   try {
     const { id } = params;
 
-    const brandQuery = `
-      SELECT id, name, slug, description, logo_url, website_url, is_active, created_at
-      FROM product_brands 
-      WHERE id = $1
-    `;
-
-    const brand = await getRow(brandQuery, [id]);
+    const brand = await getById(BRANDS_COLLECTION, id);
 
     if (!brand) {
       return NextResponse.json(
@@ -40,7 +51,7 @@ export async function PUT(request, { params }) {
     const { name, description, logo_url, website_url } = body;
 
     // Check if brand exists
-    const existingBrand = await getRow('SELECT id, name FROM product_brands WHERE id = $1', [id]);
+    const existingBrand = await getById(BRANDS_COLLECTION, id);
     if (!existingBrand) {
       return NextResponse.json(
         { error: 'Brand not found' },
@@ -49,21 +60,11 @@ export async function PUT(request, { params }) {
     }
 
     // Generate new slug if name is being updated
-    let slug = existingBrand.name;
+    let slug = existingBrand.slug;
     if (name && name !== existingBrand.name) {
-      slug = name
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9\s]/g, '')
-        .trim()
-        .replace(/\s+/g, '-');
+      slug = generateSlug(name);
 
-      // Check if new slug already exists
-      const slugExists = await getRow(
-        'SELECT id FROM product_brands WHERE slug = $1 AND id != $2',
-        [slug, id]
-      );
+      const slugExists = await findBySlugExcludingId(BRANDS_COLLECTION, slug, id);
 
       if (slugExists) {
         return NextResponse.json(
@@ -73,27 +74,13 @@ export async function PUT(request, { params }) {
       }
     }
 
-    // Update brand
-    const updateQuery = `
-      UPDATE product_brands 
-      SET name = COALESCE($2, name),
-          slug = COALESCE($3, slug),
-          description = COALESCE($4, description),
-          logo_url = COALESCE($5, logo_url),
-          website_url = COALESCE($6, website_url),
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
-      RETURNING id, name, slug, description, logo_url, website_url, updated_at
-    `;
-
-    const brand = await getRow(updateQuery, [
-      id,
-      name,
-      slug,
-      description,
-      logo_url,
-      website_url
-    ]);
+    const brand = await updateById(BRANDS_COLLECTION, id, {
+      name: name ?? existingBrand.name,
+      slug: slug ?? existingBrand.slug,
+      description: description ?? existingBrand.description ?? null,
+      logo_url: logo_url ?? existingBrand.logo_url ?? null,
+      website_url: website_url ?? existingBrand.website_url ?? null
+    });
 
     return NextResponse.json(brand);
 
@@ -112,7 +99,7 @@ export async function DELETE(request, { params }) {
     const { id } = params;
 
     // Check if brand exists
-    const existingBrand = await getRow('SELECT id, name FROM product_brands WHERE id = $1', [id]);
+    const existingBrand = await getById(BRANDS_COLLECTION, id);
     if (!existingBrand) {
       return NextResponse.json(
         { error: 'Brand not found' },
@@ -121,31 +108,18 @@ export async function DELETE(request, { params }) {
     }
 
     // Check if brand is being used by products
-    const productsUsingBrand = await getRow(
-      'SELECT COUNT(*) as count FROM products WHERE brand_id = $1',
-      [id]
-    );
-
-    if (parseInt(productsUsingBrand.count) > 0) {
+    const hasProducts = await hasProductsWithBrandId(id);
+    if (hasProducts) {
       return NextResponse.json(
         { error: 'Cannot delete brand that is being used by products' },
         { status: 400 }
       );
     }
 
-    // Soft delete - set is_active to false
-    const deleteQuery = `
-      UPDATE product_brands 
-      SET is_active = false, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
-      RETURNING id, name
-    `;
-
-    const brand = await getRow(deleteQuery, [id]);
-
+    await deleteById(BRANDS_COLLECTION, id);
     return NextResponse.json({
       message: 'Brand deleted successfully',
-      brand
+      brand: { id: existingBrand.id, name: existingBrand.name }
     });
 
   } catch (error) {

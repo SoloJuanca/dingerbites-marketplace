@@ -59,7 +59,7 @@
 .checkoutButton {
   display: block;
   width: 100%;
-  background: #ec407a;
+  background: var(--brand-primary);;
   color: white;
   text-decoration: none;
   text-align: center;

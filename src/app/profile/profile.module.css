@@ -73,7 +73,7 @@
 }
 
 .tabActive {
-  background: #ec407a;
+  background: var(--brand-primary);;
   color: white;
 }
 
@@ -105,7 +105,7 @@
 }
 
 .addButton {
-  background: #ec407a;
+  background: var(--brand-primary);;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -152,7 +152,7 @@
 }
 
 .orderCard:hover {
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
   box-shadow: 0 4px 16px rgba(236, 64, 122, 0.1);
 }
 
@@ -210,7 +210,7 @@
 }
 
 .addressCard:hover {
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
   box-shadow: 0 4px 16px rgba(236, 64, 122, 0.1);
 }
 
@@ -454,7 +454,7 @@
 
 .formInput:focus {
   outline: none;
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
   box-shadow: 0 0 0 3px rgba(236, 64, 122, 0.1);
 }
 
@@ -469,7 +469,7 @@
 .checkboxLabel input[type="checkbox"] {
   width: 20px;
   height: 20px;
-  accent-color: #ec407a;
+  accent-color: var(--brand-primary);;
 }
 
 .modalFooter {
@@ -500,7 +500,7 @@
 }
 
 .saveButton {
-  background: #ec407a;
+  background: var(--brand-primary);;
   color: white;
   border: none;
   padding: 12px 24px;

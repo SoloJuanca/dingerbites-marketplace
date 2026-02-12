@@ -1,6 +1,17 @@
 import { NextResponse } from 'next/server';
-import { getRows, getRow, query, transaction } from '../../../../lib/database';
 import { authenticateUser } from '../../../../lib/auth';
+import { db } from '../../../../lib/firebaseAdmin';
+
+const ADDRESSES_COLLECTION = 'user_addresses';
+
+function sortAddresses(addresses) {
+  return addresses.sort((a, b) => {
+    if (Boolean(a.is_default) !== Boolean(b.is_default)) {
+      return a.is_default ? -1 : 1;
+    }
+    return String(b.created_at || '').localeCompare(String(a.created_at || ''));
+  });
+}
 
 // GET /api/users/addresses - Get user addresses
 export async function GET(request) {
@@ -13,16 +24,13 @@ export async function GET(request) {
       );
     }
 
-    const addressesQuery = `
-      SELECT id, address_type, is_default, first_name, last_name, company,
-             address_line_1, address_line_2, city, state, postal_code, 
-             country, phone, created_at
-      FROM user_addresses 
-      WHERE user_id = $1 
-      ORDER BY is_default DESC, created_at DESC
-    `;
-
-    const addresses = await getRows(addressesQuery, [user.id]);
+    const snapshot = await db.collection(ADDRESSES_COLLECTION).where('user_id', '==', user.id).get();
+    const addresses = sortAddresses(
+      snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+    );
 
     return NextResponse.json({
       addresses
@@ -72,43 +80,51 @@ export async function POST(request) {
       );
     }
 
-    const result = await transaction(async (client) => {
-      // If this address is set as default, unset other default addresses
-      if (is_default) {
-        await client.query(
-          'UPDATE user_addresses SET is_default = false WHERE user_id = $1 AND address_type = $2',
-          [user.id, address_type]
-        );
-      }
+    const now = new Date().toISOString();
+    const batch = db.batch();
 
-      // Create new address
-      const createAddressQuery = `
-        INSERT INTO user_addresses (
-          user_id, address_type, is_default, first_name, last_name, company,
-          address_line_1, address_line_2, city, state, postal_code, country, phone
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-        RETURNING *
-      `;
+    if (is_default) {
+      const defaultsSnapshot = await db
+        .collection(ADDRESSES_COLLECTION)
+        .where('user_id', '==', user.id)
+        .where('address_type', '==', address_type)
+        .where('is_default', '==', true)
+        .get();
 
-      const address = await client.query(createAddressQuery, [
-        user.id,
-        address_type,
-        is_default,
-        first_name,
-        last_name,
-        company || null,
-        address_line_1,
-        address_line_2 || null,
-        city,
-        state,
-        postal_code,
-        country,
-        phone || null
-      ]);
+      defaultsSnapshot.docs.forEach((doc) => {
+        batch.update(doc.ref, {
+          is_default: false,
+          updated_at: now
+        });
+      });
+    }
 
-      return address.rows[0];
-    });
+    const docRef = db.collection(ADDRESSES_COLLECTION).doc();
+    const addressPayload = {
+      user_id: user.id,
+      address_type,
+      is_default: Boolean(is_default),
+      first_name,
+      last_name,
+      company: company || null,
+      address_line_1,
+      address_line_2: address_line_2 || null,
+      city,
+      state,
+      postal_code,
+      country,
+      phone: phone || null,
+      created_at: now,
+      updated_at: now
+    };
+
+    batch.set(docRef, addressPayload);
+    await batch.commit();
+
+    const result = {
+      id: docRef.id,
+      ...addressPayload
+    };
 
     return NextResponse.json({
       address: result,
@@ -159,58 +175,62 @@ export async function PUT(request) {
       );
     }
 
-    // Verify that the address belongs to the user
-    const existingAddress = await getRow(
-      'SELECT id FROM user_addresses WHERE id = $1 AND user_id = $2',
-      [address_id, user.id]
-    );
+    const existingAddressDoc = await db.collection(ADDRESSES_COLLECTION).doc(address_id).get();
+    const existingAddress = existingAddressDoc.exists ? { id: existingAddressDoc.id, ...existingAddressDoc.data() } : null;
 
-    if (!existingAddress) {
+    if (!existingAddress || existingAddress.user_id !== user.id) {
       return NextResponse.json(
         { error: 'Address not found' },
         { status: 404 }
       );
     }
 
-    const result = await transaction(async (client) => {
-      // If this address is set as default, unset other default addresses
-      if (is_default) {
-        await client.query(
-          'UPDATE user_addresses SET is_default = false WHERE user_id = $1 AND address_type = $2 AND id != $3',
-          [user.id, address_type, address_id]
-        );
-      }
+    const now = new Date().toISOString();
+    const nextAddressType = address_type ?? existingAddress.address_type ?? 'shipping';
+    const nextIsDefault = is_default !== undefined ? Boolean(is_default) : Boolean(existingAddress.is_default);
+    const batch = db.batch();
 
-      // Update address
-      const updateAddressQuery = `
-        UPDATE user_addresses SET
-          address_type = $1, is_default = $2, first_name = $3, last_name = $4,
-          company = $5, address_line_1 = $6, address_line_2 = $7, city = $8,
-          state = $9, postal_code = $10, country = $11, phone = $12,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = $13 AND user_id = $14
-        RETURNING *
-      `;
+    if (nextIsDefault) {
+      const defaultsSnapshot = await db
+        .collection(ADDRESSES_COLLECTION)
+        .where('user_id', '==', user.id)
+        .where('address_type', '==', nextAddressType)
+        .where('is_default', '==', true)
+        .get();
 
-      const address = await client.query(updateAddressQuery, [
-        address_type,
-        is_default,
-        first_name,
-        last_name,
-        company || null,
-        address_line_1,
-        address_line_2 || null,
-        city,
-        state,
-        postal_code,
-        country,
-        phone || null,
-        address_id,
-        user.id
-      ]);
+      defaultsSnapshot.docs.forEach((doc) => {
+        if (doc.id !== address_id) {
+          batch.update(doc.ref, {
+            is_default: false,
+            updated_at: now
+          });
+        }
+      });
+    }
 
-      return address.rows[0];
-    });
+    const updatedPayload = {
+      address_type: nextAddressType,
+      is_default: nextIsDefault,
+      first_name: first_name ?? existingAddress.first_name,
+      last_name: last_name ?? existingAddress.last_name,
+      company: company ?? existingAddress.company ?? null,
+      address_line_1: address_line_1 ?? existingAddress.address_line_1,
+      address_line_2: address_line_2 ?? existingAddress.address_line_2 ?? null,
+      city: city ?? existingAddress.city,
+      state: state ?? existingAddress.state,
+      postal_code: postal_code ?? existingAddress.postal_code,
+      country: country ?? existingAddress.country ?? 'Mexico',
+      phone: phone ?? existingAddress.phone ?? null,
+      updated_at: now
+    };
+
+    batch.update(existingAddressDoc.ref, updatedPayload);
+    await batch.commit();
+
+    const result = {
+      ...existingAddress,
+      ...updatedPayload
+    };
 
     return NextResponse.json({
       address: result,
@@ -247,23 +267,17 @@ export async function DELETE(request) {
       );
     }
 
-    // Verify that the address belongs to the user
-    const existingAddress = await getRow(
-      'SELECT id FROM user_addresses WHERE id = $1 AND user_id = $2',
-      [addressId, user.id]
-    );
+    const existingAddressDoc = await db.collection(ADDRESSES_COLLECTION).doc(addressId).get();
+    const existingAddress = existingAddressDoc.exists ? { id: existingAddressDoc.id, ...existingAddressDoc.data() } : null;
 
-    if (!existingAddress) {
+    if (!existingAddress || existingAddress.user_id !== user.id) {
       return NextResponse.json(
         { error: 'Address not found' },
         { status: 404 }
       );
     }
 
-    await query(
-      'DELETE FROM user_addresses WHERE id = $1 AND user_id = $2',
-      [addressId, user.id]
-    );
+    await existingAddressDoc.ref.delete();
 
     return NextResponse.json({
       message: 'Address deleted successfully'

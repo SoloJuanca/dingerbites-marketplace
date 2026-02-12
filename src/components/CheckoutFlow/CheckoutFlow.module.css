@@ -57,14 +57,14 @@
 }
 
 .progressStep.active .stepNumber {
-  background: #ec407a;
-  border-color: #ec407a;
+  background: var(--brand-primary);;
+  border-color: var(--brand-primary);;
   color: white;
   transform: scale(1.1);
 }
 
 .progressStep.active .stepLabel {
-  color: #ec407a;
+  color: var(--brand-primary);;
   font-weight: 600;
 }
 

@@ -59,7 +59,7 @@
 }
 
 .cookieIcon {
-  color: #ec407a;
+  color: var(--brand-primary);;
 }
 
 .textSection {
@@ -87,7 +87,7 @@
 }
 
 .link {
-  color: #ec407a;
+  color: var(--brand-primary);;
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s ease;
@@ -119,7 +119,7 @@
 }
 
 .acceptButton {
-  background: #ec407a;
+  background: var(--brand-primary);;
   color: white;
 }
 
@@ -157,9 +157,9 @@
 }
 
 .closeButton:hover {
-  background: #ec407a;
+  background: var(--brand-primary);;
   color: white;
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
 }
 
 /* Responsive Design */

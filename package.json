@@ -12,6 +12,7 @@
     "@vercel/blob": "^1.1.1",
     "bcryptjs": "^2.4.3",
     "csv-parser": "^3.2.0",
+    "firebase-admin": "^13.6.1",
     "jose": "^5.2.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",

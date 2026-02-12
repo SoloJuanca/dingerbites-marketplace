@@ -115,7 +115,7 @@
 .checkbox {
   width: 18px;
   height: 18px;
-  accent-color: #ec407a;
+  accent-color: var(--brand-primary);;
   cursor: pointer;
   /* Prevenir modo oscuro automático en checkboxes */
   color-scheme: light;
@@ -127,8 +127,8 @@
 }
 
 .checkbox:checked {
-  background-color: #ec407a;
-  border-color: #ec407a;
+  background-color: var(--brand-primary);;
+  border-color: var(--brand-primary);;
 }
 
 .checkbox:checked::after {
@@ -164,12 +164,12 @@
 
 .categoryBtn:hover {
   background-color: #f8f9fa;
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
 }
 
 .categoryBtn.active {
-  background-color: #ec407a;
-  border-color: #ec407a;
+  background-color: var(--brand-primary);;
+  border-color: var(--brand-primary);;
   color: white;
 }
 
@@ -189,7 +189,7 @@
 
 .brandSelect:focus {
   outline: none;
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
   box-shadow: 0 0 0 3px rgba(236, 64, 122, 0.1);
 }
 
@@ -224,7 +224,7 @@
 
 .priceInput:focus {
   outline: none;
-  border-color: #ec407a;
+  border-color: var(--brand-primary);;
   box-shadow: 0 0 0 3px rgba(236, 64, 122, 0.1);
 }
 
@@ -236,7 +236,7 @@
 }
 
 .priceBtn {
-  background-color: #ec407a;
+  background-color: var(--brand-primary);;
   color: white;
   border: none;
   padding: 12px 24px;

@@ -165,7 +165,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: #ec407a;
+  background-color: var(--brand-primary);;
   color: white;
   display: flex;
   align-items: center;
@@ -236,8 +236,8 @@
 
 .showMoreBtn {
   background: none;
-  border: 1px solid #ec407a;
-  color: #ec407a;
+  border: 1px solid var(--brand-primary);;
+  color: var(--brand-primary);;
   padding: 12px 24px;
   border-radius: 8px;
   font-size: 14px;
@@ -247,7 +247,7 @@
 }
 
 .showMoreBtn:hover {
-  background-color: #ec407a;
+  background-color: var(--brand-primary);;
   color: white;
 }
 

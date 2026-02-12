@@ -49,7 +49,7 @@
 }
 
 .contactIcon {
-  color: #ec407a;
+  color: var(--brand-primary);
   margin-top: 2px;
   flex-shrink: 0;
 }
@@ -72,7 +72,7 @@
 }
 
 .contactBtn {
-  background: #ec407a;
+  background: var(--brand-primary);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -88,7 +88,7 @@
 }
 
 .contactBtn:hover {
-  background: #ad1457;
+  background: var(--brand-primary-hover);
 }
 
 .emailBtn {

@@ -1,9 +1,9 @@
 .footer {
-  background: #ec407a;
+  background: var(--brand-dark);
 }
 
 .topSection {
-  background: linear-gradient(135deg, #ad1457 0%, #880e4f 100%);
+  background: linear-gradient(135deg, #20242b 0%, #121418 100%);
   padding: 80px 0;
 }
 
@@ -36,7 +36,7 @@
 }
 
 .sectionIcon {
-  color: #f8bbd9;
+  color: var(--brand-primary);
 }
 
 .rightSection {
@@ -44,7 +44,7 @@
 }
 
 .promoText {
-  background: #ec407a;
+  background: var(--brand-primary);
   color: white;
   padding: 24px 32px;
   border-radius: 12px;
@@ -74,7 +74,7 @@
 }
 
 .bottomSection {
-  background: #ec407a;
+  background: var(--brand-dark);
   padding: 48px 0 24px;
 }
 
@@ -90,6 +90,12 @@
   align-items: flex-start;
 }
 
+.footerLogoImage {
+  width: 240px;
+  height: auto;
+  border-radius: 8px;
+}
+
 .logoText {
   font-size: 24px;
   font-weight: 700;
@@ -100,7 +106,7 @@
 }
 
 .logoIcon {
-  color: #f8bbd9;
+  color: var(--brand-primary);
 }
 
 .links {
@@ -164,6 +170,10 @@
   .footerContent {
     grid-template-columns: 1fr;
     gap: 40px;
+  }
+
+  .logo {
+    justify-content: center;
   }
   
   .links {

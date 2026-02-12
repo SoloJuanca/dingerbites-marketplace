@@ -1,6 +1,27 @@
 import { NextResponse } from 'next/server';
-import { getRows, getRow, query, transaction } from '../../../lib/database';
 import bcrypt from 'bcryptjs';
+import { createUser, getUserByEmail } from '../../../lib/firebaseUsers';
+import { db } from '../../../lib/firebaseAdmin';
+
+function paginate(items, page, limit) {
+  const safePage = Math.max(1, Number(page) || 1);
+  const safeLimit = Math.max(1, Number(limit) || 10);
+  const total = items.length;
+  const totalPages = Math.ceil(total / safeLimit);
+  const start = (safePage - 1) * safeLimit;
+  const data = items.slice(start, start + safeLimit);
+
+  return {
+    data,
+    pagination: {
+      total,
+      totalPages,
+      currentPage: safePage,
+      hasNextPage: totalPages > 0 && safePage < totalPages,
+      hasPrevPage: safePage > 1
+    }
+  };
+}
 
 // GET /api/users - Get users (admin only)
 export async function GET(request) {
@@ -8,32 +29,16 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page')) || 1;
     const limit = parseInt(searchParams.get('limit')) || 10;
-    const offset = (page - 1) * limit;
-
-    const usersQuery = `
-      SELECT id, email, first_name, last_name, phone, is_active, is_verified, 
-             created_at, last_login_at
-      FROM users 
-      ORDER BY created_at DESC
-      LIMIT $1 OFFSET $2
-    `;
-
-    const users = await getRows(usersQuery, [limit, offset]);
-
-    // Get total count
-    const countQuery = `SELECT COUNT(*) as total FROM users`;
-    const totalResult = await getRow(countQuery);
-    const total = parseInt(totalResult.total);
+    const snapshot = await db.collection('users').get();
+    const users = snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))
+      .map(({ password_hash, ...rest }) => rest);
+    const { data, pagination } = paginate(users, page, limit);
 
     return NextResponse.json({
-      users,
-      pagination: {
-        total,
-        totalPages: Math.ceil(total / limit),
-        currentPage: page,
-        hasNextPage: page < Math.ceil(total / limit),
-        hasPrevPage: page > 1
-      }
+      users: data,
+      pagination
     });
 
   } catch (error) {
@@ -60,10 +65,7 @@ export async function POST(request) {
     }
 
     // Check if user already exists
-    const existingUser = await getRow(
-      'SELECT id FROM users WHERE email = $1',
-      [email]
-    );
+    const existingUser = await getUserByEmail(email);
 
     if (existingUser) {
       return NextResponse.json(
@@ -76,24 +78,23 @@ export async function POST(request) {
     const saltRounds = 12;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // Create user
-    const createUserQuery = `
-      INSERT INTO users (email, password_hash, first_name, last_name, phone, date_of_birth, gender)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id, email, first_name, last_name, created_at
-    `;
-
-    const user = await getRow(createUserQuery, [
+    const user = await createUser({
       email,
-      passwordHash,
+      password_hash: passwordHash,
       first_name,
       last_name,
-      phone || null,
-      date_of_birth || null,
-      gender || null
-    ]);
+      phone,
+      date_of_birth,
+      gender,
+      is_active: true,
+      is_verified: false,
+      is_admin: false,
+      role: 'user'
+    });
 
-    return NextResponse.json(user, { status: 201 });
+    const { password_hash, ...safeUser } = user;
+
+    return NextResponse.json(safeUser, { status: 201 });
 
   } catch (error) {
     console.error('Error creating user:', error);

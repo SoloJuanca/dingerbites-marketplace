@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../lib/auth';
-import { query, getRow } from '../../../../lib/database';
+import {
+  BRANDS_COLLECTION,
+  createBrand,
+  findBySlug,
+  listCollection
+} from '../../../../lib/firebaseCatalog';
 
 // GET /api/admin/brands - Get all brands
 export async function GET(request) {
@@ -14,10 +19,12 @@ export async function GET(request) {
       );
     }
 
-    // Get all brands
-    const brands = await query(
-      'SELECT id, name, slug, description, logo_url, website_url, is_active FROM product_brands ORDER BY name ASC'
-    );
+    const { items: brands } = await listCollection(BRANDS_COLLECTION, {
+      page: 1,
+      limit: 500,
+      onlyActive: false,
+      orderBy: 'name'
+    });
 
     return NextResponse.json({
       success: true,
@@ -64,10 +71,7 @@ export async function POST(request) {
     }
 
     // Check if slug already exists
-    const existingBrand = await getRow(
-      'SELECT id FROM product_brands WHERE slug = $1',
-      [slug]
-    );
+    const existingBrand = await findBySlug(BRANDS_COLLECTION, slug);
 
     if (existingBrand) {
       return NextResponse.json(
@@ -76,25 +80,14 @@ export async function POST(request) {
       );
     }
 
-    // Create brand
-    const insertQuery = `
-      INSERT INTO product_brands (
-        name, slug, description, logo_url, website_url, is_active
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6
-      ) RETURNING *
-    `;
-
-    const insertParams = [
+    const newBrand = await createBrand({
       name,
       slug,
       description,
       logo_url,
       website_url,
-      is_active !== undefined ? is_active : true
-    ];
-
-    const newBrand = await getRow(insertQuery, insertParams);
+      is_active: is_active !== undefined ? is_active : true
+    });
 
     return NextResponse.json({
       success: true,

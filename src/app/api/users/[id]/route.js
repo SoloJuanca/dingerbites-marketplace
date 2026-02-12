@@ -1,19 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getRow, query } from '../../../../lib/database';
+import { getUserById, updateUser } from '../../../../lib/firebaseUsers';
 
 // GET /api/users/[id] - Get user by ID
 export async function GET(request, { params }) {
   try {
     const { id } = params;
 
-    const userQuery = `
-      SELECT id, email, first_name, last_name, phone, date_of_birth, gender,
-             is_active, is_verified, email_verified_at, created_at, last_login_at
-      FROM users 
-      WHERE id = $1
-    `;
-
-    const user = await getRow(userQuery, [id]);
+    const user = await getUserById(id);
 
     if (!user) {
       return NextResponse.json(
@@ -22,7 +15,8 @@ export async function GET(request, { params }) {
       );
     }
 
-    return NextResponse.json(user);
+    const { password_hash, ...safeUser } = user;
+    return NextResponse.json(safeUser);
 
   } catch (error) {
     console.error('Error fetching user:', error);
@@ -41,7 +35,7 @@ export async function PUT(request, { params }) {
     const { first_name, last_name, phone, date_of_birth, gender } = body;
 
     // Check if user exists
-    const existingUser = await getRow('SELECT id FROM users WHERE id = $1', [id]);
+    const existingUser = await getUserById(id);
     if (!existingUser) {
       return NextResponse.json(
         { error: 'User not found' },
@@ -49,29 +43,16 @@ export async function PUT(request, { params }) {
       );
     }
 
-    // Update user
-    const updateQuery = `
-      UPDATE users 
-      SET first_name = COALESCE($2, first_name),
-          last_name = COALESCE($3, last_name),
-          phone = COALESCE($4, phone),
-          date_of_birth = COALESCE($5, date_of_birth),
-          gender = COALESCE($6, gender),
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
-      RETURNING id, email, first_name, last_name, phone, date_of_birth, gender, updated_at
-    `;
+    const user = await updateUser(id, {
+      first_name: first_name ?? existingUser.first_name,
+      last_name: last_name ?? existingUser.last_name,
+      phone: phone ?? existingUser.phone ?? null,
+      date_of_birth: date_of_birth ?? existingUser.date_of_birth ?? null,
+      gender: gender ?? existingUser.gender ?? null
+    });
 
-    const user = await getRow(updateQuery, [
-      id,
-      first_name,
-      last_name,
-      phone,
-      date_of_birth,
-      gender
-    ]);
-
-    return NextResponse.json(user);
+    const { password_hash, ...safeUser } = user;
+    return NextResponse.json(safeUser);
 
   } catch (error) {
     console.error('Error updating user:', error);
@@ -88,7 +69,7 @@ export async function DELETE(request, { params }) {
     const { id } = params;
 
     // Check if user exists
-    const existingUser = await getRow('SELECT id FROM users WHERE id = $1', [id]);
+    const existingUser = await getUserById(id);
     if (!existingUser) {
       return NextResponse.json(
         { error: 'User not found' },
@@ -96,19 +77,14 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    // Soft delete - set is_active to false
-    const deleteQuery = `
-      UPDATE users 
-      SET is_active = false, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
-      RETURNING id, email
-    `;
-
-    const user = await getRow(deleteQuery, [id]);
+    const user = await updateUser(id, { is_active: false });
 
     return NextResponse.json({
       message: 'User deleted successfully',
-      user
+      user: {
+        id: user.id,
+        email: user.email
+      }
     });
 
   } catch (error) {

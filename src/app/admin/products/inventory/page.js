@@ -300,7 +300,7 @@ export default function InventoryPage() {
               className={styles.filterSelect}
             >
               <option value="">Todas las categorías</option>
-              {Array.isArray(categories.rows) && categories.rows.map(category => (
+              {Array.isArray(categories) && categories.map(category => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>
@@ -315,7 +315,7 @@ export default function InventoryPage() {
               className={styles.filterSelect}
             >
               <option value="">Todas las marcas</option>
-              {Array.isArray(brands.rows) && brands.rows.map(brand => (
+              {Array.isArray(brands) && brands.map(brand => (
                 <option key={brand.id} value={brand.id}>
                   {brand.name}
                 </option>

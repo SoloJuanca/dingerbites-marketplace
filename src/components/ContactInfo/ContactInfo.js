@@ -3,14 +3,14 @@ import styles from './ContactInfo.module.css';
 
 export default function ContactInfo() {
   const businessInfo = {
-    name: "Patito Montenegro",
-    address: "Lince 116, Col. Praderas de Guadalupe",
-    city: "Guadalupe, Nuevo León 67203",
+    name: "Wildshot Games",
+    address: "Atencion en linea",
+    city: "Envios a todo Mexico",
     phone: "+52 81 16 13 27 54",
     //email: "info@bellabelleza.com",
     hours: {
-      weekdays: "Lunes a Viernes: 11:00 AM - 8:00 PM",
-      saturday: "Sábado: 10:00 AM - 3:00 PM",
+      weekdays: "Lunes a Viernes: 10:00 AM - 7:00 PM",
+      saturday: "Sabado: 10:00 AM - 3:00 PM",
       sunday: "Domingo: Cerrado"
     }
   };
@@ -21,10 +21,11 @@ export default function ContactInfo() {
         <div className={styles.content}>
           <div className={styles.textContent}>
             <h2 className={styles.title}>
-              ¡Visitanos en persona!
+              Hablemos de tu siguiente juego.
             </h2>
             <p className={styles.subtitle}>
-              Descubre todos nuestros productos en nuestra tienda fisica y recibe atención personalizada.
+              Te ayudamos a elegir segun numero de jugadores, edad y tiempo de partida.
+              Recibe asesoria personalizada y seguimiento de tu pedido.
             </p>
             
             <div className={styles.contactDetails}>
@@ -85,7 +86,7 @@ export default function ContactInfo() {
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
                 className={styles.map}
-                title="Ubicación de Bella Belleza"
+                title="Ubicacion de Wildshot Games"
               ></iframe>
             </div>
             <div className={styles.mapFooter}>

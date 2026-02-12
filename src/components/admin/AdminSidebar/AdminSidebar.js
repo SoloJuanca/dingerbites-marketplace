@@ -112,8 +112,8 @@ export default function AdminSidebar({ isOpen, onToggle }) {
       <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
         <div className={styles.sidebarHeader}>
           <div className={styles.logo}>
-            <span className={styles.logoIcon}>💅</span>
-            <span className={styles.logoText}>Patito Admin</span>
+            <span className={styles.logoIcon}></span>
+            <span className={styles.logoText}>Admin</span>
           </div>
           <button 
             className={styles.closeButton}

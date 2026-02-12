@@ -66,7 +66,7 @@
 .itemPrice {
   font-size: 16px;
   font-weight: 600;
-  color: #ec407a;
+  color: var(--brand-primary);;
   margin: 0;
 }
 
@@ -101,8 +101,8 @@
 }
 
 .quantityBtn:hover:not(:disabled) {
-  background: #ec407a;
-  border-color: #ec407a;
+  background: var(--brand-primary);;
+  border-color: var(--brand-primary);;
   color: white;
 }
 

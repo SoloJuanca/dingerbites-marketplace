@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getRow, query } from '../../../../lib/database';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { comparePassword, generateToken } from '../../../../lib/auth';
+import { getUserByEmail, updateUser } from '../../../../lib/firebaseUsers';
 
 // POST /api/auth/login - User login
 export async function POST(request) {
@@ -18,13 +17,7 @@ export async function POST(request) {
     }
 
     // Get user by email
-    const userQuery = `
-      SELECT id, email, password_hash, first_name, last_name, role, is_active, is_verified
-      FROM users 
-      WHERE email = $1
-    `;
-
-    const user = await getRow(userQuery, [email]);
+    const user = await getUserByEmail(email);
 
     if (!user) {
       return NextResponse.json(
@@ -42,7 +35,7 @@ export async function POST(request) {
     }
 
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    const isValidPassword = await comparePassword(password, user.password_hash);
     if (!isValidPassword) {
       return NextResponse.json(
         { error: 'Invalid email or password' },
@@ -50,24 +43,11 @@ export async function POST(request) {
       );
     }
 
-    // Update last login
-    await query(
-      'UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1',
-      [user.id]
-    );
+    await updateUser(user.id, {
+      last_login_at: new Date().toISOString()
+    });
 
-    // Generate JWT token
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        role: user.role || 'user'
-      },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '7d' }
-    );
+    const token = generateToken(user);
 
     // Remove password from response
     const { password_hash, ...userWithoutPassword } = user;

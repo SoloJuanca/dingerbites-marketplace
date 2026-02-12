@@ -51,7 +51,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #ec407a 0%, #ad1457 100%);
+  background: linear-gradient(90deg, var(--brand-primary); 0%, #ad1457 100%);
   border-radius: 16px 16px 0 0;
 }
 
@@ -65,7 +65,7 @@
   color: #2d3748;
   margin-bottom: 16px;
   padding-bottom: 8px;
-  border-bottom: 2px solid #ec407a;
+  border-bottom: 2px solid var(--brand-primary);;
 }
 
 .text {
@@ -107,7 +107,7 @@
 
 .list li::before {
   content: '•';
-  color: #ec407a;
+  color: var(--brand-primary);;
   font-weight: bold;
   position: absolute;
   left: 0;

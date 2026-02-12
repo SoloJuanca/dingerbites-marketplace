@@ -12,15 +12,15 @@ export default function Footer() {
             <div className={styles.leftSection}>
               <div className={styles.foodSection}>
                 <h3 className={styles.sectionTitle}>
-                  <Icon name="palette" size={32} className={styles.sectionIcon} />
-                  ¡Explora, elige y has brillar tu creatividad!
+                  <Icon name="sports_esports" size={32} className={styles.sectionIcon} />
+                  Descubre tu proximo juego favorito.
                 </h3>
               </div>
             </div>
             <div className={styles.rightSection}>
                 <Link href="/catalog" className={styles.catalogButton}>
                 <div className={styles.promoText}>
-                  <span className={styles.highlight}>Busca tus productos favoritos</span>
+                  <span className={styles.highlight}>Explora el catalogo de juegos de mesa</span>
                 </div>
                 </Link>
             </div>
@@ -32,9 +32,13 @@ export default function Footer() {
         <div className={styles.container}>
           <div className={styles.footerContent}>
             <div className={styles.logo}>
-              <span className={styles.logoText}>
-                <Image src="/logo_w.png" alt="Logo" width={200} height={250} />
-              </span>
+              <Image
+                src="/logo-wildshot.jpg"
+                alt="Wildshot Games"
+                width={320}
+                height={72}
+                className={styles.footerLogoImage}
+              />
             </div>
             <div className={styles.links}>
               <div className={styles.linkGroup}>
