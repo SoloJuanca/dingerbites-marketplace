@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -12,7 +12,7 @@ import Footer from '../../components/Footer/Footer';
 import ProductCard from '../../components/ProductCard/ProductCard';
 import styles from './profile.module.css';
 
-export default function ProfilePage() {
+function ProfileContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isAuthenticated, isLoading, apiRequest } = useAuth();
@@ -580,5 +580,29 @@ export default function ProfilePage() {
 
       <Footer />
     </>
+  );
+}
+
+function ProfileFallback() {
+  return (
+    <>
+      <Header />
+      <main className={styles.main}>
+        <div className={styles.container}>
+          <div className={styles.loading} style={{ padding: '48px 24px', textAlign: 'center' }}>
+            Cargando perfil...
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={<ProfileFallback />}>
+      <ProfileContent />
+    </Suspense>
   );
 }
