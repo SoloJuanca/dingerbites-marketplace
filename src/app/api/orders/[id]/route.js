@@ -31,8 +31,8 @@ export async function GET(request, { params }) {
 export async function PUT(request, { params }) {
   try {
     const { id } = await params;
-    const body = await request.json();
-    const { status_id, notes } = body;
+    const body = await request.json().catch(() => ({}));
+    const { status_id, notes, tracking_id, carrier_company, tracking_url } = body || {};
 
     const existingOrder = await getOrderById(id);
     if (!existingOrder) {
@@ -52,7 +52,17 @@ export async function PUT(request, { params }) {
       }
     }
 
-    const updated = await updateOrderStatus(id, status_id || existingOrder.status_id, notes);
+    const shippingInfo = {};
+    if (tracking_id !== undefined) shippingInfo.tracking_id = tracking_id == null ? null : String(tracking_id).trim() || null;
+    if (carrier_company !== undefined) shippingInfo.carrier_company = carrier_company == null ? null : String(carrier_company).trim() || null;
+    if (tracking_url !== undefined) shippingInfo.tracking_url = tracking_url == null ? null : String(tracking_url).trim() || null;
+
+    const updated = await updateOrderStatus(
+      id,
+      status_id || existingOrder.status_id,
+      notes,
+      Object.keys(shippingInfo).length ? shippingInfo : undefined
+    );
     return NextResponse.json(updated);
   } catch (error) {
     console.error('Error updating order:', error);

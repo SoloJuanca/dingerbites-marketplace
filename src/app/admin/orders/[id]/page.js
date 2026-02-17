@@ -16,6 +16,9 @@ export default function AdminOrderDetail() {
   const [updating, setUpdating] = useState(false);
   const [orderItems, setOrderItems] = useState([]);
   const [orderStatuses, setOrderStatuses] = useState([]);
+  const [shippingTrackingId, setShippingTrackingId] = useState('');
+  const [shippingCarrier, setShippingCarrier] = useState('');
+  const [shippingUrl, setShippingUrl] = useState('');
 
   useEffect(() => {
     if (params.id) {
@@ -33,6 +36,9 @@ export default function AdminOrderDetail() {
         const data = await response.json();
         setOrder(data.order);
         setOrderItems(data.items || []);
+        setShippingTrackingId(data.order?.tracking_id ?? '');
+        setShippingCarrier(data.order?.carrier_company ?? '');
+        setShippingUrl(data.order?.tracking_url ?? '');
       } else {
         toast.error('Error al cargar el pedido');
         router.push('/admin/orders');
@@ -69,12 +75,40 @@ export default function AdminOrderDetail() {
 
       if (response.ok) {
         toast.success('Estado del pedido actualizado');
-        loadOrder(); // Reload order to get updated data
+        loadOrder();
       } else {
         toast.error('Error al actualizar el estado');
       }
     } catch (error) {
       console.error('Error updating order status:', error);
+      toast.error('Error al conectar con el servidor');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleSaveShippingInfo = async () => {
+    try {
+      setUpdating(true);
+      const response = await apiRequest(`/api/orders/${params.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status_id: order.status_id,
+          tracking_id: shippingTrackingId.trim() || null,
+          carrier_company: shippingCarrier.trim() || null,
+          tracking_url: shippingUrl.trim() || null
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Información de envío guardada');
+        loadOrder();
+      } else {
+        toast.error('Error al guardar la información de envío');
+      }
+    } catch (error) {
+      console.error('Error saving shipping info:', error);
       toast.error('Error al conectar con el servidor');
     } finally {
       setUpdating(false);
@@ -174,7 +208,7 @@ export default function AdminOrderDetail() {
               </div>
               <div className={styles.summaryItem}>
                 <label>Estado de Pago:</label>
-                <span>{order.payment_status}</span>
+                <span>{order.payment_status || '—'}</span>
               </div>
               <div className={styles.summaryItem}>
                 <label>Método de Envío:</label>
@@ -182,8 +216,28 @@ export default function AdminOrderDetail() {
               </div>
               <div className={styles.summaryItem}>
                 <label>Número de Seguimiento:</label>
-                <span>{order.tracking_number || 'No especificado'}</span>
+                <span>{order.tracking_id || order.tracking_number || '—'}</span>
               </div>
+              {(order.carrier_company || order.tracking_url) && (
+                <>
+                  {order.carrier_company && (
+                    <div className={styles.summaryItem}>
+                      <label>Paquetería:</label>
+                      <span>{order.carrier_company}</span>
+                    </div>
+                  )}
+                  {order.tracking_url && (
+                    <div className={styles.summaryItem}>
+                      <label>Seguimiento:</label>
+                      <span>
+                        <a href={order.tracking_url} target="_blank" rel="noopener noreferrer" className={styles.trackingLink}>
+                          Ver rastreo
+                        </a>
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
 
@@ -317,6 +371,60 @@ export default function AdminOrderDetail() {
                 ))}
               </select>
               {updating && <span className={styles.updating}>Actualizando...</span>}
+            </div>
+          </div>
+
+          {/* Shipping info (optional): sent to shipping, tracking */}
+          <div className={styles.section}>
+            <h2>Información de envío (opcional)</h2>
+            <p className={styles.sectionHint}>
+              Añade número de guía, paquetería y enlace de rastreo cuando hayas enviado el pedido.
+            </p>
+            <div className={styles.shippingForm}>
+              <div className={styles.shippingField}>
+                <label htmlFor="tracking_id">Número de guía / Tracking ID</label>
+                <input
+                  id="tracking_id"
+                  type="text"
+                  value={shippingTrackingId}
+                  onChange={(e) => setShippingTrackingId(e.target.value)}
+                  placeholder="Ej: 1234567890"
+                  className={styles.shippingInput}
+                  disabled={updating}
+                />
+              </div>
+              <div className={styles.shippingField}>
+                <label htmlFor="carrier_company">Paquetería</label>
+                <input
+                  id="carrier_company"
+                  type="text"
+                  value={shippingCarrier}
+                  onChange={(e) => setShippingCarrier(e.target.value)}
+                  placeholder="Ej: DHL, FedEx, Estafeta"
+                  className={styles.shippingInput}
+                  disabled={updating}
+                />
+              </div>
+              <div className={styles.shippingField}>
+                <label htmlFor="tracking_url">URL de rastreo</label>
+                <input
+                  id="tracking_url"
+                  type="url"
+                  value={shippingUrl}
+                  onChange={(e) => setShippingUrl(e.target.value)}
+                  placeholder="https://..."
+                  className={styles.shippingInput}
+                  disabled={updating}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleSaveShippingInfo}
+                disabled={updating}
+                className={styles.saveShippingButton}
+              >
+                {updating ? 'Guardando...' : 'Guardar información de envío'}
+              </button>
             </div>
           </div>
         </div>

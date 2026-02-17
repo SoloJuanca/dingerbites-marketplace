@@ -476,11 +476,16 @@ export async function sendOrderNotifications(orderData) {
     // Enviar correo al cliente
     if (orderData.customer_email) {
       const customerEmailResult = await sendEmail({
-        to: [{ email: orderData.customer_email, name: orderData.customer_name }],
+        to: [{ email: orderData.customer_email, name: orderData.customer_name || 'Cliente' }],
         subject: `✅ Confirmación de Pedido - ${orderData.order_number}`,
         htmlContent: generateCustomerEmailContent(orderData)
       });
       results.customerEmail = customerEmailResult;
+      if (!customerEmailResult.success) {
+        console.error('Customer order confirmation email failed:', customerEmailResult.error);
+      }
+    } else {
+      console.warn('Order has no customer_email; skipping customer notification');
     }
 
     return results;

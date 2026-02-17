@@ -159,8 +159,8 @@ export async function createOrder(orderPayload) {
   return { id: docRef.id, order_number: doc.order_number, ...doc };
 }
 
-/** Update order status and append to history */
-export async function updateOrderStatus(orderId, statusId, notes) {
+/** Update order status and append to history. Optional: tracking_id, carrier_company, tracking_url */
+export async function updateOrderStatus(orderId, statusId, notes, shippingInfo = {}) {
   const orderRef = db.collection(ORDERS_COLLECTION).doc(String(orderId));
   const orderDoc = await orderRef.get();
   if (!orderDoc.exists) return null;
@@ -168,12 +168,19 @@ export async function updateOrderStatus(orderId, statusId, notes) {
   const now = new Date().toISOString();
   const history = Array.isArray(order.history) ? [...order.history] : [];
   history.push({ status_id: statusId, notes: notes || 'Status updated', created_at: now });
-  await orderRef.update({
+
+  const updateData = {
     status_id: statusId,
     notes: notes !== undefined ? notes : order.notes,
     history,
     updated_at: now
-  });
+  };
+
+  if (shippingInfo.tracking_id !== undefined) updateData.tracking_id = shippingInfo.tracking_id || null;
+  if (shippingInfo.carrier_company !== undefined) updateData.carrier_company = shippingInfo.carrier_company || null;
+  if (shippingInfo.tracking_url !== undefined) updateData.tracking_url = shippingInfo.tracking_url || null;
+
+  await orderRef.update(updateData);
   const updated = await orderRef.get();
   return { id: updated.id, ...updated.data() };
 }

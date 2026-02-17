@@ -284,11 +284,26 @@ export async function POST(request) {
       }
     }
 
+    let customerEmailSent = false;
     if (!skip_email) {
-      sendOrderNotifications(orderData).catch((err) => console.error('Email notifications error:', err));
+      try {
+        const emailResults = await sendOrderNotifications(orderData);
+        customerEmailSent = emailResults.customerEmail?.success === true;
+        if (!emailResults.adminEmail?.success) {
+          console.warn('Order created but admin notification email failed:', emailResults.adminEmail?.error);
+        }
+        if (orderData.customer_email && !customerEmailSent) {
+          console.warn('Order created but customer confirmation email failed:', emailResults.customerEmail?.error);
+        }
+      } catch (err) {
+        console.error('Email notifications error:', err);
+      }
     }
 
-    return NextResponse.json(result, { status: 201 });
+    return NextResponse.json(
+      { ...result, email_sent: customerEmailSent },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Error creating order:', error);
     const message = process.env.NODE_ENV === 'development' ? error.message : 'Failed to create order';
