@@ -21,7 +21,7 @@ function generateSlug(value) {
 // GET /api/brands/[id] - Get brand by ID
 export async function GET(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const brand = await getById(BRANDS_COLLECTION, id);
 
@@ -46,7 +46,7 @@ export async function GET(request, { params }) {
 // PUT /api/brands/[id] - Update brand
 export async function PUT(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { name, description, logo_url, website_url } = body;
 
@@ -96,7 +96,7 @@ export async function PUT(request, { params }) {
 // DELETE /api/brands/[id] - Delete brand
 export async function DELETE(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Check if brand exists
     const existingBrand = await getById(BRANDS_COLLECTION, id);

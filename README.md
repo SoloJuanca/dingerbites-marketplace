@@ -1,4 +1,4 @@
-# Patito Montenegro E-commerce
+# Wildshot Games E-commerce
 
 Este es un proyecto de e-commerce construido con [Next.js](https://nextjs.org) 14 usando App Router y JavaScript puro.
 
@@ -34,7 +34,7 @@ El sistema ahora envía automáticamente correos electrónicos cuando se recibe 
    ```env
    BREVO_API_KEY=tu-api-key-de-brevo
    BREVO_SENDER_EMAIL=noreply@tudominio.com
-   BREVO_SENDER_NAME=Patito Montenegro
+   BREVO_SENDER_NAME=Wildshot Games
    ADMIN_EMAIL=admin@tudominio.com
    ```
 

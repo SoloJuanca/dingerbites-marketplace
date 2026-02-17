@@ -291,13 +291,15 @@ export default function SimpleCheckout() {
         });
       }
 
-      let orderResult = null;
-      if (orderResponse.ok) {
-        orderResult = await orderResponse.json();
+      if (!orderResponse.ok) {
+        const errData = await orderResponse.json().catch(() => ({}));
+        const errMessage = errData?.error || 'No se pudo crear la orden';
+        toast.error(errMessage);
+        return;
       }
 
-      // Preparar datos para la confirmación
-      const orderNumber = orderResult?.order?.order_number || `TEMP-${Date.now()}`;
+      const orderResult = await orderResponse.json();
+      const orderNumber = orderResult?.order_number || `TEMP-${Date.now()}`;
 
       // Limpiar carrito después de la orden exitosa
       clearCart();
@@ -347,7 +349,7 @@ export default function SimpleCheckout() {
       {/* Header del Checkout */}
       <div className={styles.checkoutHeader}>
         <Link href="/" className={styles.logo}>
-          <span className={styles.logoText}>🦆 Patito Montenegro</span>
+          <span className={styles.logoText}>🦆 Wildshot Games</span>
         </Link>
         <Link href="/cart" className={styles.backToCart}>
           ← Volver al Carrito

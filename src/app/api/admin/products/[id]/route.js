@@ -24,7 +24,7 @@ export async function GET(request, { params }) {
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const productRef = db.collection(PRODUCTS_COLLECTION).doc(String(id));
     const productSnap = await productRef.get();
     if (!productSnap.exists) {
@@ -91,7 +91,7 @@ export async function PUT(request, { params }) {
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
 
     const productRef = db.collection(PRODUCTS_COLLECTION).doc(String(id));
@@ -225,7 +225,7 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const productRef = db.collection(PRODUCTS_COLLECTION).doc(String(id));
     const existingSnap = await productRef.get();
     if (!existingSnap.exists) {

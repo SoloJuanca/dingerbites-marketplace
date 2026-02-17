@@ -4,7 +4,7 @@ const BREVO_API_URL = 'https://api.brevo.com/v3';
 // Configuraciones por defecto
 const DEFAULT_SENDER = {
   email: process.env.BREVO_SENDER_EMAIL || 'noreply@patitomontenegro.com',
-  name: process.env.BREVO_SENDER_NAME || 'Patito Montenegro'
+  name: process.env.BREVO_SENDER_NAME || 'Wildshot Games'
 };
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@patitomontenegro.com';
@@ -189,7 +189,7 @@ export function generateAdminEmailContent(orderData) {
         <!-- Header -->
         <div style="text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #e2e8f0;">
           <h1 style="color: #2d3748; margin: 0; font-size: 28px;">🛍️ Nuevo Pedido Recibido</h1>
-          <p style="color: #718096; margin: 8px 0 0 0; font-size: 16px;">Patito Montenegro</p>
+          <p style="color: #718096; margin: 8px 0 0 0; font-size: 16px;">Wildshot Games</p>
         </div>
 
         <!-- Información del Pedido -->
@@ -266,7 +266,7 @@ export function generateAdminEmailContent(orderData) {
         <!-- Footer -->
         <div style="text-align: center; padding-top: 24px; border-top: 1px solid #e2e8f0;">
           <p style="color: #718096; margin: 0; font-size: 14px;">
-            Este es un correo automático generado por el sistema de e-commerce de Patito Montenegro.
+            Este es un correo automático generado por el sistema de e-commerce de Wildshot Games.
           </p>
           <p style="color: #718096; margin: 8px 0 0 0; font-size: 14px;">
             Por favor, procese este pedido lo antes posible.
@@ -367,7 +367,7 @@ export function generateCustomerEmailContent(orderData) {
         <!-- Header -->
         <div style="text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #e2e8f0;">
           <h1 style="color: #2d3748; margin: 0; font-size: 28px;">✅ Pedido Confirmado</h1>
-          <p style="color: #718096; margin: 8px 0 0 0; font-size: 16px;">Patito Montenegro</p>
+          <p style="color: #718096; margin: 8px 0 0 0; font-size: 16px;">Wildshot Games</p>
         </div>
 
         <!-- Saludo -->
@@ -443,7 +443,7 @@ export function generateCustomerEmailContent(orderData) {
             ¡Gracias por elegirnos!
           </p>
           <p style="color: #718096; margin: 0; font-size: 14px;">
-            Patito Montenegro - Tu tienda online de confianza
+            Wildshot Games - Tu tienda online de confianza
           </p>
         </div>
 

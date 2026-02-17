@@ -4,7 +4,7 @@ import { getUserById, updateUser } from '../../../../lib/firebaseUsers';
 // GET /api/users/[id] - Get user by ID
 export async function GET(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const user = await getUserById(id);
 
@@ -30,7 +30,7 @@ export async function GET(request, { params }) {
 // PUT /api/users/[id] - Update user
 export async function PUT(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { first_name, last_name, phone, date_of_birth, gender } = body;
 
@@ -66,7 +66,7 @@ export async function PUT(request, { params }) {
 // DELETE /api/users/[id] - Delete user
 export async function DELETE(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Check if user exists
     const existingUser = await getUserById(id);

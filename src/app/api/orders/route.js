@@ -26,8 +26,9 @@ export async function GET(request) {
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching orders:', error);
+    const message = process.env.NODE_ENV === 'development' ? error.message : 'Failed to fetch orders';
     return NextResponse.json(
-      { error: 'Failed to fetch orders' },
+      { error: message },
       { status: 500 }
     );
   }
@@ -36,7 +37,21 @@ export async function GET(request) {
 // POST /api/orders - Create new order
 export async function POST(request) {
   try {
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400 }
+      );
+    }
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json(
+        { error: 'Request body is required' },
+        { status: 400 }
+      );
+    }
     const {
       user_id,
       items,
@@ -67,12 +82,17 @@ export async function POST(request) {
     }
 
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-    const pendingStatusId = await getOrderStatusIdByName('pending');
+    let pendingStatusId = await getOrderStatusIdByName('pending');
     if (!pendingStatusId) {
-      return NextResponse.json(
-        { error: 'Order status not found' },
-        { status: 500 }
-      );
+      // Auto-create default "pending" status if collection is empty (first run)
+      const statusRef = db.collection('order_statuses').doc();
+      await statusRef.set({
+        name: 'pending',
+        description: 'Pending',
+        color: '#f59e0b',
+        sort_order: 0
+      });
+      pendingStatusId = statusRef.id;
     }
 
     let finalUserId = user_id;
@@ -271,8 +291,9 @@ export async function POST(request) {
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
     console.error('Error creating order:', error);
+    const message = process.env.NODE_ENV === 'development' ? error.message : 'Failed to create order';
     return NextResponse.json(
-      { error: 'Failed to create order' },
+      { error: message },
       { status: 500 }
     );
   }

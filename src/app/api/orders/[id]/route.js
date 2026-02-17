@@ -4,7 +4,7 @@ import { getOrderById, updateOrderStatus, cancelOrder, getOrderStatusById } from
 // GET /api/orders/[id] - Get order by ID with details
 export async function GET(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const order = await getOrderById(id);
     if (!order) {
       return NextResponse.json(
@@ -30,7 +30,7 @@ export async function GET(request, { params }) {
 // PUT /api/orders/[id] - Update order status
 export async function PUT(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { status_id, notes } = body;
 
@@ -66,7 +66,7 @@ export async function PUT(request, { params }) {
 // DELETE /api/orders/[id] - Cancel order
 export async function DELETE(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const existingOrder = await getOrderById(id);
     if (!existingOrder) {
       return NextResponse.json(

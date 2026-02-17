@@ -96,7 +96,7 @@ export default function ContactPage() {
               <div className={styles.heroImage}>
                 <Image
                   src="https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=500&h=400&fit=crop&crop=center"
-                  alt="Contacto Patito Montenegro"
+                  alt="Contacto Wildshot Games"
                   width={500}
                   height={400}
                   className={styles.contactImage}

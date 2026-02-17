@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import Header from '../../../components/Header/Header';
 import Footer from '../../../components/Footer/Footer';
 import ImageCarousel from '../../../components/ImageCarousel/ImageCarousel';
@@ -127,7 +128,8 @@ function ProductData({ slug }) {
   );
 }
 
-export default function ProductPage({ params }) {
+export default function ProductPage() {
+  const { slug } = useParams();
   return (
     <Suspense fallback={
       <div>
@@ -142,7 +144,7 @@ export default function ProductPage({ params }) {
         <Footer />
       </div>
     }>
-      <ProductData slug={params.slug} />
+      <ProductData slug={slug} />
     </Suspense>
   );
 } 

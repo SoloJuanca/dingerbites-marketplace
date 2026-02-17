@@ -156,19 +156,23 @@ export default function CheckoutFlow() {
         });
       }
 
-      let orderResult = null;
-      if (orderResponse.ok) {
-        orderResult = await orderResponse.json();
+      if (!orderResponse.ok) {
+        const errData = await orderResponse.json().catch(() => ({}));
+        const errMessage = errData?.error || 'No se pudo crear la orden';
+        toast.error(errMessage);
+        return;
       }
+
+      const orderResult = await orderResponse.json();
 
       // Crear mensaje de WhatsApp
       const orderSummary = items.map(item => 
         `• ${item.name} x${item.quantity} - ${formatPrice(item.price * item.quantity)}`
       ).join('\n');
 
-      const finalOrderNumber = orderResult?.order?.order_number || `TEMP-${Date.now()}`;
+      const finalOrderNumber = orderResult?.order_number || `TEMP-${Date.now()}`;
       
-                        const message = `🛍️ *Nueva Orden - Patito Montenegro*\n` +
+                        const message = `🛍️ *Nueva Orden - Wildshot Games*\n` +
                     `📋 *Número de Orden:* ${finalOrderNumber}\n\n` +
                     `👤 *Información de Contacto:*\n` +
                     `Nombre: ${checkoutData.contactInfo.name}\n` +

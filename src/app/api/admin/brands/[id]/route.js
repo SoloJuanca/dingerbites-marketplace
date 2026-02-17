@@ -21,7 +21,7 @@ export async function PUT(request, { params }) {
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
 
     // Check if brand exists
@@ -99,7 +99,7 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Check if brand exists
     const existingBrand = await getById(BRANDS_COLLECTION, id);

@@ -476,7 +476,7 @@ export default function AdminPOS() {
 
     lines.push('\x1B\x40'); // Initialize
     lines.push('\x1B\x61\x01'); // Center
-    lines.push('Patito Montenegro\n');
+    lines.push('Wildshot Games\n');
     lines.push('Ticket de venta\n');
     lines.push('\n');
     lines.push('\x1B\x61\x00'); // Left
@@ -793,7 +793,7 @@ export default function AdminPOS() {
                 <h4 className={styles.previewTitle}>Vista previa del ticket</h4>
                 <div className={`${styles.printArea} posPrintArea`}>
                   <div className={styles.printHeader}>
-                    <h2>Patito Montenegro</h2>
+                    <h2>Wildshot Games</h2>
                     <p>Ticket de venta</p>
                   </div>
                   <div className={styles.printMeta}>

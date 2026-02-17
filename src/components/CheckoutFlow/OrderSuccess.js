@@ -116,7 +116,7 @@ export default function OrderSuccess({
 
       <div className={styles.thankYouMessage}>
         <p>
-          <strong>¡Gracias por tu compra en Patito Montenegro!</strong>
+          <strong>¡Gracias por tu compra en Wildshot Games!</strong>
         </p>
         <p>
           Esperamos que disfrutes tus productos. 

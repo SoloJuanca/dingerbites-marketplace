@@ -10,12 +10,12 @@ export default function TerminosPage() {
         <div className={styles.container}>
           <div className={styles.content}>
             <h1 className={styles.title}>Términos y Condiciones</h1>
-            <p className={styles.subtitle}>Patito Montenegro</p>
+            <p className={styles.subtitle}>Wildshot Games</p>
             
             <div className={styles.section}>
               <h2 className={styles.sectionTitle}>1. Objeto</h2>
               <p className={styles.text}>
-                Los presentes Términos regulan el acceso y uso del sitio web Patito Montenegro, 
+                Los presentes Términos regulan el acceso y uso del sitio web Wildshot Games, 
                 dedicado a la venta de productos de uñas y maquillaje.
               </p>
             </div>
@@ -64,14 +64,14 @@ export default function TerminosPage() {
               <h2 className={styles.sectionTitle}>7. Propiedad intelectual</h2>
               <p className={styles.text}>
                 El contenido del sitio (marcas, logotipos, imágenes, diseños y textos) es 
-                propiedad de Patito Montenegro o de sus respectivos titulares.
+                propiedad de Wildshot Games o de sus respectivos titulares.
               </p>
             </div>
 
             <div className={styles.section}>
               <h2 className={styles.sectionTitle}>8. Responsabilidad</h2>
               <p className={styles.text}>
-                Patito Montenegro no se hace responsable por el mal uso de los productos 
+                Wildshot Games no se hace responsable por el mal uso de los productos 
                 adquiridos ni por retrasos atribuibles a las paqueterías externas.
               </p>
             </div>

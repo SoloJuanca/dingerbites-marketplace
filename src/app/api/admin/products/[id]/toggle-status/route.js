@@ -13,7 +13,7 @@ export async function PATCH(request, { params }) {
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const productRef = db.collection('products').doc(String(id));
     const productSnap = await productRef.get();
     if (!productSnap.exists) {
