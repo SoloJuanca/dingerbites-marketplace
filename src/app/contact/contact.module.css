@@ -36,7 +36,7 @@
 }
 
 .highlight {
-  color: var(--brand-primary);;
+  color: var(--brand-primary);
 }
 
 .heroSubtitle {
@@ -88,11 +88,11 @@
 
 .contactCard:hover {
   transform: translateY(-8px);
-  box-shadow: 0 8px 30px rgba(236, 64, 122, 0.15);
+  box-shadow: 0 8px 30px rgba(107, 33, 168, 0.15);
 }
 
 .contactIcon {
-  color: var(--brand-primary);;
+  color: var(--brand-primary);
   margin-bottom: 24px;
 }
 
@@ -174,7 +174,7 @@
 }
 
 .faqQuestion.active {
-  background: var(--brand-primary);;
+  background: var(--brand-primary);
   color: white;
 }
 
@@ -238,7 +238,7 @@
 }
 
 .locationIcon {
-  color: var(--brand-primary);;
+  color: var(--brand-primary);
   margin-bottom: 24px;
 }
 
@@ -269,7 +269,7 @@
 }
 
 .detailIcon {
-  color: var(--brand-primary);;
+  color: var(--brand-primary);
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -288,7 +288,7 @@
 }
 
 .mapIcon {
-  color: var(--brand-primary);;
+  color: var(--brand-primary);
   margin-bottom: 24px;
 }
 
@@ -304,7 +304,7 @@
 }
 
 .mapButton {
-  background: var(--brand-primary);;
+  background: var(--brand-primary);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -319,7 +319,7 @@
 }
 
 .mapButton:hover {
-  background: #ad1457;
+  background: var(--brand-primary);
 }
 
 /* Contact Form Section */
@@ -375,9 +375,9 @@
 }
 
 .socialButton:hover {
-  background: var(--brand-primary);;
+  background: var(--brand-primary);
   color: white;
-  border-color: var(--brand-primary);;
+  border-color: var(--brand-primary);
 }
 
 .form {
@@ -421,7 +421,7 @@
 .formSelect:focus,
 .formTextarea:focus {
   outline: none;
-  border-color: var(--brand-primary);;
+  border-color: var(--brand-primary);
 }
 
 .formTextarea {
@@ -430,7 +430,7 @@
 }
 
 .formButton {
-  background: var(--brand-primary);;
+  background: var(--brand-primary);
   color: white;
   border: none;
   padding: 16px 32px;
@@ -448,7 +448,7 @@
 }
 
 .formButton:hover {
-  background: #ad1457;
+  background: var(--brand-primary);
 }
 
 /* Animations */

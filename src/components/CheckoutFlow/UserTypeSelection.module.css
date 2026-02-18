@@ -37,15 +37,15 @@
 }
 
 .option:hover {
-  border-color: var(--brand-primary);;
+  border-color: var(--brand-primary);
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(236, 64, 122, 0.15);
+  box-shadow: 0 8px 25px rgba(107, 33, 168, 0.15);
 }
 
 .option.selected {
-  border-color: var(--brand-primary);;
+  border-color: var(--brand-primary);
   background: #fef7f7;
-  box-shadow: 0 8px 25px rgba(236, 64, 122, 0.15);
+  box-shadow: 0 8px 25px rgba(107, 33, 168, 0.15);
 }
 
 .optionIcon {
@@ -132,7 +132,7 @@
 }
 
 .nextButton {
-  background: var(--brand-primary);;
+  background: var(--brand-primary);
   color: white;
   border: none;
   padding: 16px 32px;
@@ -145,9 +145,9 @@
 }
 
 .nextButton:hover:not(:disabled) {
-  background: #ad1457;
+  background: var(--brand-primary);
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(236, 64, 122, 0.3);
+  box-shadow: 0 8px 25px rgba(107, 33, 168, 0.3);
 }
 
 .nextButton.disabled {

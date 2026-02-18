@@ -55,7 +55,7 @@ export default function Header() {
       <div className={styles.container}>
         <div className={styles.logo}>
           <Link href="/" className={styles.logoText} onClick={closeMenu}>
-            <Image src="/logo-wildshot.jpg" alt="Wildshot Games" width={280} height={64} priority />
+            <Image src="/logo-wildshot.png" alt="Wildshot Games" width={64} height={64} priority />
           </Link>
         </div>
         

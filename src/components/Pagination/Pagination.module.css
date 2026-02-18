@@ -25,19 +25,19 @@
 
 .pageBtn:hover:not(.disabled) {
   background-color: #f8f9fa;
-  border-color: var(--brand-primary);;
-  color: var(--brand-primary);;
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
 }
 
 .pageBtn.active {
-  background-color: var(--brand-primary);;
-  border-color: var(--brand-primary);;
+  background-color: var(--brand-primary);
+  border-color: var(--brand-primary);
   color: white;
 }
 
 .pageBtn.active:hover {
-  background-color: #ad1457;
-  border-color: #ad1457;
+  background-color: var(--brand-primary);
+  border-color: var(--brand-primary);
 }
 
 .pageBtn.prevNext {

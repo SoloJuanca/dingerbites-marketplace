@@ -32,7 +32,7 @@
 .price {
   font-size: 24px;
   font-weight: 600;
-  color: var(--brand-primary);;
+  color: var(--brand-primary);
   margin: 0;
 }
 
@@ -53,7 +53,7 @@
 }
 
 .categoryBadge {
-  background-color: var(--brand-primary);;
+  background-color: var(--brand-primary);
   color: white;
 }
 

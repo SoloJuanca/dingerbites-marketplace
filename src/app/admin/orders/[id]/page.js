@@ -136,7 +136,7 @@ export default function AdminOrderDetail() {
   const getStatusColor = (statusName) => {
     const statusColors = {
       'pending': '#fbbf24',
-      'confirmed': '#3b82f6',
+      'confirmed': '#6b21a8',
       'processing': '#8b5cf6',
       'shipped': '#10b981',
       'delivered': '#059669',

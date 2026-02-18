@@ -39,8 +39,8 @@
   padding: 32px;
   border-radius: 16px;
   margin-bottom: 40px;
-  box-shadow: 0 2px 16px rgba(236, 64, 122, 0.08);
-  border: 1px solid rgba(236, 64, 122, 0.1);
+  box-shadow: 0 2px 16px rgba(107, 33, 168, 0.08);
+  border: 1px solid rgba(107, 33, 168, 0.1);
   position: relative;
 }
 
@@ -51,7 +51,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--brand-primary); 0%, #ad1457 100%);
+  background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-primary-hover) 100%);
   border-radius: 16px 16px 0 0;
 }
 
@@ -65,7 +65,7 @@
   color: #2d3748;
   margin-bottom: 16px;
   padding-bottom: 8px;
-  border-bottom: 2px solid var(--brand-primary);;
+  border-bottom: 2px solid var(--brand-primary);
 }
 
 .text {
@@ -107,7 +107,7 @@
 
 .list li::before {
   content: '•';
-  color: var(--brand-primary);;
+  color: var(--brand-primary);
   font-weight: bold;
   position: absolute;
   left: 0;

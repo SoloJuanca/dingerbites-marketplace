@@ -186,7 +186,7 @@
   display: inline-flex;
   align-items: center;
   padding: 6px 12px;
-  background: #3b82f6;
+  background: var(--brand-primary);
   color: white;
   text-decoration: none;
   border-radius: 6px;
@@ -196,9 +196,9 @@
 }
 
 .actionButton:hover {
-  background: #2563eb;
+  background: var(--brand-primary-hover);
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 8px rgba(107, 33, 168, 0.3);
 }
 
 /* Footer */
@@ -211,7 +211,7 @@
 .showMoreButton {
   background: none;
   border: 1px solid #e2e8f0;
-  color: #3b82f6;
+  color: var(--brand-primary);
   padding: 8px 16px;
   border-radius: 8px;
   font-size: 0.875rem;

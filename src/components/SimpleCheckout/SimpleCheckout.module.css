@@ -33,21 +33,21 @@
 }
 
 .backToCart {
-  color: var(--brand-primary);;
+  color: var(--brand-primary);
   text-decoration: none;
   font-weight: 600;
   font-size: 14px;
   padding: 8px 16px;
-  border: 2px solid var(--brand-primary);;
+  border: 2px solid var(--brand-primary);
   border-radius: 8px;
   transition: all 0.2s ease;
 }
 
 .backToCart:hover {
-  background: var(--brand-primary);;
+  background: var(--brand-primary);
   color: white;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(236, 64, 122, 0.2);
+  box-shadow: 0 4px 12px rgba(107, 33, 168, 0.2);
 }
 
 .header {
@@ -134,7 +134,7 @@
 .inputGroup input:focus,
 .inputGroup textarea:focus {
   outline: none;
-  border-color: var(--brand-primary);;
+  border-color: var(--brand-primary);
 }
 
 .inputGroup input.error,
@@ -191,7 +191,7 @@
 }
 
 .manageAddressButton:hover {
-  background: #3182ce;
+  background: var(--brand-primary);
 }
 
 .addressManagerModal {
@@ -350,7 +350,7 @@
 }
 
 .radioOption:hover {
-  border-color: var(--brand-primary);;
+  border-color: var(--brand-primary);
   background: #fef7f7;
 }
 
@@ -358,7 +358,7 @@
   margin: 0;
   width: 20px;
   height: 20px;
-  accent-color: var(--brand-primary);;
+  accent-color: var(--brand-primary);
 }
 
 .radioOption input[type="radio"]:checked + .radioLabel {
@@ -366,7 +366,7 @@
 }
 
 .radioOption:has(input[type="radio"]:checked) {
-  border-color: var(--brand-primary);;
+  border-color: var(--brand-primary);
   background: #fef7f7;
 }
 
@@ -394,7 +394,7 @@
 }
 
 .submitButton {
-  background: var(--brand-primary);;
+  background: var(--brand-primary);
   color: white;
   border: none;
   padding: 16px 32px;
@@ -407,9 +407,9 @@
 }
 
 .submitButton:hover:not(:disabled) {
-  background: #ad1457;
+  background: var(--brand-primary-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(236, 64, 122, 0.3);
+  box-shadow: 0 4px 12px rgba(107, 33, 168, 0.3);
 }
 
 .submitButton:disabled {

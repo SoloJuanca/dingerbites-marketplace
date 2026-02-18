@@ -29,7 +29,7 @@
 }
 
 .logoText img {
-  width: 224px;
+  width: 64px;
   height: auto;
 }
 
@@ -125,7 +125,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(212, 61, 76, 0.12);
+  background: rgba(107, 33, 168, 0.12);
   color: var(--brand-primary);
   display: flex;
   align-items: center;
@@ -231,8 +231,8 @@
   position: absolute;
   top: -8px;
   right: -8px;
-  background: var(--brand-dark);
-  color: white;
+  background: var(--brand-accent);
+  color: var(--brand-dark);
   border-radius: 50%;
   width: 20px;
   height: 20px;

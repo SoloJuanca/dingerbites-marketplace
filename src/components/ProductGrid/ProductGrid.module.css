@@ -58,7 +58,7 @@
 }
 
 .loadingIcon {
-  color: var(--brand-primary);;
+  color: var(--brand-primary);
   animation: spin 1s linear infinite;
 }
 

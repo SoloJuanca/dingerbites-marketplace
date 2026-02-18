@@ -173,12 +173,12 @@
 
 .categoryBtn:hover {
   background-color: #f8f9fa;
-  border-color: var(--brand-primary);;
+  border-color: var(--brand-primary);
 }
 
 .categoryBtn.active {
-  background-color: var(--brand-primary);;
-  border-color: var(--brand-primary);;
+  background-color: var(--brand-primary);
+  border-color: var(--brand-primary);
   color: white;
 }
 
@@ -203,12 +203,12 @@
 
 .levelBtn:hover {
   background-color: #f8f9fa;
-  border-color: var(--brand-primary);;
+  border-color: var(--brand-primary);
 }
 
 .levelBtn.active {
-  background-color: var(--brand-primary);;
-  border-color: var(--brand-primary);;
+  background-color: var(--brand-primary);
+  border-color: var(--brand-primary);
   color: white;
 }
 
@@ -241,8 +241,8 @@
 
 .priceInput:focus {
   outline: none;
-  border-color: var(--brand-primary);;
-  box-shadow: 0 0 0 3px rgba(236, 64, 122, 0.1);
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(107, 33, 168, 0.1);
 }
 
 .priceSeparator {
@@ -253,7 +253,7 @@
 }
 
 .priceBtn {
-  background-color: var(--brand-primary);;
+  background-color: var(--brand-primary);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -266,7 +266,7 @@
 }
 
 .priceBtn:hover {
-  background-color: #ad1457;
+  background-color: var(--brand-primary);
 }
 
 .footer {
@@ -300,7 +300,7 @@
 
 .applyBtn {
   flex: 2;
-  background-color: var(--brand-primary);;
+  background-color: var(--brand-primary);
   color: white;
   border: none;
   padding: 14px 20px;
@@ -312,7 +312,7 @@
 }
 
 .applyBtn:hover {
-  background-color: #ad1457;
+  background-color: var(--brand-primary);
 }
 
 /* Dispositivos móviles pequeños */

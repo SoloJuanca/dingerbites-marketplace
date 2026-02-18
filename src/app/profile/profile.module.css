@@ -73,12 +73,12 @@
 }
 
 .tabActive {
-  background: var(--brand-primary);;
+  background: var(--brand-primary);
   color: white;
 }
 
 .tabActive:hover {
-  background: #ad1457;
+  background: var(--brand-primary);
   color: white;
 }
 
@@ -105,7 +105,7 @@
 }
 
 .addButton {
-  background: var(--brand-primary);;
+  background: var(--brand-primary);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -117,9 +117,9 @@
 }
 
 .addButton:hover {
-  background: #ad1457;
+  background: var(--brand-primary);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(236, 64, 122, 0.3);
+  box-shadow: 0 4px 12px rgba(107, 33, 168, 0.3);
 }
 
 /* Orders Section */
@@ -152,8 +152,8 @@
 }
 
 .orderCard:hover {
-  border-color: var(--brand-primary);;
-  box-shadow: 0 4px 16px rgba(236, 64, 122, 0.1);
+  border-color: var(--brand-primary);
+  box-shadow: 0 4px 16px rgba(107, 33, 168, 0.1);
 }
 
 .orderHeader {
@@ -210,8 +210,8 @@
 }
 
 .addressCard:hover {
-  border-color: var(--brand-primary);;
-  box-shadow: 0 4px 16px rgba(236, 64, 122, 0.1);
+  border-color: var(--brand-primary);
+  box-shadow: 0 4px 16px rgba(107, 33, 168, 0.1);
 }
 
 .addressHeader {
@@ -256,7 +256,7 @@
 }
 
 .editButton {
-  background: #3182ce;
+  background: var(--brand-primary);
   color: white;
   border: none;
   padding: 8px 16px;
@@ -454,8 +454,8 @@
 
 .formInput:focus {
   outline: none;
-  border-color: var(--brand-primary);;
-  box-shadow: 0 0 0 3px rgba(236, 64, 122, 0.1);
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(107, 33, 168, 0.1);
 }
 
 .checkboxLabel {
@@ -469,7 +469,7 @@
 .checkboxLabel input[type="checkbox"] {
   width: 20px;
   height: 20px;
-  accent-color: var(--brand-primary);;
+  accent-color: var(--brand-primary);
 }
 
 .modalFooter {
@@ -500,7 +500,7 @@
 }
 
 .saveButton {
-  background: var(--brand-primary);;
+  background: var(--brand-primary);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -512,9 +512,9 @@
 }
 
 .saveButton:hover {
-  background: #ad1457;
+  background: var(--brand-primary);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(236, 64, 122, 0.3);
+  box-shadow: 0 4px 12px rgba(107, 33, 168, 0.3);
 }
 
 /* Tablet Design */

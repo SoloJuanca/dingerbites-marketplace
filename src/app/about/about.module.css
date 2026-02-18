@@ -35,7 +35,7 @@
 }
 
 .highlight {
-  color: var(--brand-primary);;
+  color: var(--brand-primary);
 }
 
 .heroSubtitle {
@@ -102,7 +102,7 @@
 }
 
 .statIcon {
-  color: var(--brand-primary);;
+  color: var(--brand-primary);
   margin-bottom: 16px;
 }
 
@@ -148,7 +148,7 @@
 }
 
 .missionIcon {
-  color: var(--brand-primary);;
+  color: var(--brand-primary);
   margin-bottom: 24px;
 }
 
@@ -195,7 +195,7 @@
 
 .teamCard:hover {
   transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 20px 60px rgba(236, 64, 122, 0.15);
+  box-shadow: 0 20px 60px rgba(107, 33, 168, 0.15);
 }
 
 .teamImageWrapper {
@@ -205,12 +205,12 @@
   height: 120px;
   border-radius: 50%;
   overflow: hidden;
-  border: 4px solid var(--brand-primary);;
+  border: 4px solid var(--brand-primary);
   transition: all 0.3s ease;
 }
 
 .teamImageWrapper:hover {
-  border-color: #ad1457;
+  border-color: var(--brand-primary-hover);
   transform: rotate(5deg) scale(1.1);
 }
 
@@ -231,7 +231,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(236, 64, 122, 0.8);
+  background: rgba(107, 33, 168, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -256,7 +256,7 @@
 
 .teamRole {
   font-size: 16px;
-  color: var(--brand-primary);;
+  color: var(--brand-primary);
   font-weight: 500;
   margin-bottom: 12px;
 }
@@ -316,7 +316,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(236, 64, 122, 0.8) 0%, rgba(173, 20, 87, 0.9) 100%);
+  background: linear-gradient(135deg, rgba(107, 33, 168, 0.8) 0%, rgba(91, 26, 154, 0.9) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -350,7 +350,7 @@
   background: #f7fafc;
   padding: 32px;
   border-radius: 16px;
-  border-left: 4px solid var(--brand-primary);;
+  border-left: 4px solid var(--brand-primary);
 }
 
 .reviewHeader {

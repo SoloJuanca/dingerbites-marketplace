@@ -59,7 +59,7 @@
 .checkoutButton {
   display: block;
   width: 100%;
-  background: var(--brand-primary);;
+  background: var(--brand-primary);
   color: white;
   text-decoration: none;
   text-align: center;
@@ -74,9 +74,9 @@
 }
 
 .checkoutButton:hover {
-  background: #ad1457;
+  background: var(--brand-primary);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(236, 64, 122, 0.3);
+  box-shadow: 0 4px 12px rgba(107, 33, 168, 0.3);
 }
 
 .clearCartButton {

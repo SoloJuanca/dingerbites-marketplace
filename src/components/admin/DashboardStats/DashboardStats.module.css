@@ -41,9 +41,9 @@
 }
 
 .statCard.blue {
-  --card-color: #3b82f6;
-  --card-color-light: #60a5fa;
-  --card-bg: #eff6ff;
+  --card-color: var(--brand-primary);
+  --card-color-light: #a78bfa;
+  --card-bg: #f5f3ff;
 }
 
 .statCard.purple {

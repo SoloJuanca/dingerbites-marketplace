@@ -38,7 +38,7 @@
   justify-content: space-between;
   padding: 24px;
   border-bottom: 1px solid #e2e8f0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
   color: white;
 }
 
@@ -118,9 +118,9 @@
 
 .menuLink.active,
 .menuButton.active {
-  background: #eff6ff;
-  color: #2563eb;
-  border-left-color: #2563eb;
+  background: #f5f3ff;
+  color: var(--brand-primary);
+  border-left-color: var(--brand-primary);
   font-weight: 600;
 }
 
@@ -182,9 +182,9 @@
 }
 
 .submenuLink.active {
-  background: #dbeafe;
-  color: #2563eb;
-  border-left-color: #2563eb;
+  background: #ede9fe;
+  color: var(--brand-primary);
+  border-left-color: var(--brand-primary);
   font-weight: 600;
 }
 

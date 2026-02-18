@@ -24,7 +24,7 @@
 }
 
 .viewAllLink {
-  color: #3b82f6;
+  color: var(--brand-primary);
   text-decoration: none;
   font-size: 0.875rem;
   font-weight: 500;
@@ -32,7 +32,7 @@
 }
 
 .viewAllLink:hover {
-  color: #2563eb;
+  color: var(--brand-primary-hover);
 }
 
 /* Empty State */
@@ -114,7 +114,7 @@
 .orderNumber {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #3b82f6;
+  color: var(--brand-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -185,7 +185,7 @@
   align-items: center;
   padding: 6px 12px;
   background: #f8fafc;
-  color: #3b82f6;
+  color: var(--brand-primary);
   text-decoration: none;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
@@ -195,8 +195,8 @@
 }
 
 .viewButton:hover {
-  background: #eff6ff;
-  border-color: #cbd5e1;
+  background: #f5f3ff;
+  border-color: #ddd6fe;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }

@@ -44,7 +44,7 @@
   color: #2d3748;
   margin-bottom: 16px;
   padding-bottom: 8px;
-  border-bottom: 2px solid var(--brand-primary);;
+  border-bottom: 2px solid var(--brand-primary);
 }
 
 .text {
@@ -71,7 +71,7 @@
 
 .list li::before {
   content: '•';
-  color: var(--brand-primary);;
+  color: var(--brand-primary);
   font-weight: bold;
   position: absolute;
   left: 0;

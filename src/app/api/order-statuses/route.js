@@ -20,7 +20,7 @@ export async function GET(request) {
     if (statuses.length === 0) {
       statuses = [
         { id: 'pending', name: 'pending', description: 'Pending', color: '#f59e0b', sort_order: 0 },
-        { id: 'confirmed', name: 'confirmed', description: 'Confirmed', color: '#3b82f6', sort_order: 1 },
+        { id: 'confirmed', name: 'confirmed', description: 'Confirmed', color: '#6b21a8', sort_order: 1 },
         { id: 'processing', name: 'processing', description: 'Processing', color: '#8b5cf6', sort_order: 2 },
         { id: 'shipped', name: 'shipped', description: 'Shipped', color: '#06b6d4', sort_order: 3 },
         { id: 'delivered', name: 'delivered', description: 'Delivered', color: '#22c55e', sort_order: 4 },

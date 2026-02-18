@@ -33,10 +33,10 @@ export default function Footer() {
           <div className={styles.footerContent}>
             <div className={styles.logo}>
               <Image
-                src="/logo-wildshot.jpg"
+                src="/logo-wildshot.png"
                 alt="Wildshot Games"
-                width={320}
-                height={72}
+                width={64}
+                height={64}
                 className={styles.footerLogoImage}
               />
             </div>

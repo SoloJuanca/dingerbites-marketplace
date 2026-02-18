@@ -1,7 +1,7 @@
 .hero {
   background:
-    radial-gradient(circle at top left, rgba(212, 61, 76, 0.12), transparent 45%),
-    linear-gradient(135deg, #ffffff 0%, #f5f6f8 100%);
+    radial-gradient(circle at top left, rgba(107, 33, 168, 0.1), transparent 45%),
+    linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%);
   padding: 120px 0 80px;
   min-height: 600px;
   display: flex;
@@ -88,7 +88,7 @@
 }
 
 .starIcon {
-  color: #fbbf24;
+  color: var(--brand-accent);
 }
 
 .imageContent {
@@ -132,8 +132,8 @@
 @media (max-width: 768px) {
   .hero {
     background:
-      radial-gradient(circle at top left, rgba(212, 61, 76, 0.18), transparent 45%),
-      linear-gradient(135deg, #ffffff 0%, #f5f6f8 100%);
+      radial-gradient(circle at top left, rgba(107, 33, 168, 0.14), transparent 45%),
+      linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%);
     padding: 80px 0 40px;
     min-height: auto;
   }

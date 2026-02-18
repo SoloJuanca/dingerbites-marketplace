@@ -52,17 +52,17 @@
 
 .wishlistBtn:hover {
   background: rgba(255, 255, 255, 1);
-  color: var(--brand-primary);;
+  color: var(--brand-primary);
   transform: scale(1.1);
 }
 
 .wishlistActive {
   background: rgba(255, 255, 255, 1);
-  color: var(--brand-primary);;
+  color: var(--brand-primary);
 }
 
 .wishlistActive:hover {
-  color: #ad1457;
+  color: var(--brand-primary);
 }
 
 .content {
@@ -101,7 +101,7 @@
 }
 
 .addBtn {
-  background: var(--brand-primary);;
+  background: var(--brand-primary);
   color: white;
   border: none;
   padding: 8px 16px;
@@ -113,7 +113,7 @@
 }
 
 .addBtn:hover:not(:disabled) {
-  background: #ad1457;
+  background: var(--brand-primary);
 }
 
 .addBtn:disabled {

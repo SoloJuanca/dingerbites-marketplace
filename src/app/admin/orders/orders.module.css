@@ -44,11 +44,11 @@
 .filterSelect:focus,
 .filterInput:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: var(--brand-primary);
 }
 
 .refreshButton {
-  background: #3b82f6;
+  background: var(--brand-primary);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -62,7 +62,7 @@
 }
 
 .refreshButton:hover {
-  background: #2563eb;
+  background: var(--brand-primary-hover);
 }
 
 .refreshButton:disabled {
@@ -92,7 +92,7 @@
   width: 32px;
   height: 32px;
   border: 3px solid #e5e7eb;
-  border-top: 3px solid #3b82f6;
+  border-top: 3px solid var(--brand-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 16px;
@@ -224,7 +224,7 @@
 
 .statusSelect:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: var(--brand-primary);
 }
 
 /* Pagination */

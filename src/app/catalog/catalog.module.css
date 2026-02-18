@@ -63,7 +63,7 @@
 
 .filterButton {
   display: none;
-  background-color: var(--brand-primary);;
+  background-color: var(--brand-primary);
   color: white;
   border: none;
   padding: 12px 16px;
@@ -77,7 +77,7 @@
 }
 
 .filterButton:hover {
-  background-color: #ad1457;
+  background-color: var(--brand-primary);
 }
 
 @media (max-width: 768px) {

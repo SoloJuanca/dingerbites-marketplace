@@ -75,7 +75,7 @@
 }
 
 .indicator.active {
-  background: var(--brand-primary);;
+  background: var(--brand-primary);
   transform: scale(1.2);
 }
 
@@ -127,7 +127,7 @@
 }
 
 .thumbnail.activeThumbnail {
-  border-color: var(--brand-primary);;
+  border-color: var(--brand-primary);
   transform: scale(1.05);
 }
 

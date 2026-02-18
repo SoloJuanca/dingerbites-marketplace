@@ -5,12 +5,14 @@
 }
 
 :root {
-  --brand-primary: #d43d4c;
-  --brand-primary-hover: #b4303d;
-  --brand-primary-light: #e09fa6;
+  --brand-primary: #6b21a8;
+  --brand-primary-hover: #5b1a9a;
+  --brand-primary-light: #ddd6fe;
+  --brand-accent: #eab308;
+  --brand-accent-hover: #ca8a04;
   --brand-dark: #121418;
   --brand-muted: #5f6673;
-  --brand-surface: #f5f6f8;
+  --brand-surface: #f5f3ff;
 }
 
 html,

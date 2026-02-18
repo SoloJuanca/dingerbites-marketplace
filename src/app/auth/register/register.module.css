@@ -89,8 +89,8 @@
 
 .input:focus {
   outline: none;
-  border-color: var(--brand-primary);;
-  box-shadow: 0 0 0 4px rgba(236, 64, 122, 0.1);
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 4px rgba(107, 33, 168, 0.1);
 }
 
 .input::placeholder {
@@ -124,7 +124,7 @@
 }
 
 .submitBtn {
-  background: var(--brand-primary);;
+  background: var(--brand-primary);
   color: white;
   border: none;
   padding: 16px 24px;
@@ -137,9 +137,9 @@
 }
 
 .submitBtn:hover:not(:disabled) {
-  background: #ad1457;
+  background: var(--brand-primary);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(236, 64, 122, 0.3);
+  box-shadow: 0 8px 24px rgba(107, 33, 168, 0.3);
 }
 
 .submitBtn:active:not(:disabled) {
@@ -171,14 +171,14 @@
 }
 
 .loginLink {
-  color: var(--brand-primary);;
+  color: var(--brand-primary);
   text-decoration: none;
   font-weight: 600;
   transition: color 0.2s ease;
 }
 
 .loginLink:hover {
-  color: #ad1457;
+  color: var(--brand-primary);
 }
 
 /* Tablet Design */

@@ -59,7 +59,7 @@
 }
 
 .cookieIcon {
-  color: var(--brand-primary);;
+  color: var(--brand-primary);
 }
 
 .textSection {
@@ -87,14 +87,14 @@
 }
 
 .link {
-  color: var(--brand-primary);;
+  color: var(--brand-primary);
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s ease;
 }
 
 .link:hover {
-  color: #ad1457;
+  color: var(--brand-primary);
   text-decoration: underline;
 }
 
@@ -119,12 +119,12 @@
 }
 
 .acceptButton {
-  background: var(--brand-primary);;
+  background: var(--brand-primary);
   color: white;
 }
 
 .acceptButton:hover {
-  background: #ad1457;
+  background: var(--brand-primary);
   transform: translateY(-1px);
 }
 
@@ -157,9 +157,9 @@
 }
 
 .closeButton:hover {
-  background: var(--brand-primary);;
+  background: var(--brand-primary);
   color: white;
-  border-color: var(--brand-primary);;
+  border-color: var(--brand-primary);
 }
 
 /* Responsive Design */

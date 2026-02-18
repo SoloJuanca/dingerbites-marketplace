@@ -148,7 +148,7 @@
 
 .progressFill {
   height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(90deg, var(--brand-primary), var(--brand-primary-hover));
   border-radius: 3px;
   transition: width 0.3s ease;
 }
@@ -159,7 +159,7 @@
   text-align: right;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #3b82f6;
+  color: var(--brand-primary);
 }
 
 /* Footer */
