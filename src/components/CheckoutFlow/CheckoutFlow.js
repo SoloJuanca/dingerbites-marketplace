@@ -172,7 +172,7 @@ export default function CheckoutFlow() {
 
       const finalOrderNumber = orderResult?.order_number || `TEMP-${Date.now()}`;
       
-                        const message = `🛍️ *Nueva Orden - Wildshot Games*\n` +
+                        const message = `🛍️ *Nueva Orden - Dingerbites*\n` +
                     `📋 *Número de Orden:* ${finalOrderNumber}\n\n` +
                     `👤 *Información de Contacto:*\n` +
                     `Nombre: ${checkoutData.contactInfo.name}\n` +

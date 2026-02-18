@@ -403,6 +403,8 @@ export default function AdminPOS() {
       const orderNumber = result.order_number || result?.order?.order_number || `ORD-${Date.now()}`;
 
       setLastOrder({
+        orderId: result.id || null,
+        reviewToken: result.review_token || null,
         orderNumber,
         createdAt: new Date().toISOString(),
         customer: { ...customer },
@@ -476,7 +478,7 @@ export default function AdminPOS() {
 
     lines.push('\x1B\x40'); // Initialize
     lines.push('\x1B\x61\x01'); // Center
-    lines.push('Wildshot Games\n');
+    lines.push('Dingerbites\n');
     lines.push('Ticket de venta\n');
     lines.push('\n');
     lines.push('\x1B\x61\x00'); // Left
@@ -793,7 +795,7 @@ export default function AdminPOS() {
                 <h4 className={styles.previewTitle}>Vista previa del ticket</h4>
                 <div className={`${styles.printArea} posPrintArea`}>
                   <div className={styles.printHeader}>
-                    <h2>Wildshot Games</h2>
+                    <h2>Dingerbites</h2>
                     <p>Ticket de venta</p>
                   </div>
                   <div className={styles.printMeta}>
@@ -859,6 +861,35 @@ export default function AdminPOS() {
                   {usbPrinting ? 'Enviando...' : 'Imprimir por WebUSB'}
                 </button>
               </div>
+              {lastOrder.reviewToken && (
+                <div className={styles.reviewLinkSection}>
+                  <h4 className={styles.reviewLinkTitle}>Link de reseña para este pedido</h4>
+                  <p className={styles.reviewLinkHint}>
+                    Comparte este enlace con el cliente para que deje su reseña (solo se puede usar una vez).
+                  </p>
+                  <div className={styles.reviewLinkRow}>
+                    <input
+                      type="text"
+                      readOnly
+                      value={typeof window !== 'undefined' ? `${window.location.origin}/agregar-resena?token=${lastOrder.reviewToken}` : ''}
+                      className={styles.reviewLinkInput}
+                    />
+                    <button
+                      type="button"
+                      className={styles.copyLinkButton}
+                      onClick={() => {
+                        const url = typeof window !== 'undefined' ? `${window.location.origin}/agregar-resena?token=${lastOrder.reviewToken}` : '';
+                        if (url && navigator.clipboard) {
+                          navigator.clipboard.writeText(url);
+                          toast.success('Enlace copiado');
+                        }
+                      }}
+                    >
+                      Copiar enlace
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </section>

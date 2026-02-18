@@ -9,12 +9,12 @@ export default function Hero() {
         <div className={styles.content}>
           <div className={styles.textContent}>
             <h1 className={styles.title}>
-              Tu tienda para descubrir <span className={styles.highlight}>juegos de mesa</span> increibles.
+              Anime, <span className={styles.highlight}>gachapons</span>, mystery boxes y videojuegos.
             </h1>
             <p className={styles.subtitle}>
-              En Wildshot Games encuentras juegos familiares, estrategicos y party games para cada mesa. Compra facil, envios rapidos y asesoramiento para elegir el titulo ideal.
+              Encuentra figuras de anime, gachapons, mystery boxes, videojuegos y más. Envios a todo Mexico y opcion de recoleccion.
             </p>
-            <Link href="/catalog" className={styles.orderBtn}>Ver Catalogo</Link>
+            <Link href="/catalog" className={styles.orderBtn}>Ver catalogo</Link>
             <div className={styles.stats}>
               <div className={styles.stat}>
                 <span className={styles.statText}>

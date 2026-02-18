@@ -318,6 +318,58 @@
   cursor: not-allowed;
 }
 
+.reviewLinkSection {
+  margin-top: 24px;
+  padding: 20px;
+  background: #f5f3ff;
+  border-radius: 12px;
+  border: 2px dashed var(--brand-primary);
+}
+
+.reviewLinkTitle {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.reviewLinkHint {
+  font-size: 13px;
+  color: #4a5568;
+  margin: 0 0 12px 0;
+}
+
+.reviewLinkRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.reviewLinkInput {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #4a5568;
+  background: #fff;
+}
+
+.copyLinkButton {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--brand-primary);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.copyLinkButton:hover {
+  background: var(--brand-primary-hover);
+}
+
 .printHint {
   font-size: 16px;
   color: #475569;

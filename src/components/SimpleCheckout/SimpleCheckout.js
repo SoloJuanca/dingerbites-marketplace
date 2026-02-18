@@ -349,7 +349,7 @@ export default function SimpleCheckout() {
       {/* Header del Checkout */}
       <div className={styles.checkoutHeader}>
         <Link href="/" className={styles.logo}>
-          <span className={styles.logoText}>🦆 Wildshot Games</span>
+          <span className={styles.logoText}>🦆 Dingerbites</span>
         </Link>
         <Link href="/cart" className={styles.backToCart}>
           ← Volver al Carrito

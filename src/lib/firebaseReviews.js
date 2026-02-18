@@ -2,6 +2,7 @@ import { db } from './firebaseAdmin';
 
 const PRODUCT_REVIEWS_COLLECTION = 'product_reviews';
 const SERVICE_REVIEWS_COLLECTION = 'service_reviews';
+const GENERAL_REVIEWS_COLLECTION = 'general_reviews';
 const USERS_COLLECTION = 'users';
 const PRODUCTS_COLLECTION = 'products';
 const SERVICES_COLLECTION = 'services';
@@ -177,4 +178,62 @@ export async function createReview(payload) {
   });
   const created = await docRef.get();
   return { id: created.id, rating, title: title || null, comment: comment || null, created_at: now };
+}
+
+/** Get general (in-person) reviews for homepage */
+export async function getGeneralReviews(options = {}) {
+  const { page = 1, limit = 20, approvedOnly = true } = options;
+  const snapshot = await db.collection(GENERAL_REVIEWS_COLLECTION).get();
+  let reviews = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+  if (approvedOnly) {
+    reviews = reviews.filter((r) => r.is_approved === true);
+  }
+  reviews.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+  const total = reviews.length;
+  const start = (page - 1) * limit;
+  const paginated = reviews.slice(start, start + limit);
+  return {
+    reviews: paginated,
+    pagination: {
+      total,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+      hasNextPage: page < Math.ceil(total / limit),
+      hasPrevPage: page > 1
+    }
+  };
+}
+
+/** Create general review (in-person purchase, no user/product required). Optional order_id when submitted via token. */
+export async function createGeneralReview(payload) {
+  const { author_name, rating, comment, image_url, location, order_id } = payload;
+  if (!author_name || !rating || !comment) {
+    throw new Error('Nombre, calificación y comentario son requeridos');
+  }
+  if (rating < 1 || rating > 5) throw new Error('La calificación debe ser entre 1 y 5');
+
+  const now = new Date().toISOString();
+  const docRef = db.collection(GENERAL_REVIEWS_COLLECTION).doc();
+  await docRef.set({
+    author_name: String(author_name).trim(),
+    rating: Number(rating),
+    comment: String(comment).trim(),
+    image_url: image_url && String(image_url).trim() ? String(image_url).trim() : null,
+    location: location && String(location).trim() ? String(location).trim() : null,
+    order_id: order_id && String(order_id).trim() ? String(order_id).trim() : null,
+    is_approved: true,
+    created_at: now,
+    updated_at: now
+  });
+  const created = await docRef.get();
+  return {
+    id: created.id,
+    author_name: String(author_name).trim(),
+    rating: Number(rating),
+    comment: String(comment).trim(),
+    image_url: image_url && String(image_url).trim() ? String(image_url).trim() : null,
+    location: location && String(location).trim() ? String(location).trim() : null,
+    order_id: order_id && String(order_id).trim() ? String(order_id).trim() : null,
+    created_at: now
+  };
 }

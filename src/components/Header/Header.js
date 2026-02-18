@@ -55,7 +55,7 @@ export default function Header() {
       <div className={styles.container}>
         <div className={styles.logo}>
           <Link href="/" className={styles.logoText} onClick={closeMenu}>
-            <Image src="/logo-wildshot.png" alt="Wildshot Games" width={64} height={64} priority />
+            <Image src="/logo-wildshot.png" alt="Dingerbites" width={64} height={64} priority />
           </Link>
         </div>
         
@@ -63,7 +63,7 @@ export default function Header() {
         <nav className={styles.nav}>
           <Link href="/" className={styles.navLink}>Inicio</Link>
           <Link href="/catalog" className={styles.navLink}>Catálogo</Link>
-          <Link href="/about" className={styles.navLink}>Nosotros</Link>
+          <Link href="/#reviews" className={styles.navLink}>Reseñas</Link>
           <Link href="/contact" className={styles.navLink}>Contacto</Link>
         </nav>
 
@@ -165,7 +165,7 @@ export default function Header() {
       <nav className={`${styles.mobileNav} ${isMenuOpen ? styles.mobileNavOpen : ''}`}>
         <Link href="/" className={styles.mobileNavLink} onClick={closeMenu}>Inicio</Link>
         <Link href="/catalog" className={styles.mobileNavLink} onClick={closeMenu}>Catálogo</Link>
-        <Link href="/about" className={styles.mobileNavLink} onClick={closeMenu}>Nosotros</Link>
+        <Link href="/#reviews" className={styles.mobileNavLink} onClick={closeMenu}>Reseñas</Link>
         <Link href="/contact" className={styles.mobileNavLink} onClick={closeMenu}>Contacto</Link>
         {isClient ? (
           <>

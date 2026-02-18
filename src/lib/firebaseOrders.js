@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { db } from './firebaseAdmin';
 
 const ORDERS_COLLECTION = 'orders';
@@ -126,6 +127,7 @@ export async function getOrderById(orderId) {
 /** Create a new order. Expects orderPayload with order_number, user_id, status_id, totals, items, service_items, etc. */
 export async function createOrder(orderPayload) {
   const now = new Date().toISOString();
+  const reviewToken = randomUUID();
   const docRef = db.collection(ORDERS_COLLECTION).doc();
   const doc = {
     order_number: orderPayload.order_number,
@@ -145,6 +147,8 @@ export async function createOrder(orderPayload) {
     shipping_method: orderPayload.shipping_method || null,
     items: Array.isArray(orderPayload.items) ? orderPayload.items : [],
     service_items: Array.isArray(orderPayload.service_items) ? orderPayload.service_items : [],
+    review_token: reviewToken,
+    review_token_used_at: null,
     history: [
       {
         status_id: orderPayload.status_id,
@@ -156,7 +160,32 @@ export async function createOrder(orderPayload) {
     updated_at: now
   };
   await docRef.set(doc);
-  return { id: docRef.id, order_number: doc.order_number, ...doc };
+  return { id: docRef.id, order_number: doc.order_number, review_token: reviewToken, ...doc };
+}
+
+/** Get order by review token if token is valid and not yet used */
+export async function getOrderByReviewToken(token) {
+  if (!token || typeof token !== 'string') return null;
+  const snapshot = await db
+    .collection(ORDERS_COLLECTION)
+    .where('review_token', '==', token.trim())
+    .limit(1)
+    .get();
+  if (snapshot.empty) return null;
+  const doc = snapshot.docs[0];
+  const data = doc.data();
+  if (data.review_token_used_at) return null;
+  return { id: doc.id, ...data };
+}
+
+/** Mark review token as used for an order */
+export async function setReviewTokenUsed(orderId) {
+  const ref = db.collection(ORDERS_COLLECTION).doc(String(orderId));
+  const now = new Date().toISOString();
+  await ref.update({
+    review_token_used_at: now,
+    updated_at: now
+  });
 }
 
 /** Update order status and append to history. Optional: tracking_id, carrier_company, tracking_url */

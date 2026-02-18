@@ -97,8 +97,7 @@ export default function BrowseMenu() {
           <div className={styles.header}>
             <h2 className={styles.title}>Explora nuestra coleccion</h2>
             <p className={styles.subtitle}>
-              Descubre juegos para todos los gustos: cooperativos, estrategicos, familiares y party games.
-              Encuentra el titulo ideal para tu siguiente noche de juego.
+              Anime, gachapons, mystery boxes, videojuegos y mas. Encuentra figuras, coleccionables y merchandising de tus series favoritas.
             </p>
           </div>
           <div className={styles.footer}>
@@ -115,8 +114,7 @@ export default function BrowseMenu() {
         <div className={styles.header}>
           <h2 className={styles.title}>Explora nuestra coleccion</h2>
           <p className={styles.subtitle}>
-            Descubre juegos para todos los gustos: cooperativos, estrategicos, familiares y party games.
-            Encuentra el titulo ideal para tu siguiente noche de juego.
+            Anime, gachapons, mystery boxes, videojuegos y mas. Encuentra figuras, coleccionables y merchandising de tus series favoritas.
           </p>
           <div className={styles.buttons}>
             {categories.map((category) => (

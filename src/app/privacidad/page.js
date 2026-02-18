@@ -10,11 +10,11 @@ export default function PrivacidadPage() {
         <div className={styles.container}>
           <div className={styles.content}>
             <h1 className={styles.title}>Aviso de Privacidad</h1>
-            <p className={styles.subtitle}>Wildshot Games</p>
+            <p className={styles.subtitle}>Dingerbites</p>
             
             <div className={styles.intro}>
               <p className={styles.text}>
-                En Wildshot Games estamos comprometidos con la protección de los datos personales 
+                En Dingerbites estamos comprometidos con la protección de los datos personales 
                 y la privacidad de nuestros clientes, proveedores y terceros. En cumplimiento a la 
                 Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP), 
                 ponemos a su disposición el presente Aviso de Privacidad.
@@ -24,7 +24,7 @@ export default function PrivacidadPage() {
             <div className={styles.section}>
               <h2 className={styles.sectionTitle}>Responsable del tratamiento de sus datos personales</h2>
               <p className={styles.text}>
-                Wildshot Games (&ldquo;Responsable&rdquo;) es la persona moral que decide sobre el tratamiento 
+                Dingerbites (&ldquo;Responsable&rdquo;) es la persona moral que decide sobre el tratamiento 
                 de los datos personales que recaba de usted como &ldquo;Titular&rdquo;.
               </p>
             </div>
@@ -89,7 +89,7 @@ export default function PrivacidadPage() {
             <div className={styles.section}>
               <h2 className={styles.sectionTitle}>Datos sensibles</h2>
               <p className={styles.text}>
-                Wildshot Games no solicita ni recaba datos personales sensibles.
+                Dingerbites no solicita ni recaba datos personales sensibles.
               </p>
             </div>
 

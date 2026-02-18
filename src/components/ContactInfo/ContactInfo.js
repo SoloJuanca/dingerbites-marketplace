@@ -1,108 +1,62 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
 import Icon from '../Icon/Icon';
 import styles from './ContactInfo.module.css';
 
+const WHATSAPP_NUMBER = '528116132754';
+
 export default function ContactInfo() {
-  const businessInfo = {
-    name: "Wildshot Games",
-    address: "Atencion en linea",
-    city: "Envios a todo Mexico",
-    phone: "+52 81 16 13 27 54",
-    //email: "info@bellabelleza.com",
-    hours: {
-      weekdays: "Lunes a Viernes: 10:00 AM - 7:00 PM",
-      saturday: "Sabado: 10:00 AM - 3:00 PM",
-      sunday: "Domingo: Cerrado"
-    }
+  const [whatLookingFor, setWhatLookingFor] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const text = whatLookingFor.trim()
+      ? `Hola, estoy buscando: ${whatLookingFor.trim()}`
+      : 'Hola, me gustaría saber si pueden conseguir algo que busco.';
+    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+    setWhatLookingFor('');
   };
 
   return (
     <section className={styles.contactInfo}>
       <div className={styles.container}>
         <div className={styles.content}>
-          <div className={styles.textContent}>
-            <h2 className={styles.title}>
-              Hablemos de tu siguiente juego.
-            </h2>
-            <p className={styles.subtitle}>
-              Te ayudamos a elegir segun numero de jugadores, edad y tiempo de partida.
-              Recibe asesoria personalizada y seguimiento de tu pedido.
-            </p>
-            
-            <div className={styles.contactDetails}>
-              <div className={styles.contactItem}>
-                <Icon name="location_on" size={20} className={styles.contactIcon} />
-                <div className={styles.contactText}>
-                  <strong>{businessInfo.address}</strong>
-                  <br />
-                  {businessInfo.city}
-                </div>
-              </div>
-              
-              <div className={styles.contactItem}>
-                <Icon name="phone" size={20} className={styles.contactIcon} />
-                <div className={styles.contactText}>
-                  <strong>{businessInfo.phone}</strong>
-                </div>
-              </div>
-              
-              <div className={styles.contactItem}>
-                <Icon name="schedule" size={20} className={styles.contactIcon} />
-                <div className={styles.contactText}>
-                  <div>{businessInfo.hours.weekdays}</div>
-                  <div>{businessInfo.hours.saturday}</div>
-                  <div>{businessInfo.hours.sunday}</div>
-                </div>
-              </div>
-            </div>
+          <h2 className={styles.title}>
+            ¿No encuentras lo que buscabas?
+          </h2>
+          <p className={styles.subtitle}>
+            ¡Haznos saber qué buscas para poder conseguirlo!
+          </p>
 
-            <div className={styles.actions}>
-              <a 
-                href={`tel:${businessInfo.phone}`} 
-                className={styles.contactBtn}
-              >
-                <Icon name="phone" size={18} />
-                Llamar ahora
-              </a>
-              {businessInfo?.email && (
-                <a 
-                  href={`mailto:${businessInfo.email}`} 
-                  className={styles.emailBtn}
-                >
-                  <Icon name="email" size={18} />
-                  Enviar email
-                </a>
-              )}
+          <form onSubmit={handleSubmit} className={styles.form}>
+            <div className={styles.formGroup}>
+              <label htmlFor="whatLookingFor" className={styles.label}>
+                ¿Qué estás buscando?
+              </label>
+              <input
+                type="text"
+                id="whatLookingFor"
+                value={whatLookingFor}
+                onChange={(e) => setWhatLookingFor(e.target.value)}
+                className={styles.input}
+                placeholder="Ej: un juego de estrategia para 4 jugadores..."
+                autoComplete="off"
+              />
             </div>
-          </div>
-          
-          <div className={styles.mapContent}>
-            <div className={styles.mapContainer}>
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3596.3377406980057!2d-100.1612202!3d25.6600966!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8662c22320455803%3A0xc791bf58f0e37400!2sPatito%20Montenegro!5e0!3m2!1ses!2smx!4v1755993608690!5m2!1ses!2smx"
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen=""
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                className={styles.map}
-                title="Ubicacion de Wildshot Games"
-              ></iframe>
-            </div>
-            <div className={styles.mapFooter}>
-              <a 
-                href="https://maps.app.goo.gl/ENHRsNHdRTWyAWRw7"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={styles.directionsBtn}
-              >
-                <Icon name="directions" size={18} />
-                Ver en Google Maps
-              </a>
-            </div>
-          </div>
+            <button type="submit" className={styles.submitBtn}>
+              <Icon name="chat" size={20} />
+              Contáctanos por WhatsApp
+            </button>
+          </form>
+
+          <p className={styles.hint}>
+            Escríbenos por WhatsApp y te ayudamos a conseguirlo.
+          </p>
         </div>
       </div>
     </section>
   );
-} 
+}

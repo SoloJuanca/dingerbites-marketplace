@@ -20,14 +20,14 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: {
-    default: "Wildshot Games",
-    template: "%s | Wildshot Games"
+    default: "Dingerbites",
+    template: "%s | Dingerbites"
   },
   description: "Tienda online de juegos de mesa: familiares, estrategicos, party games y novedades para toda tu mesa.",
   keywords: ["juegos de mesa", "board games", "tienda online", "e-commerce", "compras", "Mexico", "familiares", "estrategia", "party games"],
-  authors: [{ name: "Wildshot Games" }],
-  creator: "Wildshot Games",
-  publisher: "Wildshot Games",
+  authors: [{ name: "Dingerbites" }],
+  creator: "Dingerbites",
+  publisher: "Dingerbites",
   formatDetection: {
     email: false,
     address: false,
@@ -35,16 +35,16 @@ export const metadata = {
   },
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'),
   openGraph: {
-    title: "Wildshot Games",
+    title: "Dingerbites",
     description: "Tienda online de juegos de mesa: familiares, estrategicos, party games y novedades para toda tu mesa.",
     url: "/",
-    siteName: "Wildshot Games",
+    siteName: "Dingerbites",
     locale: "es_MX",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Wildshot Games",
+    title: "Dingerbites",
     description: "Tienda online de juegos de mesa: familiares, estrategicos, party games y novedades para toda tu mesa.",
     creator: "@wildshotgames",
   },

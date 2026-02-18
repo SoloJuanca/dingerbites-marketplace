@@ -5,18 +5,18 @@ export default function HowItWorks() {
   const steps = [
     {
       icon: 'explore',
-      title: 'Explora por tipo de juego',
-      description: 'Filtra por dificultad, duracion, numero de jugadores y tematica para encontrar rapido lo que mejor se adapta a tu mesa.'
+      title: 'Explora por categoria',
+      description: 'Filtra por anime, gachapons, mystery boxes, videojuegos y mas para encontrar las figuras y coleccionables que buscas.'
     },
     {
       icon: 'shopping_cart',
-      title: 'Arma tu carrito',
-      description: 'Compara titulos, agrega expansiones y completa tu pedido en pocos pasos con una experiencia de compra simple.'
+      title: 'Arma tu pedido',
+      description: 'Agrega figuras, mystery boxes o videojuegos a tu carrito. Compra facil y con envio a todo Mexico o recoleccion.'
     },
     {
       icon: 'local_shipping',
-      title: 'Recibe y juega',
-      description: 'Empacamos con cuidado y enviamos a todo Mexico para que tus juegos lleguen listos para la siguiente partida.'
+      title: 'Recibe o recoge',
+      description: 'Enviamos a domicilio o recoge en Mercado de la Y (sabados) o Galerias Valle Oriente. Todo empacado con cuidado.'
     }
   ];
 

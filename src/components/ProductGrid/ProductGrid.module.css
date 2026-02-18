@@ -57,6 +57,42 @@
   max-width: 400px;
 }
 
+.emptyCta {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.emptyCtaText {
+  font-size: 16px;
+  color: #2d3748;
+  font-weight: 500;
+  margin: 0;
+  max-width: 400px;
+}
+
+.emptyCtaButton {
+  background: var(--brand-primary);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.2s ease;
+}
+
+.emptyCtaButton:hover {
+  background: var(--brand-primary-hover);
+}
+
 .loadingIcon {
   color: var(--brand-primary);
   animation: spin 1s linear infinite;

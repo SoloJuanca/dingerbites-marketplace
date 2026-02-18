@@ -92,7 +92,7 @@ export default function PaymentMethodSelection({
           </div>
           <div className={styles.bankRow}>
             <span className={styles.bankLabel}>Titular:</span>
-            <span className={styles.bankValue}>Wildshot Games S.A. de C.V.</span>
+            <span className={styles.bankValue}>Dingerbites S.A. de C.V.</span>
           </div>
           <div className={styles.bankRow}>
             <span className={styles.bankLabel}>Cuenta:</span>

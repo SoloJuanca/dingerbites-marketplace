@@ -116,7 +116,7 @@ export default function OrderSuccess({
 
       <div className={styles.thankYouMessage}>
         <p>
-          <strong>¡Gracias por tu compra en Wildshot Games!</strong>
+          <strong>¡Gracias por tu compra en Dingerbites!</strong>
         </p>
         <p>
           Esperamos que disfrutes tus productos. 

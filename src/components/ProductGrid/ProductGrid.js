@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import ProductCard from '../ProductCard/ProductCard';
 import Pagination from '../Pagination/Pagination';
 import Icon from '../Icon/Icon';
@@ -87,6 +88,15 @@ export default function ProductGrid({
         <p className={styles.emptyMessage}>
           Intenta ajustar los filtros para ver más resultados
         </p>
+        <div className={styles.emptyCta}>
+          <p className={styles.emptyCtaText}>
+            ¿No encuentras lo que buscabas? ¡Haznos saber qué buscas para poder conseguirlo!
+          </p>
+          <Link href="/contact" className={styles.emptyCtaButton}>
+            <Icon name="chat" size={20} />
+            Contáctanos
+          </Link>
+        </div>
       </div>
     );
   }

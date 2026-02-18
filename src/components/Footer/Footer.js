@@ -34,7 +34,7 @@ export default function Footer() {
             <div className={styles.logo}>
               <Image
                 src="/logo-wildshot.png"
-                alt="Wildshot Games"
+                alt="Dingerbites"
                 width={64}
                 height={64}
                 className={styles.footerLogoImage}
@@ -43,9 +43,9 @@ export default function Footer() {
             <div className={styles.links}>
               <div className={styles.linkGroup}>
                 <h4 className={styles.linkTitle}>Empresa</h4>
-                <Link href="/about">
+                <Link href="/#reviews">
                 <span className={styles.link}>
-                  Sobre Nosotros
+                  Reseñas
                   </span>
                 </Link>
                 <Link href="/contact">

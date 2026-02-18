@@ -76,10 +76,10 @@ export async function POST(request) {
       const emailPayload = {
         sender: {
           email: process.env.BREVO_SENDER_EMAIL || 'noreply@patitomontenegro.com',
-          name: process.env.BREVO_SENDER_NAME || 'Wildshot Games'
+          name: process.env.BREVO_SENDER_NAME || 'Dingerbites'
         },
         to: [{ email: testEmail, name: 'Destinatario de Prueba' }],
-        subject: '✅ Prueba API REST - Wildshot Games',
+        subject: '✅ Prueba API REST - Dingerbites',
         htmlContent: `
           <!DOCTYPE html>
           <html>
@@ -90,7 +90,7 @@ export async function POST(request) {
           <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
               <h1 style="color: #2d3748;">✅ API REST Funcionando</h1>
-              <p style="color: #718096;">Sistema de correos de Wildshot Games</p>
+              <p style="color: #718096;">Sistema de correos de Dingerbites</p>
             </div>
             
             <div style="background: #f0fff4; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #38a169;">
