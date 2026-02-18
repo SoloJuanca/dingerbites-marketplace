@@ -1,6 +1,5 @@
 .header {
   background: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   position: fixed;
   top: 0;
   left: 0;
@@ -294,7 +293,6 @@
   display: none;
   flex-direction: column;
   background: #ffffff;
-  border-top: 1px solid #e2e8f0;
   padding: 16px 0;
   max-height: 0;
   overflow: hidden;
@@ -339,7 +337,7 @@
 /* Mobile Design */
 @media (max-width: 768px) {
   .header {
-    padding: 12px 0;
+    padding: 8px 0;
   }
   
   .container {
@@ -351,7 +349,7 @@
   }
 
   .logoText img {
-    width: 184px;
+    width: 112px;
   }
   
   .nav {
@@ -396,7 +394,7 @@
   }
 
   .logoText img {
-    width: 160px;
+    width: 96px;
   }
   
   .cartBtn {
@@ -406,8 +404,12 @@
 
 /* Very Small Mobile Design */
 @media (max-width: 480px) {
+  .header {
+    padding: 8px 0;
+  }
+  
   .container {
-    padding: 0 24px;
+    padding: 0 16px;
   }
   
   .logoText {
@@ -415,7 +417,7 @@
   }
 
   .logoText img {
-    width: 144px;
+    width: 80px;
   }
   
   .logoIcon {
