@@ -345,6 +345,65 @@
   box-shadow: 0 4px 12px rgba(128, 90, 213, 0.3);
 }
 
+/* Coupons Section */
+.couponsSection {
+  width: 100%;
+}
+
+.couponsList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.couponCard {
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+  transition: all 0.2s ease;
+}
+
+.couponCard:hover {
+  border-color: var(--brand-primary);
+}
+
+.couponInactive {
+  opacity: 0.7;
+}
+
+.couponCode {
+  font-family: monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: #2d3748;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.couponValue {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--brand-primary);
+  margin-bottom: 8px;
+}
+
+.couponExpiry {
+  font-size: 13px;
+  color: #718096;
+  margin-bottom: 8px;
+}
+
+.couponStatus {
+  font-size: 12px;
+  font-weight: 600;
+  color: #48bb78;
+}
+
+.couponInactive .couponStatus {
+  color: #a0aec0;
+}
+
 /* Empty State */
 .emptyState {
   text-align: center;

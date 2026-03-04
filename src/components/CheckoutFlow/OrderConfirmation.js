@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import toast from 'react-hot-toast';
 import styles from './OrderConfirmation.module.css';
 
 export default function OrderConfirmation({ 
@@ -7,8 +9,14 @@ export default function OrderConfirmation({
   items, 
   onConfirm, 
   onBack,
-  formatPrice 
+  formatPrice,
+  isAuthenticated,
+  apiRequest,
+  onUpdateCoupon
 }) {
+  const [couponInput, setCouponInput] = useState(checkoutData.couponCode || '');
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+
   const getShippingCost = () => {
     return checkoutData.deliveryType === 'delivery' ? 120 : 0;
   };
@@ -17,12 +25,58 @@ export default function OrderConfirmation({
     return items.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
+  const getTransferDiscount = () => {
+    return checkoutData.paymentMethod === 'transfer' ? getSubtotal() * 0.05 : 0;
+  };
+
+  const getCouponDiscount = () => {
+    return checkoutData.couponData?.discount_amount || 0;
+  };
+
   const getTotal = () => {
     let total = getSubtotal() + getShippingCost();
-    if (checkoutData.paymentMethod === 'transfer') {
-      total = total - (getSubtotal() * 0.05); // 5% descuento solo en subtotal
-    }
+    const transferDisc = getTransferDiscount();
+    const couponDisc = getCouponDiscount();
+    total = total - Math.max(transferDisc, couponDisc);
     return total;
+  };
+
+  const handleApplyCoupon = async () => {
+    const code = couponInput.trim();
+    if (!code) {
+      toast.error('Ingresa un código de cupón');
+      return;
+    }
+    if (!isAuthenticated || !apiRequest) {
+      toast.error('Inicia sesión para usar cupones');
+      return;
+    }
+    setApplyingCoupon(true);
+    try {
+      const res = await apiRequest('/api/orders/validate-coupon', {
+        method: 'POST',
+        body: JSON.stringify({ code, subtotal: getSubtotal() })
+      });
+      const data = await res.json();
+      if (res.ok && data.valid) {
+        onUpdateCoupon(code, data.coupon);
+        toast.success('Cupón aplicado');
+      } else {
+        onUpdateCoupon('', null);
+        toast.error(data.error || 'Cupón no válido');
+      }
+    } catch (err) {
+      onUpdateCoupon('', null);
+      toast.error('Error al validar cupón');
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponInput('');
+    onUpdateCoupon('', null);
+    toast.success('Cupón removido');
   };
 
   const getPaymentMethodText = () => {
@@ -113,6 +167,41 @@ export default function OrderConfirmation({
           </div>
         </div>
 
+        {/* Cupón (solo usuarios autenticados) */}
+        {isAuthenticated && (
+          <div className={styles.section}>
+            <h3>🎟️ Cupón de descuento</h3>
+            {checkoutData.couponData ? (
+              <div className={styles.couponApplied}>
+                <span className={styles.couponCode}>{checkoutData.couponData.code}</span>
+                <span className={styles.couponDiscount}>-{formatPrice(checkoutData.couponData.discount_amount)}</span>
+                <button type="button" className={styles.removeCouponBtn} onClick={handleRemoveCoupon}>
+                  Quitar
+                </button>
+              </div>
+            ) : (
+              <div className={styles.couponInputRow}>
+                <input
+                  type="text"
+                  placeholder="Código de cupón"
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                  className={styles.couponInput}
+                  disabled={applyingCoupon}
+                />
+                <button
+                  type="button"
+                  className={styles.applyCouponBtn}
+                  onClick={handleApplyCoupon}
+                  disabled={applyingCoupon || !couponInput.trim()}
+                >
+                  {applyingCoupon ? 'Verificando...' : 'Aplicar'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Resumen de Precios */}
         <div className={styles.section}>
           <h3>💰 Resumen de Precios</h3>
@@ -125,10 +214,16 @@ export default function OrderConfirmation({
               <span>Envío:</span>
               <span>{getShippingCost() > 0 ? formatPrice(getShippingCost()) : 'Gratis'}</span>
             </div>
-            {checkoutData.paymentMethod === 'transfer' && (
+            {checkoutData.paymentMethod === 'transfer' && !checkoutData.couponData && (
               <div className={styles.discountRow}>
                 <span>Descuento por transferencia (5%):</span>
                 <span>-{formatPrice(getSubtotal() * 0.05)}</span>
+              </div>
+            )}
+            {checkoutData.couponData && (
+              <div className={styles.discountRow}>
+                <span>Cupón {checkoutData.couponData.code}:</span>
+                <span>-{formatPrice(checkoutData.couponData.discount_amount)}</span>
               </div>
             )}
             <div className={styles.totalRow}>

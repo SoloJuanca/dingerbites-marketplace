@@ -32,6 +32,8 @@ export default function CheckoutFlow() {
     deliveryType: null, // 'delivery' o 'pickup'
     contactInfo: {},
     paymentMethod: null, // 'cash' o 'transfer'
+    couponCode: '',
+    couponData: null, // { id, code, discount_amount } when valid
   });
   
   const { items, clearCart, getTotalPrice } = useCart();
@@ -115,26 +117,32 @@ export default function CheckoutFlow() {
     }
 
     try {
-                        const subtotal = getTotalPrice();
-                  const shippingAmount = checkoutData.deliveryType === 'delivery' ? 120 : 0;
-                  const discount = checkoutData.paymentMethod === 'transfer' ? subtotal * 0.05 : 0;
-                  const totalAmount = subtotal + shippingAmount - discount;
+      const subtotal = getTotalPrice();
+      const shippingAmount = checkoutData.deliveryType === 'delivery' ? 120 : 0;
+      let discount = checkoutData.paymentMethod === 'transfer' ? subtotal * 0.05 : 0;
+      if (checkoutData.couponData && checkoutData.couponData.discount_amount) {
+        discount = Math.max(discount, checkoutData.couponData.discount_amount);
+      }
+      const totalAmount = subtotal + shippingAmount - discount;
 
-                  const orderData = {
-                    user_id: isAuthenticated ? user.id : null,
-                    items: items.map(item => ({
-                      product_id: item.id,
-                      quantity: item.quantity,
-                      price: item.price
-                    })),
-                    customer_email: checkoutData.contactInfo.email,
-                    customer_phone: checkoutData.contactInfo.phone,
-                    customer_name: checkoutData.contactInfo.name,
-                    payment_method: checkoutData.paymentMethod === 'cash' ? 'Pago contra entrega' : 'Transferencia bancaria',
-                    shipping_method: checkoutData.deliveryType === 'delivery' ? 'Envío a domicilio' : 'Recoger en tienda',
-                    subtotal: subtotal,
-                    shipping_amount: shippingAmount,
-                    total_amount: totalAmount,
+      const orderData = {
+        user_id: isAuthenticated ? user.id : null,
+        items: items.map(item => ({
+          product_id: item.id,
+          quantity: item.quantity,
+          price: item.price,
+          name: item.name
+        })),
+        customer_email: checkoutData.contactInfo.email,
+        customer_phone: checkoutData.contactInfo.phone,
+        customer_name: checkoutData.contactInfo.name,
+        payment_method: checkoutData.paymentMethod === 'cash' ? 'Pago contra entrega' : 'Transferencia bancaria',
+        shipping_method: checkoutData.deliveryType === 'delivery' ? 'Envío a domicilio' : 'Recoger en tienda',
+        subtotal: subtotal,
+        shipping_amount: shippingAmount,
+        discount_amount: discount,
+        coupon_id: checkoutData.couponData?.id || null,
+        total_amount: totalAmount,
                     notes: checkoutData.contactInfo.notes || '',
                     address: checkoutData.deliveryType === 'delivery' ? checkoutData.contactInfo.address : null
                   };
@@ -182,7 +190,7 @@ export default function CheckoutFlow() {
                     `💰 *Resumen de Precios:*\n` +
                     `Subtotal: ${formatPrice(subtotal)}\n` +
                     `${checkoutData.deliveryType === 'delivery' ? `Envío: ${formatPrice(shippingAmount)}\n` : 'Recoger en tienda: Sin costo\n'}` +
-                    `${discount > 0 ? `Descuento (5%): -${formatPrice(discount)}\n` : ''}` +
+                    `${discount > 0 ? `Descuento: -${formatPrice(discount)}\n` : ''}` +
                     `*Total: ${formatPrice(totalAmount)}*\n\n` +
                     `🚚 *Tipo de Entrega:* ${checkoutData.deliveryType === 'delivery' ? 'Envío a domicilio' : 'Recoger en tienda'}\n` +
                     `${checkoutData.deliveryType === 'delivery' ? `📍 Dirección: ${checkoutData.contactInfo.address}\n` : ''}` +
@@ -274,6 +282,11 @@ export default function CheckoutFlow() {
             onConfirm={handleSubmitOrder}
             onBack={goToPreviousStep}
             formatPrice={formatPrice}
+            isAuthenticated={isAuthenticated}
+            apiRequest={apiRequest}
+            onUpdateCoupon={(couponCode, couponData) =>
+              setCheckoutData((prev) => ({ ...prev, couponCode, couponData }))
+            }
           />
         );
       

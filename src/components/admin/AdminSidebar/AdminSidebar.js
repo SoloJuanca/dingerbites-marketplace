@@ -66,6 +66,16 @@ export default function AdminSidebar({ isOpen, onToggle }) {
       href: '/admin/users'
     },
     {
+      id: 'reviews',
+      label: 'Reseñas',
+      icon: '⭐',
+      href: '/admin/reviews',
+      submenu: [
+        { label: 'Todas las Reseñas', href: '/admin/reviews' },
+        { label: 'Crear Enlace', href: '/admin/reviews/links' }
+      ]
+    },
+    {
       id: 'analytics',
       label: 'Analíticas',
       icon: '📈',

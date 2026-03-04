@@ -11,6 +11,8 @@ import styles from './agregar-resena.module.css';
 export default function AgregarResenaClient() {
   const searchParams = useSearchParams();
   const tokenFromUrl = searchParams.get('token') || '';
+  const linkFromUrl = searchParams.get('link') || '';
+  const isLinkFlow = Boolean(linkFromUrl);
 
   const [tokenValid, setTokenValid] = useState(null);
   const [name, setName] = useState('');
@@ -21,18 +23,30 @@ export default function AgregarResenaClient() {
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState('');
+  const [wantRegister, setWantRegister] = useState(false);
+  const [registerForm, setRegisterForm] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    firstName: '',
+    lastName: ''
+  });
 
   useEffect(() => {
-    if (!tokenFromUrl) {
+    if (!tokenFromUrl && !linkFromUrl) {
       setTokenValid(false);
       return;
     }
-    fetch(`/api/reviews/token?token=${encodeURIComponent(tokenFromUrl)}`)
+    const url = isLinkFlow
+      ? `/api/reviews/link?token=${encodeURIComponent(linkFromUrl)}`
+      : `/api/reviews/token?token=${encodeURIComponent(tokenFromUrl)}`;
+    fetch(url)
       .then((res) => res.json())
       .then((data) => setTokenValid(data.valid === true))
       .catch(() => setTokenValid(false));
-  }, [tokenFromUrl]);
+  }, [tokenFromUrl, linkFromUrl, isLinkFlow]);
 
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
@@ -50,6 +64,21 @@ export default function AgregarResenaClient() {
       setError('Nombre, calificación y comentario son obligatorios.');
       return;
     }
+    if (wantRegister && isLinkFlow) {
+      const { email, password, confirmPassword, firstName, lastName } = registerForm;
+      if (!email || !password || !firstName || !lastName) {
+        setError('Email, contraseña, nombre y apellido son requeridos para crear cuenta.');
+        return;
+      }
+      if (password.length < 8) {
+        setError('La contraseña debe tener al menos 8 caracteres.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError('Las contraseñas no coinciden.');
+        return;
+      }
+    }
     setLoading(true);
     try {
       let imageUrl = null;
@@ -64,20 +93,34 @@ export default function AgregarResenaClient() {
         if (!uploadRes.ok) throw new Error(uploadData.error || 'Error al subir la imagen');
         imageUrl = uploadData.url;
       }
+      const payload = {
+        author_name: name.trim(),
+        rating,
+        comment: comment.trim(),
+        image_url: imageUrl,
+        location: location.trim() || null
+      };
+      if (isLinkFlow) {
+        payload.linkToken = linkFromUrl;
+        if (wantRegister) {
+          payload.registerAndClaim = {
+            email: registerForm.email.trim(),
+            password: registerForm.password,
+            firstName: registerForm.firstName.trim(),
+            lastName: registerForm.lastName.trim()
+          };
+        }
+      } else {
+        payload.token = tokenFromUrl;
+      }
       const res = await fetch('/api/reviews/general', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: tokenFromUrl,
-          author_name: name.trim(),
-          rating,
-          comment: comment.trim(),
-          image_url: imageUrl,
-          location: location.trim() || null
-        })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al enviar la reseña');
+      setSuccessMessage(data.message || '¡Gracias por tu reseña!');
       setSuccess(true);
       setName('');
       setRating(0);
@@ -85,6 +128,13 @@ export default function AgregarResenaClient() {
       setLocation('');
       setImageFile(null);
       setImagePreview(null);
+      setRegisterForm({ email: '', password: '', confirmPassword: '', firstName: '', lastName: '' });
+      if (data.token && data.user) {
+        localStorage.setItem('auth_token', data.token);
+        localStorage.setItem('auth_user', JSON.stringify(data.user));
+        window.location.href = '/profile?tab=coupons';
+        return;
+      }
     } catch (err) {
       setError(err.message || 'No se pudo enviar la reseña. Intenta de nuevo.');
     } finally {
@@ -102,7 +152,7 @@ export default function AgregarResenaClient() {
               <Icon name="check_circle" size={64} className={styles.successIcon} />
               <h1 className={styles.successTitle}>¡Gracias por tu reseña!</h1>
               <p className={styles.successText}>
-                Tu reseña se ha publicado correctamente. Compártela con quien quieras.
+                {successMessage || 'Tu reseña se ha publicado correctamente. Compártela con quien quieras.'}
               </p>
               <Link href="/#reviews" className={styles.backLink}>Ver reseñas</Link>
             </div>
@@ -128,6 +178,9 @@ export default function AgregarResenaClient() {
   }
 
   if (tokenValid === false) {
+    const invalidText = isLinkFlow
+      ? 'Este enlace de reseña no es válido. Si tienes un enlace de la tienda, asegúrate de usarlo correctamente.'
+      : 'Este enlace de reseña no es válido o ya fue utilizado. Si compraste en persona, pide a la tienda que te comparta un nuevo enlace.';
     return (
       <>
         <Header />
@@ -136,9 +189,7 @@ export default function AgregarResenaClient() {
             <div className={styles.invalidCard}>
               <Icon name="link_off" size={64} className={styles.invalidIcon} />
               <h1 className={styles.invalidTitle}>Enlace no válido</h1>
-              <p className={styles.invalidText}>
-                Este enlace de reseña no es válido o ya fue utilizado. Si compraste en persona, pide a la tienda que te comparta un nuevo enlace.
-              </p>
+              <p className={styles.invalidText}>{invalidText}</p>
               <Link href="/" className={styles.backLink}>Ir al inicio</Link>
             </div>
           </div>
@@ -246,6 +297,60 @@ export default function AgregarResenaClient() {
                 )}
               </div>
             </div>
+
+            {isLinkFlow && (
+              <div className={styles.formGroup}>
+                <label className={styles.registerCheck}>
+                  <input
+                    type="checkbox"
+                    checked={wantRegister}
+                    onChange={(e) => setWantRegister(e.target.checked)}
+                  />
+                  Crear cuenta y obtener 5% de descuento
+                </label>
+                {wantRegister && (
+                  <div className={styles.registerFields}>
+                    <div className={styles.formRow}>
+                      <input
+                        type="text"
+                        placeholder="Nombre *"
+                        value={registerForm.firstName}
+                        onChange={(e) => setRegisterForm((prev) => ({ ...prev, firstName: e.target.value }))}
+                        className={styles.input}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Apellido *"
+                        value={registerForm.lastName}
+                        onChange={(e) => setRegisterForm((prev) => ({ ...prev, lastName: e.target.value }))}
+                        className={styles.input}
+                      />
+                    </div>
+                    <input
+                      type="email"
+                      placeholder="Email *"
+                      value={registerForm.email}
+                      onChange={(e) => setRegisterForm((prev) => ({ ...prev, email: e.target.value }))}
+                      className={styles.input}
+                    />
+                    <input
+                      type="password"
+                      placeholder="Contraseña (mín. 8 caracteres) *"
+                      value={registerForm.password}
+                      onChange={(e) => setRegisterForm((prev) => ({ ...prev, password: e.target.value }))}
+                      className={styles.input}
+                    />
+                    <input
+                      type="password"
+                      placeholder="Confirmar contraseña *"
+                      value={registerForm.confirmPassword}
+                      onChange={(e) => setRegisterForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+                      className={styles.input}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
             {error && <p className={styles.error}>{error}</p>}
 

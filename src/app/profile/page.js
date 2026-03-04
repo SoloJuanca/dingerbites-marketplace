@@ -18,9 +18,11 @@ function ProfileContent() {
   const { user, isAuthenticated, isLoading, apiRequest } = useAuth();
   const { items: wishlistItems } = useWishlist();
   const [activeTab, setActiveTab] = useState('orders');
+  const [coupons, setCoupons] = useState([]);
+  const [loadingCoupons, setLoadingCoupons] = useState(false);
   useEffect(() => {
     const tab = searchParams.get('tab');
-    const validTabs = ['orders', 'wishlist', 'addresses', 'account'];
+    const validTabs = ['orders', 'wishlist', 'addresses', 'account', 'coupons'];
     if (tab && validTabs.includes(tab)) {
       setActiveTab(tab);
     }
@@ -60,9 +62,26 @@ function ProfileContent() {
         loadOrders();
       } else if (activeTab === 'addresses') {
         loadAddresses();
+      } else if (activeTab === 'coupons') {
+        loadCoupons();
       }
     }
   }, [activeTab, isAuthenticated, user]);
+
+  const loadCoupons = async () => {
+    setLoadingCoupons(true);
+    try {
+      const response = await apiRequest('/api/users/coupons');
+      if (response.ok) {
+        const data = await response.json();
+        setCoupons(data.coupons || []);
+      }
+    } catch (error) {
+      console.error('Error loading coupons:', error);
+    } finally {
+      setLoadingCoupons(false);
+    }
+  };
 
   const loadOrders = async () => {
     setLoadingOrders(true);
@@ -261,6 +280,12 @@ function ProfileContent() {
             >
               Mi Cuenta
             </button>
+            <button
+              className={`${styles.tab} ${activeTab === 'coupons' ? styles.tabActive : ''}`}
+              onClick={() => setActiveTab('coupons')}
+            >
+              Mis Cupones ({coupons.length})
+            </button>
           </div>
 
           <div className={styles.content}>
@@ -381,6 +406,49 @@ function ProfileContent() {
                 ) : (
                   <div className={styles.emptyState}>
                     <p>No tienes direcciones guardadas.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Coupons Tab */}
+            {activeTab === 'coupons' && (
+              <div className={styles.couponsSection}>
+                <h2 className={styles.sectionTitle}>Mis Cupones</h2>
+                {loadingCoupons ? (
+                  <div className={styles.loading}>Cargando cupones...</div>
+                ) : coupons.length > 0 ? (
+                  <div className={styles.couponsList}>
+                    {coupons.map((coupon) => {
+                      const isUsed = !!coupon.used_at;
+                      const expiresAt = coupon.expires_at ? new Date(coupon.expires_at) : null;
+                      const isExpired = expiresAt && expiresAt.getTime() < Date.now();
+                      const isValid = !isUsed && !isExpired;
+                      return (
+                        <div
+                          key={coupon.id}
+                          className={`${styles.couponCard} ${!isValid ? styles.couponInactive : ''}`}
+                        >
+                          <div className={styles.couponCode}>{coupon.code}</div>
+                          <div className={styles.couponValue}>
+                            {coupon.type === 'percentage' ? `${coupon.value}% de descuento` : `$${coupon.value} de descuento`}
+                          </div>
+                          {expiresAt && (
+                            <div className={styles.couponExpiry}>
+                              Válido hasta: {formatDate(coupon.expires_at)}
+                            </div>
+                          )}
+                          <div className={styles.couponStatus}>
+                            {isUsed ? 'Usado' : isExpired ? 'Expirado' : 'Activo'}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className={styles.emptyState}>
+                    <p>No tienes cupones.</p>
+                    <p>¡Deja una reseña creando cuenta para obtener un 5% de descuento!</p>
                   </div>
                 )}
               </div>

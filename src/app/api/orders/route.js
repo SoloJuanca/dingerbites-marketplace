@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { authenticateUser } from '../../../lib/auth';
 import { getOrdersByUserId, getOrderStatusIdByName, createOrder } from '../../../lib/firebaseOrders';
 import { getUserByEmail, createUser } from '../../../lib/firebaseUsers';
+import { markCouponUsed } from '../../../lib/firebaseCoupons';
 import { hashPassword } from '../../../lib/auth';
 import { sendOrderNotifications } from '../../../lib/emailService';
 import { db } from '../../../lib/firebaseAdmin';
@@ -70,7 +71,8 @@ export async function POST(request) {
       shipping_amount = 0,
       discount_amount = 0,
       total_amount,
-      address
+      address,
+      coupon_id
     } = body;
     const normalizedCustomerEmail = customer_email?.toLowerCase().trim();
 
@@ -281,6 +283,14 @@ export async function POST(request) {
         orderData.service_items = enriched;
       } catch (e) {
         console.error('Error enriching service data for email:', e);
+      }
+    }
+
+    if (coupon_id) {
+      try {
+        await markCouponUsed(coupon_id);
+      } catch (couponErr) {
+        console.warn('Order created but failed to mark coupon as used:', couponErr);
       }
     }
 
