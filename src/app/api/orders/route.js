@@ -72,6 +72,7 @@ export async function POST(request) {
       discount_amount = 0,
       total_amount,
       address,
+      pickup_point,
       coupon_id
     } = body;
     const normalizedCustomerEmail = customer_email?.toLowerCase().trim();
@@ -217,6 +218,7 @@ export async function POST(request) {
       customer_phone: customer_phone || null,
       payment_method: payment_method || null,
       shipping_method: shipping_method || null,
+      pickup_point: pickup_point || null,
       items: orderItems,
       service_items: orderServiceItems
     });
@@ -232,6 +234,7 @@ export async function POST(request) {
       items: items || [],
       service_items: service_items || [],
       address,
+      pickup_point: pickup_point || null,
       notes,
       created_at: new Date()
     };

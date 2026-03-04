@@ -46,9 +46,12 @@ export default function OrderSuccess({
             </li>
             {checkoutData.paymentMethod === 'transfer' && (
               <li>
-                <strong>💳 Transferencia:</strong> Envía el comprobante por WhatsApp al (55) 1234-5678
+                <strong>💳 Transferencia:</strong> Agrega el número de pedido ({orderNumber}) en el concepto. Banco BBVA. Envía el comprobante por WhatsApp.
               </li>
             )}
+            <li>
+              <strong>📧 Confirmación:</strong> Se enviará mensaje por correo y teléfono para confirmar el día de entrega
+            </li>
             {checkoutData.deliveryType === 'delivery' && (
               <li>
                 <strong>🚚 Envío:</strong> Tiempo estimado de 1-2 días hábiles
@@ -56,7 +59,7 @@ export default function OrderSuccess({
             )}
             {checkoutData.deliveryType === 'pickup' && (
               <li>
-                <strong>🏪 Recogida:</strong> Te notificaremos cuando esté listo (30 min - 2 horas)
+                <strong>🏪 Recoger en punto:</strong> Te notificaremos cuando esté listo
               </li>
             )}
             <li>

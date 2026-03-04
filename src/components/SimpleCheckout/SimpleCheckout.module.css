@@ -292,6 +292,57 @@
   margin-bottom: 16px;
 }
 
+.deliveryNotice {
+  background: #e6f7ff;
+  border: 1px solid #91d5ff;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.deliveryNotice p {
+  margin: 0;
+  font-size: 14px;
+  color: #0050b3;
+  font-weight: 500;
+}
+
+.pickupPointsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  margin-top: 16px;
+}
+
+.pickupLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.pickupSelect {
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #2d3748;
+  background: white;
+  transition: border-color 0.2s ease;
+}
+
+.pickupSelect:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+}
+
+.pickupSelect.error {
+  border-color: #e53e3e;
+}
+
 .paymentNotice {
   background: #fff2cd;
   border: 1px solid #fbd38d;
@@ -304,6 +355,21 @@
   margin: 0;
   font-size: 14px;
   color: #744210;
+  font-weight: 500;
+}
+
+.cashOnDeliveryRules {
+  background: #f0fff4;
+  border: 1px solid #9ae6b4;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 16px;
+}
+
+.cashOnDeliveryRules p {
+  margin: 0;
+  font-size: 14px;
+  color: #276749;
   font-weight: 500;
 }
 

@@ -84,7 +84,7 @@ export default function OrderConfirmation({
   };
 
   const getDeliveryTypeText = () => {
-    return checkoutData.deliveryType === 'delivery' ? 'Envío a domicilio' : 'Recoger en tienda';
+    return checkoutData.deliveryType === 'delivery' ? 'Envío a domicilio' : 'Recoger en punto';
   };
 
   const getUserTypeText = () => {
@@ -137,6 +137,12 @@ export default function OrderConfirmation({
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>Dirección:</span>
                 <span className={styles.infoValue}>{checkoutData.contactInfo.address}</span>
+              </div>
+            )}
+            {checkoutData.deliveryType === 'pickup' && checkoutData.pickupPoint && (
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Punto de recolección:</span>
+                <span className={styles.infoValue}>{checkoutData.pickupPoint}</span>
               </div>
             )}
             {checkoutData.contactInfo.notes && (
@@ -237,12 +243,21 @@ export default function OrderConfirmation({
         <div className={styles.importantInfo}>
           <h4>⚠️ Información Importante</h4>
           <ul>
-            <li>
-              <strong>Confirmación:</strong> Recibirás confirmación de tu pedido por WhatsApp
-            </li>
             {checkoutData.paymentMethod === 'transfer' && (
+              <>
+                <li>
+                  <strong>Transferencia:</strong> Agrega el número de pedido en el concepto. Banco BBVA. Envía el comprobante por WhatsApp.
+                </li>
+                <li>
+                  <strong>Aviso:</strong> Si no se recibe el comprobante o el número de pedido no se agrega en la transferencia, el pedido será cancelado.
+                </li>
+              </>
+            )}
+            {checkoutData.paymentMethod === 'cash' && checkoutData.deliveryType === 'pickup' && (
               <li>
-                <strong>Transferencia:</strong> Envía el comprobante por WhatsApp al (55) 1234-5678
+                <strong>Pago contra entrega:</strong> {getTotal() < 50
+                  ? 'El pedido deberá pagarse en su totalidad al momento de la entrega.'
+                  : 'El pedido se pagará en dos transacciones del 50% cada una (50% al recibir, 50% en la siguiente transacción).'}
               </li>
             )}
             {checkoutData.deliveryType === 'delivery' && (
@@ -252,9 +267,12 @@ export default function OrderConfirmation({
             )}
             {checkoutData.deliveryType === 'pickup' && (
               <li>
-                <strong>Recogida:</strong> Te notificaremos cuando esté listo (30 min - 2 horas)
+                <strong>Recoger en punto:</strong> Te notificaremos cuando esté listo
               </li>
             )}
+            <li>
+              <strong>Confirmación:</strong> Se enviará mensaje por correo y teléfono para confirmar el día de entrega
+            </li>
             <li>
               <strong>Contacto:</strong> Cualquier duda al (55) 1234-5678
             </li>

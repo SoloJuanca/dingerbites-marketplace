@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+
 import { db } from './firebaseAdmin';
 
 const ORDERS_COLLECTION = 'orders';
@@ -145,6 +146,7 @@ export async function createOrder(orderPayload) {
     customer_phone: orderPayload.customer_phone || null,
     payment_method: orderPayload.payment_method || null,
     shipping_method: orderPayload.shipping_method || null,
+    pickup_point: orderPayload.pickup_point || null,
     items: Array.isArray(orderPayload.items) ? orderPayload.items : [],
     service_items: Array.isArray(orderPayload.service_items) ? orderPayload.service_items : [],
     review_token: reviewToken,
@@ -208,8 +210,49 @@ export async function updateOrderStatus(orderId, statusId, notes, shippingInfo =
   if (shippingInfo.tracking_id !== undefined) updateData.tracking_id = shippingInfo.tracking_id || null;
   if (shippingInfo.carrier_company !== undefined) updateData.carrier_company = shippingInfo.carrier_company || null;
   if (shippingInfo.tracking_url !== undefined) updateData.tracking_url = shippingInfo.tracking_url || null;
+  if (shippingInfo.scheduled_delivery_date !== undefined) updateData.scheduled_delivery_date = shippingInfo.scheduled_delivery_date || null;
+  if (shippingInfo.scheduled_delivery_time !== undefined) updateData.scheduled_delivery_time = shippingInfo.scheduled_delivery_time || null;
+  if (shippingInfo.delivery_schedule_status !== undefined) updateData.delivery_schedule_status = shippingInfo.delivery_schedule_status || null;
+  if (shippingInfo.schedule_token !== undefined) updateData.schedule_token = shippingInfo.schedule_token || null;
 
   await orderRef.update(updateData);
+  const updated = await orderRef.get();
+  return { id: updated.id, ...updated.data() };
+}
+
+/** Update delivery schedule (admin sets date/time). Sets delivery_schedule_status to 'pending' and generates schedule_token. */
+export async function updateOrderDeliverySchedule(orderId, { scheduled_delivery_date, scheduled_delivery_time }) {
+  const orderRef = db.collection(ORDERS_COLLECTION).doc(String(orderId));
+  const orderDoc = await orderRef.get();
+  if (!orderDoc.exists) return null;
+  const now = new Date().toISOString();
+  const scheduleToken = randomUUID();
+  const updateData = {
+    scheduled_delivery_date: scheduled_delivery_date || null,
+    scheduled_delivery_time: scheduled_delivery_time || null,
+    delivery_schedule_status: 'pending',
+    schedule_token: scheduleToken,
+    updated_at: now
+  };
+  await orderRef.update(updateData);
+  const updated = await orderRef.get();
+  return { id: updated.id, schedule_token: scheduleToken, ...updated.data() };
+}
+
+/** User responds to delivery schedule (accept/reject). Requires valid schedule_token or ownership. */
+export async function updateOrderScheduleResponse(orderId, delivery_schedule_status, scheduleToken = null) {
+  const orderRef = db.collection(ORDERS_COLLECTION).doc(String(orderId));
+  const orderDoc = await orderRef.get();
+  if (!orderDoc.exists) return null;
+  const order = orderDoc.data();
+  if (scheduleToken && order.schedule_token !== scheduleToken) {
+    return null;
+  }
+  const now = new Date().toISOString();
+  await orderRef.update({
+    delivery_schedule_status: delivery_schedule_status,
+    updated_at: now
+  });
   const updated = await orderRef.get();
   return { id: updated.id, ...updated.data() };
 }

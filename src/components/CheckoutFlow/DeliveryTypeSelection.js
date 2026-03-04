@@ -2,16 +2,29 @@
 
 import styles from './DeliveryTypeSelection.module.css';
 
-export default function DeliveryTypeSelection({ deliveryType, onDeliveryTypeSelect, onNext, onBack }) {
+const PICKUP_POINTS = [
+  'Galerías Valle Oriente, Monterrey Nuevo León',
+  'Walmart Las Torres, Monterrey Nuevo León',
+  'Mercado de la Y Griega, Monterrey Nuevo León'
+];
+
+export default function DeliveryTypeSelection({ deliveryType, pickupPoint, onDeliveryTypeSelect, onPickupPointSelect, onNext, onBack }) {
   const handleDeliveryTypeSelect = (type) => {
     onDeliveryTypeSelect(type);
+    if (type === 'delivery') onPickupPointSelect?.('');
   };
+
+  const canContinue = deliveryType && (deliveryType === 'delivery' || (deliveryType === 'pickup' && pickupPoint));
 
   return (
     <div className={styles.deliveryTypeSelection}>
       <div className={styles.header}>
         <h2>¿Cómo quieres recibir tu pedido?</h2>
         <p>Elige la opción que mejor se adapte a tus necesidades</p>
+      </div>
+
+      <div className={styles.deliveryNotice}>
+        <p>Se enviará mensaje por correo electrónico y teléfono para confirmar el día de entrega.</p>
       </div>
 
       <div className={styles.options}>
@@ -51,8 +64,8 @@ export default function DeliveryTypeSelection({ deliveryType, onDeliveryTypeSele
         >
           <div className={styles.optionIcon}>🏪</div>
           <div className={styles.optionContent}>
-            <h3>Recoger en Tienda</h3>
-            <p>Pasa por tu pedido en nuestro local</p>
+            <h3>Recoger en Punto</h3>
+            <p>Elige el punto de recolección más cercano</p>
             <div className={styles.pickupInfo}>
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>Costo:</span>
@@ -76,11 +89,27 @@ export default function DeliveryTypeSelection({ deliveryType, onDeliveryTypeSele
         </div>
       </div>
 
+      {deliveryType === 'pickup' && (
+        <div className={styles.pickupPointsSection}>
+          <label htmlFor="pickupPoint" className={styles.pickupLabel}>Punto de recolección *</label>
+          <select
+            id="pickupPoint"
+            value={pickupPoint || ''}
+            onChange={(e) => onPickupPointSelect?.(e.target.value)}
+            className={styles.pickupSelect}
+          >
+            <option value="">Selecciona un punto</option>
+            {PICKUP_POINTS.map((point) => (
+              <option key={point} value={point}>{point}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className={styles.storeInfo}>
-        <h4>📍 Nuestra Ubicación</h4>
-        <p>Av. Principal #123, Centro Histórico</p>
-        <p>Ciudad de México, CDMX</p>
-        <p>📞 (55) 1234-5678</p>
+        <h4>📍 Puntos de recolección</h4>
+        <p>Galerías Valle Oriente • Walmart Las Torres • Mercado de la Y Griega</p>
+        <p>Monterrey, Nuevo León</p>
       </div>
 
       <div className={styles.actions}>
@@ -88,9 +117,9 @@ export default function DeliveryTypeSelection({ deliveryType, onDeliveryTypeSele
           Atrás
         </button>
         <button
-          className={`${styles.nextButton} ${!deliveryType ? styles.disabled : ''}`}
+          className={`${styles.nextButton} ${!canContinue ? styles.disabled : ''}`}
           onClick={onNext}
-          disabled={!deliveryType}
+          disabled={!canContinue}
         >
           Continuar
         </button>

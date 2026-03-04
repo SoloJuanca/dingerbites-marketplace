@@ -28,12 +28,13 @@ export default function CheckoutFlow() {
   const [currentStep, setCurrentStep] = useState(STEPS.USER_TYPE);
   const [orderNumber, setOrderNumber] = useState(null);
   const [checkoutData, setCheckoutData] = useState({
-    userType: null, // 'guest' o 'account'
-    deliveryType: null, // 'delivery' o 'pickup'
+    userType: null,
+    deliveryType: null,
+    pickupPoint: '',
     contactInfo: {},
-    paymentMethod: null, // 'cash' o 'transfer'
+    paymentMethod: null,
     couponCode: '',
-    couponData: null, // { id, code, discount_amount } when valid
+    couponData: null,
   });
   
   const { items, clearCart, getTotalPrice } = useCart();
@@ -137,15 +138,16 @@ export default function CheckoutFlow() {
         customer_phone: checkoutData.contactInfo.phone,
         customer_name: checkoutData.contactInfo.name,
         payment_method: checkoutData.paymentMethod === 'cash' ? 'Pago contra entrega' : 'Transferencia bancaria',
-        shipping_method: checkoutData.deliveryType === 'delivery' ? 'Envío a domicilio' : 'Recoger en tienda',
+        shipping_method: checkoutData.deliveryType === 'delivery' ? 'Envío a domicilio' : 'Recoger en punto',
         subtotal: subtotal,
         shipping_amount: shippingAmount,
         discount_amount: discount,
         coupon_id: checkoutData.couponData?.id || null,
         total_amount: totalAmount,
-                    notes: checkoutData.contactInfo.notes || '',
-                    address: checkoutData.deliveryType === 'delivery' ? checkoutData.contactInfo.address : null
-                  };
+        notes: checkoutData.contactInfo.notes || '',
+        address: checkoutData.deliveryType === 'delivery' ? checkoutData.contactInfo.address : checkoutData.pickupPoint || null,
+        pickup_point: checkoutData.deliveryType === 'pickup' ? checkoutData.pickupPoint : null,
+      };
 
       // Crear orden en la base de datos
       let orderResponse;
@@ -189,11 +191,11 @@ export default function CheckoutFlow() {
                     `📦 *Productos:*\n${orderSummary}\n\n` +
                     `💰 *Resumen de Precios:*\n` +
                     `Subtotal: ${formatPrice(subtotal)}\n` +
-                    `${checkoutData.deliveryType === 'delivery' ? `Envío: ${formatPrice(shippingAmount)}\n` : 'Recoger en tienda: Sin costo\n'}` +
+                    `${checkoutData.deliveryType === 'delivery' ? `Envío: ${formatPrice(shippingAmount)}\n` : 'Recoger en punto: Sin costo\n'}` +
                     `${discount > 0 ? `Descuento: -${formatPrice(discount)}\n` : ''}` +
                     `*Total: ${formatPrice(totalAmount)}*\n\n` +
-                    `🚚 *Tipo de Entrega:* ${checkoutData.deliveryType === 'delivery' ? 'Envío a domicilio' : 'Recoger en tienda'}\n` +
-                    `${checkoutData.deliveryType === 'delivery' ? `📍 Dirección: ${checkoutData.contactInfo.address}\n` : ''}` +
+                    `🚚 *Tipo de Entrega:* ${checkoutData.deliveryType === 'delivery' ? 'Envío a domicilio' : 'Recoger en punto'}\n` +
+                    `${checkoutData.deliveryType === 'delivery' ? `📍 Dirección: ${checkoutData.contactInfo.address}\n` : checkoutData.pickupPoint ? `📍 Punto: ${checkoutData.pickupPoint}\n` : ''}` +
                     `💳 *Método de Pago:* ${checkoutData.paymentMethod === 'cash' ? 'Pago contra entrega' : 'Transferencia bancaria'}\n` +
                     `${checkoutData.contactInfo.notes ? `📝 Notas adicionales: ${checkoutData.contactInfo.notes}` : ''}`;
 
@@ -244,7 +246,9 @@ export default function CheckoutFlow() {
         return (
           <DeliveryTypeSelection
             deliveryType={checkoutData.deliveryType}
+            pickupPoint={checkoutData.pickupPoint}
             onDeliveryTypeSelect={(type) => updateCheckoutData('deliveryType', type)}
+            onPickupPointSelect={(point) => updateCheckoutData('pickupPoint', point)}
             onNext={goToNextStep}
             onBack={goToPreviousStep}
           />

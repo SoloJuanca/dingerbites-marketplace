@@ -19,6 +19,49 @@
   margin: 0;
 }
 
+.deliveryNotice {
+  background: #e6f7ff;
+  border: 1px solid #91d5ff;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+}
+
+.deliveryNotice p {
+  margin: 0;
+  font-size: 14px;
+  color: #0050b3;
+  font-weight: 500;
+}
+
+.pickupPointsSection {
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.pickupLabel {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 8px;
+}
+
+.pickupSelect {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #2d3748;
+  background: white;
+}
+
+.pickupSelect:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+}
+
 .options {
   display: grid;
   grid-template-columns: 1fr 1fr;

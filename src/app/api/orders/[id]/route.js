@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getOrderById, updateOrderStatus, cancelOrder, getOrderStatusById } from '../../../../lib/firebaseOrders';
+import { getOrderById, updateOrderStatus, updateOrderDeliverySchedule, cancelOrder, getOrderStatusById } from '../../../../lib/firebaseOrders';
 
 // GET /api/orders/[id] - Get order by ID with details
 export async function GET(request, { params }) {
@@ -32,7 +32,7 @@ export async function PUT(request, { params }) {
   try {
     const { id } = await params;
     const body = await request.json().catch(() => ({}));
-    const { status_id, notes, tracking_id, carrier_company, tracking_url } = body || {};
+    const { status_id, notes, tracking_id, carrier_company, tracking_url, scheduled_delivery_date, scheduled_delivery_time } = body || {};
 
     const existingOrder = await getOrderById(id);
     if (!existingOrder) {
@@ -56,6 +56,16 @@ export async function PUT(request, { params }) {
     if (tracking_id !== undefined) shippingInfo.tracking_id = tracking_id == null ? null : String(tracking_id).trim() || null;
     if (carrier_company !== undefined) shippingInfo.carrier_company = carrier_company == null ? null : String(carrier_company).trim() || null;
     if (tracking_url !== undefined) shippingInfo.tracking_url = tracking_url == null ? null : String(tracking_url).trim() || null;
+
+    if (scheduled_delivery_date !== undefined || scheduled_delivery_time !== undefined) {
+      const scheduleResult = await updateOrderDeliverySchedule(id, {
+        scheduled_delivery_date: scheduled_delivery_date || null,
+        scheduled_delivery_time: scheduled_delivery_time || null
+      });
+      if (!scheduleResult) {
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      }
+    }
 
     const updated = await updateOrderStatus(
       id,

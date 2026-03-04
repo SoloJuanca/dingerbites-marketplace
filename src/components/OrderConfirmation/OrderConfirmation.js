@@ -7,15 +7,20 @@ import Header from '../Header/Header';
 import Footer from '../Footer/Footer';
 import styles from './OrderConfirmation.module.css';
 
+const BBVA_TITULAR = 'María Fernanda Villegas Nieto';
+
 export default function OrderConfirmation({ 
   orderNumber, 
   customerName, 
   total, 
   deliveryType, 
+  pickupPoint,
   paymentMethod,
   estimatedDelivery 
 }) {
   const router = useRouter();
+  const clabe = process.env.NEXT_PUBLIC_BBVA_CLABE || '';
+  const cardNumber = process.env.NEXT_PUBLIC_BBVA_CARD_NUMBER || '';
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('es-MX', {
@@ -65,9 +70,16 @@ export default function OrderConfirmation({
           <div className={styles.detailRow}>
             <span className={styles.label}>Tipo de Entrega:</span>
             <span className={styles.value}>
-              {deliveryType === 'delivery' ? 'Envío a domicilio' : 'Recoger en tienda'}
+              {deliveryType === 'delivery' ? 'Envío a domicilio' : 'Recoger en punto'}
             </span>
           </div>
+
+          {deliveryType === 'pickup' && pickupPoint && (
+            <div className={styles.detailRow}>
+              <span className={styles.label}>Punto de recolección:</span>
+              <span className={styles.value}>{pickupPoint}</span>
+            </div>
+          )}
 
           <div className={styles.detailRow}>
             <span className={styles.label}>Método de Pago:</span>
@@ -84,16 +96,33 @@ export default function OrderConfirmation({
           )}
         </div>
 
-        {/* Next Steps */}
+        {paymentMethod === 'transfer' && (
+          <div className={styles.transferSection}>
+            <div className={styles.transferNotice}>
+              <strong>IMPORTANTE:</strong> Agrega el número de pedido <strong>{orderNumber}</strong> en el concepto o referencia de tu transferencia.
+            </div>
+
+            <div className={styles.transferCancelWarning}>
+              Si no se recibe el comprobante de pago o el número de pedido no se agrega en la transferencia, el pedido será cancelado.
+            </div>
+
+            <div className={styles.transferDetails}>
+              <h4>Datos para transferencia</h4>
+              <p><strong>Banco:</strong> BBVA</p>
+              <p><strong>Titular:</strong> {BBVA_TITULAR}</p>
+              {clabe && <p><strong>CLABE:</strong> <span className={styles.mono}>{clabe}</span></p>}
+              {cardNumber && <p><strong>Número de tarjeta:</strong> <span className={styles.mono}>{cardNumber}</span></p>}
+            </div>
+          </div>
+        )}
+
         <div className={styles.nextSteps}>
           <h3>¿Qué sigue?</h3>
           <ul>
+            <li>Se enviará mensaje por correo electrónico y teléfono para confirmar el día de entrega.</li>
             <li>Recibirás un email de confirmación en breve</li>
             <li>Nos pondremos en contacto contigo para coordinar la entrega</li>
             <li>Puedes seguir el estado de tu pedido en tu perfil</li>
-            {paymentMethod === 'transfer' && (
-              <li>Te enviaremos los datos bancarios para realizar el pago</li>
-            )}
           </ul>
         </div>
 

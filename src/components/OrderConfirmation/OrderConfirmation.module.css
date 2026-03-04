@@ -111,6 +111,62 @@
   color: var(--brand-primary);
 }
 
+.transferSection {
+  text-align: left;
+  margin: 32px 0;
+  padding: 24px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+}
+
+.transferNotice {
+  background: #fef3c7;
+  border: 2px solid #f59e0b;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  font-size: 15px;
+  color: #92400e;
+  font-weight: 600;
+}
+
+.transferCancelWarning {
+  background: #fee2e2;
+  border: 2px solid #ef4444;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+  font-size: 14px;
+  color: #991b1b;
+  font-weight: 500;
+}
+
+.transferDetails {
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.transferDetails h4 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  color: #2d3748;
+}
+
+.transferDetails p {
+  margin: 8px 0;
+  font-size: 15px;
+  color: #4a5568;
+}
+
+.transferDetails .mono {
+  font-family: monospace;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+}
+
 .nextSteps {
   text-align: left;
   margin: 32px 0;

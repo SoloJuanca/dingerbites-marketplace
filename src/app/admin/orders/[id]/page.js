@@ -19,6 +19,8 @@ export default function AdminOrderDetail() {
   const [shippingTrackingId, setShippingTrackingId] = useState('');
   const [shippingCarrier, setShippingCarrier] = useState('');
   const [shippingUrl, setShippingUrl] = useState('');
+  const [scheduledDeliveryDate, setScheduledDeliveryDate] = useState('');
+  const [scheduledDeliveryTime, setScheduledDeliveryTime] = useState('');
 
   useEffect(() => {
     if (params.id) {
@@ -39,6 +41,8 @@ export default function AdminOrderDetail() {
         setShippingTrackingId(data.order?.tracking_id ?? '');
         setShippingCarrier(data.order?.carrier_company ?? '');
         setShippingUrl(data.order?.tracking_url ?? '');
+        setScheduledDeliveryDate(data.order?.scheduled_delivery_date ? data.order.scheduled_delivery_date.split('T')[0] : '');
+        setScheduledDeliveryTime(data.order?.scheduled_delivery_time ?? '');
       } else {
         toast.error('Error al cargar el pedido');
         router.push('/admin/orders');
@@ -109,6 +113,33 @@ export default function AdminOrderDetail() {
       }
     } catch (error) {
       console.error('Error saving shipping info:', error);
+      toast.error('Error al conectar con el servidor');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleSaveDeliverySchedule = async () => {
+    try {
+      setUpdating(true);
+      const response = await apiRequest(`/api/orders/${params.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status_id: order.status_id,
+          scheduled_delivery_date: scheduledDeliveryDate || null,
+          scheduled_delivery_time: scheduledDeliveryTime.trim() || null
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Horario de entrega guardado');
+        loadOrder();
+      } else {
+        toast.error('Error al guardar el horario');
+      }
+    } catch (error) {
+      console.error('Error saving delivery schedule:', error);
       toast.error('Error al conectar con el servidor');
     } finally {
       setUpdating(false);
@@ -341,6 +372,53 @@ export default function AdminOrderDetail() {
                   <span>{formatDate(order.actual_delivery_date)}</span>
                 </div>
               )}
+              {order.delivery_schedule_status && (
+                <div className={styles.deliveryItem}>
+                  <label>Estado horario (cliente):</label>
+                  <span>{order.delivery_schedule_status === 'pending' ? 'Pendiente de respuesta' : order.delivery_schedule_status === 'accepted' ? 'Aceptado' : 'Rechazado'}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Fecha/Horario de Entrega Propuesto */}
+          <div className={styles.section}>
+            <h2>Fecha/Horario de Entrega Propuesto</h2>
+            <p className={styles.sectionHint}>
+              Agenda el día y horario de entrega. El cliente recibirá un mensaje y podrá aceptar o rechazar.
+            </p>
+            <div className={styles.shippingForm}>
+              <div className={styles.shippingField}>
+                <label htmlFor="scheduled_delivery_date">Fecha de entrega</label>
+                <input
+                  id="scheduled_delivery_date"
+                  type="date"
+                  value={scheduledDeliveryDate}
+                  onChange={(e) => setScheduledDeliveryDate(e.target.value)}
+                  className={styles.shippingInput}
+                  disabled={updating}
+                />
+              </div>
+              <div className={styles.shippingField}>
+                <label htmlFor="scheduled_delivery_time">Horario (ej. 10:00 - 12:00)</label>
+                <input
+                  id="scheduled_delivery_time"
+                  type="text"
+                  value={scheduledDeliveryTime}
+                  onChange={(e) => setScheduledDeliveryTime(e.target.value)}
+                  placeholder="10:00 - 12:00"
+                  className={styles.shippingInput}
+                  disabled={updating}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleSaveDeliverySchedule}
+                disabled={updating}
+                className={styles.saveShippingButton}
+              >
+                {updating ? 'Guardando...' : 'Guardar horario de entrega'}
+              </button>
             </div>
           </div>
 

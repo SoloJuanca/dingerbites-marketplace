@@ -10,6 +10,12 @@ import OrderConfirmation from '../OrderConfirmation/OrderConfirmation';
 import AddressManager from '../AddressManager/AddressManager';
 import styles from './SimpleCheckout.module.css';
 
+const PICKUP_POINTS = [
+  'Galerías Valle Oriente, Monterrey Nuevo León',
+  'Walmart Las Torres, Monterrey Nuevo León',
+  'Mercado de la Y Griega, Monterrey Nuevo León'
+];
+
 export default function SimpleCheckout() {
   const [formData, setFormData] = useState({
     name: '',
@@ -21,6 +27,7 @@ export default function SimpleCheckout() {
     city: '',
     postalCode: '',
     deliveryType: 'delivery',
+    pickupPoint: '',
     paymentMethod: 'transfer', // Default to transfer for deliveries
     notes: ''
   });
@@ -115,22 +122,20 @@ export default function SimpleCheckout() {
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // Force transfer payment for delivery
-    if (field === 'deliveryType' && value === 'delivery') {
-      setFormData(prev => ({ ...prev, [field]: value, paymentMethod: 'transfer' }));
-    } else {
-      setFormData(prev => ({ ...prev, [field]: value }));
+    const updates = { [field]: value };
+    if (field === 'deliveryType') {
+      if (value === 'delivery') {
+        updates.paymentMethod = 'transfer';
+        updates.pickupPoint = '';
+      }
     }
-    
-    // Clear selected address if manually editing address fields
+    setFormData(prev => ({ ...prev, ...updates }));
+
     if (['street', 'number', 'neighborhood', 'city', 'postalCode'].includes(field)) {
       setSelectedAddress(null);
       setUseNewAddress(true);
     }
-    
-    // Limpiar error del campo
+
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
@@ -154,26 +159,19 @@ export default function SimpleCheckout() {
     }
     
     if (formData.deliveryType === 'delivery') {
-      // Check if using selected address or manual entry
       if (!selectedAddress || useNewAddress) {
-        // Manual entry validation
-        if (!formData.street.trim()) {
-          newErrors.street = 'La calle es obligatoria';
-        }
-        if (!formData.number.trim()) {
-          newErrors.number = 'El número es obligatorio';
-        }
-        if (!formData.neighborhood.trim()) {
-          newErrors.neighborhood = 'La colonia es obligatoria';
-        }
-        if (!formData.city.trim()) {
-          newErrors.city = 'La ciudad es obligatoria';
-        }
-        if (!formData.postalCode.trim()) {
-          newErrors.postalCode = 'El código postal es obligatorio';
-        }
+        if (!formData.street.trim()) newErrors.street = 'La calle es obligatoria';
+        if (!formData.number.trim()) newErrors.number = 'El número es obligatorio';
+        if (!formData.neighborhood.trim()) newErrors.neighborhood = 'La colonia es obligatoria';
+        if (!formData.city.trim()) newErrors.city = 'La ciudad es obligatoria';
+        if (!formData.postalCode.trim()) newErrors.postalCode = 'El código postal es obligatorio';
       }
-      // If using selected address, no need to validate individual fields
+    }
+
+    if (formData.deliveryType === 'pickup') {
+      if (!formData.pickupPoint || !formData.pickupPoint.trim()) {
+        newErrors.pickupPoint = 'Selecciona un punto de recolección';
+      }
     }
 
     setErrors(newErrors);
@@ -266,12 +264,13 @@ export default function SimpleCheckout() {
         customer_phone: formData.phone,
         customer_name: formData.name,
         payment_method: formData.paymentMethod === 'cash' ? 'Pago contra entrega' : 'Transferencia bancaria',
-        shipping_method: formData.deliveryType === 'delivery' ? 'Envío a domicilio' : 'Recoger en tienda',
+        shipping_method: formData.deliveryType === 'delivery' ? 'Envío a domicilio' : 'Recoger en punto',
         subtotal: subtotal,
         shipping_amount: shippingAmount,
         total_amount: totalAmount,
         notes: formData.notes || '',
-        address: formData.deliveryType === 'delivery' ? formatAddress() : null
+        address: formData.deliveryType === 'delivery' ? formatAddress() : formData.pickupPoint || null,
+        pickup_point: formData.deliveryType === 'pickup' ? formData.pickupPoint : null
       };
 
       // Crear orden en la base de datos
@@ -304,12 +303,12 @@ export default function SimpleCheckout() {
       // Limpiar carrito después de la orden exitosa
       clearCart();
 
-      // Mostrar confirmación
       setOrderData({
         orderNumber,
         customerName: formData.name,
         total: totalAmount,
         deliveryType: formData.deliveryType,
+        pickupPoint: formData.pickupPoint || null,
         paymentMethod: formData.paymentMethod,
         estimatedDelivery: formData.deliveryType === 'delivery' ? '1-2 días hábiles' : 'Disponible para recoger'
       });
@@ -338,6 +337,7 @@ export default function SimpleCheckout() {
         customerName={orderData.customerName}
         total={orderData.total}
         deliveryType={orderData.deliveryType}
+        pickupPoint={orderData.pickupPoint}
         paymentMethod={orderData.paymentMethod}
         estimatedDelivery={orderData.estimatedDelivery}
       />
@@ -414,6 +414,10 @@ export default function SimpleCheckout() {
             <div className={styles.section}>
               <h2>Tipo de Entrega</h2>
               
+              <div className={styles.deliveryNotice}>
+                <p>Se enviará mensaje por correo electrónico y teléfono para confirmar el día de entrega.</p>
+              </div>
+              
               <div className={styles.radioGroup}>
                 <label className={styles.radioOption}>
                   <input
@@ -438,11 +442,29 @@ export default function SimpleCheckout() {
                     onChange={(e) => handleInputChange('deliveryType', e.target.value)}
                   />
                   <span className={styles.radioLabel}>
-                    <strong>Recoger en Tienda</strong> - Gratis
-                    <small>Av. Principal #123, Centro Histórico</small>
+                    <strong>Recoger en Punto</strong> - Gratis
+                    <small>Elige el punto de recolección más cercano</small>
                   </span>
                 </label>
               </div>
+
+              {formData.deliveryType === 'pickup' && (
+                <div className={styles.pickupPointsSection}>
+                  <label htmlFor="pickupPoint" className={styles.pickupLabel}>Punto de recolección *</label>
+                  <select
+                    id="pickupPoint"
+                    value={formData.pickupPoint}
+                    onChange={(e) => handleInputChange('pickupPoint', e.target.value)}
+                    className={`${styles.pickupSelect} ${errors.pickupPoint ? styles.error : ''}`}
+                  >
+                    <option value="">Selecciona un punto</option>
+                    {PICKUP_POINTS.map((point) => (
+                      <option key={point} value={point}>{point}</option>
+                    ))}
+                  </select>
+                  {errors.pickupPoint && <span className={styles.errorText}>{errors.pickupPoint}</span>}
+                </div>
+              )}
 
               {formData.deliveryType === 'delivery' && (
                 <div className={styles.addressSection}>
@@ -609,7 +631,7 @@ export default function SimpleCheckout() {
               
               {formData.deliveryType === 'delivery' && (
                 <div className={styles.paymentNotice}>
-                  <p>⚠️ Para envíos a domicilio, el pago debe ser por transferencia bancaria.</p>
+                  <p>Para envíos a domicilio, el pago debe ser por transferencia bancaria.</p>
                 </div>
               )}
               
@@ -639,13 +661,23 @@ export default function SimpleCheckout() {
                   />
                   <span className={styles.radioLabel}>
                     <strong>Transferencia Bancaria</strong>
-                    <small>Banco Azteca - Cuenta: 1234 5678 9012 3456</small>
+                    <small>Banco BBVA</small>
                     {formData.deliveryType === 'delivery' && (
                       <small className={styles.required}>* Requerido para envíos</small>
                     )}
                   </span>
                 </label>
               </div>
+
+              {formData.paymentMethod === 'cash' && formData.deliveryType === 'pickup' && (
+                <div className={styles.cashOnDeliveryRules}>
+                  {getTotal() < 50 ? (
+                    <p>El pedido deberá pagarse en su totalidad al momento de la entrega.</p>
+                  ) : (
+                    <p>El pedido se pagará en dos transacciones del 50% cada una (50% al recibir, 50% en la siguiente transacción).</p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Notas Adicionales */}
@@ -662,24 +694,10 @@ export default function SimpleCheckout() {
               </div>
             </div>
 
-            {/* Debug info - remove in production */}
-            <div style={{ fontSize: '12px', color: '#666', marginBottom: '8px' }}>
-              Debug: Items: {items?.length || 0}, isSubmitting: {isSubmitting.toString()}, 
-              deliveryType: {formData.deliveryType}, paymentMethod: {formData.paymentMethod}
-              {selectedAddress && <span>, Dirección seleccionada: ✓</span>}
-            </div>
-
             <button 
               type="submit" 
               className={styles.submitButton}
               disabled={isSubmitting || !items || items.length === 0}
-              onClick={(e) => {
-                console.log('Button clicked!');
-                console.log('Form data:', formData);
-                console.log('Items:', items);
-                console.log('Is submitting:', isSubmitting);
-                // Don't prevent default - let the form handle submission
-              }}
             >
               {isSubmitting ? 'Procesando...' : 'Confirmar Pedido'}
             </button>

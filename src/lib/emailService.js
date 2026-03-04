@@ -284,6 +284,8 @@ export function generateAdminEmailContent(orderData) {
  * @param {Object} orderData - Datos del pedido
  * @returns {string} - Contenido HTML
  */
+const BBVA_TITULAR = 'María Fernanda Villegas Nieto';
+
 export function generateCustomerEmailContent(orderData) {
   const {
     order_number,
@@ -294,9 +296,14 @@ export function generateCustomerEmailContent(orderData) {
     items,
     service_items,
     address,
+    pickup_point,
     notes,
     created_at
   } = orderData;
+
+  const isTransfer = payment_method && payment_method.toLowerCase().includes('transferencia');
+  const bbvaClabe = process.env.NEXT_PUBLIC_BBVA_CLABE || '';
+  const bbvaCardNumber = process.env.NEXT_PUBLIC_BBVA_CARD_NUMBER || '';
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('es-MX', {
@@ -403,6 +410,11 @@ export function generateCustomerEmailContent(orderData) {
           ${itemsHtml}
         </div>
 
+        <!-- Aviso Confirmación día de entrega -->
+        <div style="background-color: #e6f7ff; padding: 16px; border-radius: 8px; margin-bottom: 24px; border: 1px solid #91d5ff;">
+          <p style="margin: 0; color: #0050b3; font-weight: 600;">Se enviará mensaje por correo electrónico y teléfono para confirmar el día de entrega.</p>
+        </div>
+
         <!-- Información de Entrega -->
         <div style="margin-bottom: 32px;">
           <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 18px;">🚚 Información de Entrega</h3>
@@ -410,9 +422,29 @@ export function generateCustomerEmailContent(orderData) {
             <p style="margin: 0 0 12px 0; color: #2d3748;"><strong>Método de Entrega:</strong> ${shipping_method || 'No especificado'}</p>
             <p style="margin: 0 0 12px 0; color: #2d3748;"><strong>Método de Pago:</strong> ${payment_method || 'No especificado'}</p>
             ${address ? `<p style="margin: 0 0 12px 0; color: #2d3748;"><strong>Dirección de Entrega:</strong> ${address}</p>` : ''}
+            ${pickup_point ? `<p style="margin: 0 0 12px 0; color: #2d3748;"><strong>Punto de recolección:</strong> ${pickup_point}</p>` : ''}
             ${notes ? `<p style="margin: 0; color: #2d3748;"><strong>Notas:</strong> ${notes}</p>` : ''}
           </div>
         </div>
+
+        ${isTransfer ? `
+        <!-- Datos de Transferencia BBVA -->
+        <div style="margin-bottom: 32px;">
+          <div style="background-color: #fef3c7; padding: 20px; border-radius: 8px; border: 2px solid #f59e0b; margin-bottom: 16px;">
+            <p style="margin: 0 0 8px 0; color: #92400e; font-size: 16px; font-weight: 700;">⚠️ IMPORTANTE: Agrega el número de pedido <strong>${order_number}</strong> en el concepto o referencia de tu transferencia.</p>
+          </div>
+          <div style="background-color: #fee2e2; padding: 16px; border-radius: 8px; border: 2px solid #ef4444; margin-bottom: 24px;">
+            <p style="margin: 0; color: #991b1b; font-weight: 600;">Si no se recibe el comprobante de pago o el número de pedido no se agrega en la transferencia, el pedido será cancelado.</p>
+          </div>
+          <div style="background-color: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
+            <h4 style="margin: 0 0 16px 0; color: #2d3748;">Datos para transferencia</h4>
+            <p style="margin: 8px 0; color: #4a5568;"><strong>Banco:</strong> BBVA</p>
+            <p style="margin: 8px 0; color: #4a5568;"><strong>Titular:</strong> ${BBVA_TITULAR}</p>
+            ${bbvaClabe ? `<p style="margin: 8px 0; color: #4a5568;"><strong>CLABE:</strong> ${bbvaClabe}</p>` : ''}
+            ${bbvaCardNumber ? `<p style="margin: 8px 0; color: #4a5568;"><strong>Número de tarjeta:</strong> ${bbvaCardNumber}</p>` : ''}
+          </div>
+        </div>
+        ` : ''}
 
         <!-- Estado del Pedido -->
         <div style="background: linear-gradient(135deg, #fef5e7 0%, #fed7aa 100%); padding: 24px; border-radius: 12px; margin-bottom: 32px; border: 1px solid #f6ad55;">
