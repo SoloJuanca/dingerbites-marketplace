@@ -13,6 +13,7 @@ import styles from './product.module.css';
 // Client Component para obtener datos del producto
 function ProductData({ slug }) {
   const [product, setProduct] = useState(null);
+  const [marketPriceMxn, setMarketPriceMxn] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -21,9 +22,10 @@ function ProductData({ slug }) {
       try {
         setLoading(true);
         setError(null);
-        
+        setMarketPriceMxn(null);
+
         const response = await fetch(`/api/products/${slug}`);
-        
+
         if (!response.ok) {
           if (response.status === 404) {
             setError('not_found');
@@ -32,9 +34,17 @@ function ProductData({ slug }) {
           }
           return;
         }
-        
+
         const productData = await response.json();
         setProduct(productData);
+
+        if (productData.tcg_product_id) {
+          const priceRes = await fetch(`/api/tcg/product/${productData.id}/market-price`);
+          if (priceRes.ok) {
+            const priceData = await priceRes.json();
+            setMarketPriceMxn(priceData.marketPriceMxn);
+          }
+        }
       } catch (err) {
         console.error('Error loading product:', err);
         setError('server_error');
@@ -111,14 +121,14 @@ function ProductData({ slug }) {
                 productName={product.name}
               />
               
-              <ProductInfo product={product} />
+              <ProductInfo product={product} marketPriceMxn={marketPriceMxn} isTcgProduct={!!product.tcg_product_id} />
               
               <ProductReviews productId={product.id} />
             </div>
 
             {/* Columna derecha - Resumen y acciones */}
             <div className={styles.rightColumn}>
-              <ProductSummary product={product} />
+              <ProductSummary product={product} marketPriceMxn={marketPriceMxn} isTcgProduct={!!product.tcg_product_id} />
             </div>
           </div>
         </div>

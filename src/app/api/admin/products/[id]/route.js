@@ -128,7 +128,11 @@ export async function PUT(request, { params }) {
       meta_description,
       meta_keywords,
       images,
-      features
+      features,
+      tcg_product_id,
+      tcg_group_id,
+      tcg_category_id,
+      tcg_sub_type_name
     } = body;
 
     if (!name || !slug) {
@@ -138,7 +142,8 @@ export async function PUT(request, { params }) {
       );
     }
 
-    if (is_active && (!price || parseFloat(price) <= 0)) {
+    const isTcgProduct = tcg_product_id != null || existingProduct.tcg_product_id != null;
+    if (is_active && !isTcgProduct && (!price || parseFloat(price) <= 0)) {
       return NextResponse.json(
         { error: 'Price is required for published products' },
         { status: 400 }
@@ -193,6 +198,10 @@ export async function PUT(request, { params }) {
       images: normalizedImages,
       image: Array.isArray(normalizedImages) && normalizedImages[0] ? (normalizedImages[0].url || normalizedImages[0]) : '',
       features: Array.isArray(features) ? features : (existingProduct.features || []),
+      tcg_product_id: tcg_product_id !== undefined ? (tcg_product_id != null ? Number(tcg_product_id) : null) : existingProduct.tcg_product_id ?? null,
+      tcg_group_id: tcg_group_id !== undefined ? (tcg_group_id != null ? Number(tcg_group_id) : null) : existingProduct.tcg_group_id ?? null,
+      tcg_category_id: tcg_category_id !== undefined ? (tcg_category_id != null ? Number(tcg_category_id) : null) : existingProduct.tcg_category_id ?? null,
+      tcg_sub_type_name: tcg_sub_type_name !== undefined ? (tcg_sub_type_name || null) : existingProduct.tcg_sub_type_name ?? null,
       updated_at: now
     };
 

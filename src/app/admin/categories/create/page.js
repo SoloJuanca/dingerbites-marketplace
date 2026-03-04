@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -11,13 +11,46 @@ import styles from '../categories.module.css';
 export default function CreateCategoryPage() {
   const { apiRequest } = useAuth();
   const router = useRouter();
+  const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     image_url: '',
-    is_active: true
+    is_active: true,
+    parent_id: '',
+    tcg_category_id: ''
   });
   const [loading, setLoading] = useState(false);
+  const [tcgApiCategories, setTcgApiCategories] = useState([]);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response = await apiRequest('/api/admin/categories');
+        if (response.ok) {
+          const data = await response.json();
+          setCategories(data.categories || []);
+        }
+      } catch (err) {
+        console.error('Error loading categories:', err);
+      }
+    };
+    loadCategories();
+  }, [apiRequest]);
+
+  const selectedParent = categories.find((c) => c.id === formData.parent_id);
+  const isTcgParent = selectedParent?.slug === 'tcg';
+
+  useEffect(() => {
+    if (isTcgParent) {
+      fetch('/api/tcg/categories')
+        .then((r) => r.json())
+        .then((d) => setTcgApiCategories(d.results || []))
+        .catch(() => setTcgApiCategories([]));
+    } else {
+      setTcgApiCategories([]);
+    }
+  }, [isTcgParent]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -107,6 +140,44 @@ export default function CreateCategoryPage() {
                 rows="4"
               />
             </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Categoría padre</label>
+              <select
+                name="parent_id"
+                value={formData.parent_id}
+                onChange={(e) => setFormData(prev => ({ ...prev, parent_id: e.target.value, tcg_category_id: '' }))}
+                className={styles.formSelect}
+              >
+                <option value="">Ninguna (categoría principal)</option>
+                {categories
+                  .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.parent_id ? `  ↳ ${c.name}` : c.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            {isTcgParent && (
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Categoría TCG (API)</label>
+                <select
+                  name="tcg_category_id"
+                  value={formData.tcg_category_id}
+                  onChange={handleInputChange}
+                  className={styles.formSelect}
+                >
+                  <option value="">Ninguna</option>
+                  {tcgApiCategories.map((c) => (
+                    <option key={c.categoryId} value={c.categoryId}>
+                      {c.displayName || c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>URL de Imagen</label>

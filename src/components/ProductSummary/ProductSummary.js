@@ -7,7 +7,7 @@ import { useAuth } from '../../lib/AuthContext';
 import { getProductRatingStats } from '../../lib/reviews';
 import styles from './ProductSummary.module.css';
 
-export default function ProductSummary({ product }) {
+export default function ProductSummary({ product, marketPriceMxn = null, isTcgProduct = false }) {
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -27,12 +27,21 @@ export default function ProductSummary({ product }) {
   }, [product.id]);
 
   const formatPrice = (price) => {
-    if (!isClient) return `$${price.toFixed(2)}`;
+    if (price == null) return 'Consultar';
+    if (!isClient) return `$${Number(price).toFixed(2)}`;
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
       currency: 'MXN'
     }).format(price);
   };
+
+  const TCG_MIN_MXN = 15;
+  const displayPrice =
+    isTcgProduct && marketPriceMxn != null
+      ? Math.max(TCG_MIN_MXN, marketPriceMxn)
+      : isTcgProduct && (product.price != null && product.price > 0)
+        ? Math.max(TCG_MIN_MXN, product.price)
+        : product.price ?? 0;
 
   const handleQuantityChange = (newQuantity) => {
     if (newQuantity >= 1 && newQuantity <= 10) {
@@ -40,15 +49,19 @@ export default function ProductSummary({ product }) {
     }
   };
 
+  const hasPrice = displayPrice != null && displayPrice > 0;
+  const canAddToCart = !(isTcgProduct && !hasPrice);
+
   const handleAddToCart = async () => {
+    if (!canAddToCart) return;
     setIsAddingToCart(true);
-    
-    // Add the quantity as a single operation
+    const cartPrice = isTcgProduct && marketPriceMxn != null ? Math.max(15, marketPriceMxn) : (isTcgProduct ? Math.max(15, product.price ?? 0) : (product.price ?? 0));
+
     await addToCartWithSync({
       id: product.id,
       name: product.name,
       description: product.description,
-      price: product.price,
+      price: cartPrice,
       image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null)
     }, user, apiRequest, quantity);
     
@@ -59,12 +72,13 @@ export default function ProductSummary({ product }) {
   };
 
   const handleBuyNow = async () => {
-    // Add the quantity as a single operation
+    if (!canAddToCart) return;
+    const cartPrice = isTcgProduct && marketPriceMxn != null ? Math.max(15, marketPriceMxn) : (isTcgProduct ? Math.max(15, product.price ?? 0) : (product.price ?? 0));
     await addToCartWithSync({
       id: product.id,
       name: product.name,
       description: product.description,
-      price: product.price,
+      price: cartPrice,
       image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null)
     }, user, apiRequest, quantity);
     
@@ -91,7 +105,11 @@ export default function ProductSummary({ product }) {
       </div>
 
       <div className={styles.pricing}>
-        <div className={styles.price}>{formatPrice(product.price)}</div>
+        <div className={styles.price}>
+          {isTcgProduct && marketPriceMxn == null && (!product.price || product.price <= 0)
+            ? 'Consultar precio'
+            : formatPrice(displayPrice)}
+        </div>
         <div className={styles.priceUnit}>por unidad</div>
       </div>
 
@@ -144,7 +162,7 @@ export default function ProductSummary({ product }) {
       <div className={styles.totalPrice}>
         <span className={styles.totalLabel}>Total:</span>
         <span className={styles.totalAmount}>
-          {formatPrice(product.price * quantity)}
+          {hasPrice ? formatPrice(displayPrice * quantity) : 'Consultar'}
         </span>
       </div>
 
@@ -152,7 +170,7 @@ export default function ProductSummary({ product }) {
         <button
           className={styles.addToCartBtn}
           onClick={handleAddToCart}
-          disabled={isAddingToCart}
+          disabled={isAddingToCart || !canAddToCart}
         >
           {isAddingToCart ? (
             <>
@@ -170,6 +188,7 @@ export default function ProductSummary({ product }) {
         <button
           className={styles.buyNowBtn}
           onClick={handleBuyNow}
+          disabled={!canAddToCart}
         >
           <Icon name="flash_on" size={20} />
           Comprar ahora

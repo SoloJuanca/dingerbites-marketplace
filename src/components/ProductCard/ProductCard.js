@@ -22,13 +22,29 @@ export default function ProductCard({ product }) {
     setIsClient(true);
   }, []);
 
+  const TCG_MIN_PRICE_MXN = 15;
+
   const formatPrice = (price) => {
-    if (!isClient) return `$${price.toFixed(2)}`;
+    if (!isClient) return `$${Number(price).toFixed(2)}`;
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
       currency: 'MXN',
       minimumFractionDigits: 0,
     }).format(price);
+  };
+
+  const displayPrice = product.tcg_product_id
+    ? Math.max(TCG_MIN_PRICE_MXN, Number(product.price) || 0)
+    : Number(product.price) || 0;
+
+  const sanitizeHtml = (html) => {
+    if (!html || typeof html !== 'string') return '';
+    return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+      .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
+      .replace(/<embed\b[^>]*>/gi, '')
+      .replace(/on\w+="[^"]*"/gi, '')
+      .replace(/on\w+='[^']*'/gi, '');
   };
 
   const handleAddToCart = async () => {
@@ -40,7 +56,7 @@ export default function ProductCard({ product }) {
         id: product.id,
         name: product.name,
         description: product.description,
-        price: product.price,
+        price: displayPrice,
         image: product.image
       }, user, apiRequest);
 
@@ -80,7 +96,7 @@ export default function ProductCard({ product }) {
           id: product.id,
           name: product.name,
           description: product.description,
-          price: product.price,
+          price: displayPrice,
           image: product.image
         }, user, apiRequest);
         if (result.success) {
@@ -124,9 +140,16 @@ export default function ProductCard({ product }) {
         <Link href={`/catalog/${product.slug}`} className={styles.nameLink}>
           <h3 className={styles.name}>{product.name}</h3>
         </Link>
-        <p className={styles.description}>{product.description}</p>
+        <p
+          className={styles.description}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.description || '') }}
+        />
         <div className={styles.footer}>
-          <span className={styles.price}>{formatPrice(product.price)}</span>
+          <span className={styles.price}>
+            {(product.tcg_product_id && (product.price == null || product.price === 0))
+              ? 'Consultar precio'
+              : formatPrice(displayPrice)}
+          </span>
           <button 
             className={`${styles.addBtn} ${isAdding ? styles.adding : ''}`}
             onClick={handleAddToCart}

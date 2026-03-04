@@ -155,7 +155,11 @@ export async function POST(request) {
       meta_description,
       meta_keywords,
       images,
-      features
+      features,
+      tcg_product_id,
+      tcg_group_id,
+      tcg_category_id,
+      tcg_sub_type_name
     } = body;
 
     // Validate required fields
@@ -166,8 +170,9 @@ export async function POST(request) {
       );
     }
 
-    // Price is only required for active products (published)
-    if (is_active && (!price || parseFloat(price) <= 0)) {
+    // Price is only required for active non-TCG products (TCG products use market price)
+    const isTcgProduct = tcg_product_id != null;
+    if (is_active && !isTcgProduct && (!price || parseFloat(price) <= 0)) {
       return NextResponse.json(
         { error: 'Price is required for published products' },
         { status: 400 }
@@ -236,6 +241,10 @@ export async function POST(request) {
       features: Array.isArray(features) ? features : [],
       images: normalizedImages,
       image: normalizedImages[0]?.url || '',
+      tcg_product_id: tcg_product_id != null ? Number(tcg_product_id) : null,
+      tcg_group_id: tcg_group_id != null ? Number(tcg_group_id) : null,
+      tcg_category_id: tcg_category_id != null ? Number(tcg_category_id) : null,
+      tcg_sub_type_name: tcg_sub_type_name || null,
       created_at: now,
       updated_at: now
     };

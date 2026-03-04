@@ -13,25 +13,38 @@ function toNum(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
-/** Public catalog: list active categories (same shape as lib/products getCategories). */
+/** Public catalog: list active categories in hierarchical order (parents first, then subcategories). */
 export async function getCategories() {
   try {
     const snapshot = await db.collection(CATEGORIES_COLLECTION).get();
     let items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     items = items.filter((c) => c.is_active !== false);
-    items.sort((a, b) => {
+    const sortFn = (a, b) => {
       const soA = toNum(a.sort_order, 0);
       const soB = toNum(b.sort_order, 0);
       if (soA !== soB) return soA - soB;
       return String(a.name || '').localeCompare(String(b.name || ''));
-    });
-    return items.map((c) => ({
-      id: c.id,
-      name: c.name,
-      slug: c.slug,
-      description: c.description || null,
-      image: c.image_url || DEFAULT_IMAGE
-    }));
+    };
+    items.sort(sortFn);
+
+    function flattenTree(parentId, list) {
+      return items
+        .filter((c) => (c.parent_id || null) === parentId)
+        .sort(sortFn)
+        .flatMap((c) => [
+          {
+            id: c.id,
+            name: c.name,
+            slug: c.slug,
+            description: c.description || null,
+            image: c.image_url || DEFAULT_IMAGE,
+            parent_id: c.parent_id || null
+          },
+          ...flattenTree(c.id, list)
+        ]);
+    }
+
+    return flattenTree(null, items);
   } catch (err) {
     console.error('Error getting categories (Firestore):', err);
     return [];
@@ -205,7 +218,8 @@ export async function getProducts(filters = {}) {
         brand_name: brand?.name ?? null,
         brand_slug: brand?.slug ?? null,
         image,
-        images
+        images,
+        tcg_product_id: p.tcg_product_id ?? null
       };
     });
 
@@ -288,7 +302,8 @@ export async function getProductBySlug(slug) {
       category: category_slug,
       images,
       image: images[0] || null,
-      features
+      features,
+      tcg_product_id: p.tcg_product_id ?? null
     };
   } catch (err) {
     console.error('Error getting product by slug (Firestore):', err);

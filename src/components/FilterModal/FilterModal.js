@@ -137,7 +137,11 @@ export default function FilterModal({
             <div className={styles.sectionContent}>
               <div className={styles.categoryList}>
                 {categories.map((cat) => (
-                  <div key={cat.id} className={styles.checkboxItem}>
+                  <div
+                    key={cat.id}
+                    className={styles.checkboxItem}
+                    style={cat.parent_id ? { paddingLeft: 16 } : undefined}
+                  >
                     <input
                       type="checkbox"
                       id={`cat-${cat.id}`}
@@ -146,7 +150,7 @@ export default function FilterModal({
                       onChange={() => handleCategoryChange(cat.slug)}
                     />
                     <label htmlFor={`cat-${cat.id}`} className={styles.checkboxLabel}>
-                      {cat.name}
+                      {cat.parent_id ? '↳ ' : ''}{cat.name}
                     </label>
                   </div>
                 ))}

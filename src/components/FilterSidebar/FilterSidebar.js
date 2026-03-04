@@ -125,7 +125,11 @@ export default function FilterSidebar({
           <div className={`${styles.sectionContent} ${collapsedSections.categories ? styles.collapsed : ''}`}>
             <div className={styles.categoryList}>
               {categories.map((category) => (
-                <label key={category.id} className={styles.checkboxItem}>
+                <label
+                  key={category.id}
+                  className={styles.checkboxItem}
+                  style={category.parent_id ? { paddingLeft: 16 } : undefined}
+                >
                   <input
                     type="checkbox"
                     className={styles.checkbox}
@@ -133,7 +137,7 @@ export default function FilterSidebar({
                     onChange={() => handleCategoryChange(category.slug)}
                   />
                   <span className={styles.checkboxLabel}>
-                    {category.name}
+                    {category.parent_id ? '↳ ' : ''}{category.name}
                   </span>
                 </label>
               ))}

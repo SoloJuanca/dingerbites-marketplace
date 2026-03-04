@@ -6,6 +6,7 @@ import { useAuth } from '../../../../lib/AuthContext';
 import AdminLayout from '../../../../components/admin/AdminLayout/AdminLayout';
 import Tooltip from '../../../../components/admin/Tooltip/Tooltip';
 import SmartComboBox from '../../../../components/admin/SmartComboBox/SmartComboBox';
+import TcgProductSelector from '../../../../components/admin/TcgProductSelector/TcgProductSelector';
 import TagInput from '../../../../components/admin/TagInput/TagInput';
 import FeatureInput from '../../../../components/admin/FeatureInput/FeatureInput';
 import toast from 'react-hot-toast';
@@ -34,6 +35,10 @@ export default function CreateProductPage() {
     brand_id: '',
     stock_quantity: '0',
     low_stock_threshold: '5',
+    tcg_product_id: null,
+    tcg_group_id: null,
+    tcg_category_id: null,
+    tcg_sub_type_name: null,
     tags: '',
     features: '',
     is_featured: false,
@@ -146,7 +151,7 @@ export default function CreateProductPage() {
       if (response.ok) {
         const data = await response.json();
         
-        const categories = Array.isArray(data.categories.rows) ? data.categories.rows : [];
+        const categories = Array.isArray(data.categories) ? data.categories : (Array.isArray(data.categories?.rows) ? data.categories.rows : []);
         setCategories(categories);
       } else {
         console.error('Error response loading categories:', response.status);
@@ -170,7 +175,7 @@ export default function CreateProductPage() {
       if (response.ok) {
         const data = await response.json();
         
-        const brands = Array.isArray(data.brands.rows) ? data.brands.rows : [];
+        const brands = Array.isArray(data.brands) ? data.brands : (Array.isArray(data.brands?.rows) ? data.brands.rows : []);
         setBrands(brands);
       } else {
         console.error('Error response loading brands:', response.status);
@@ -261,12 +266,40 @@ export default function CreateProductPage() {
     return generateSKUFromData(formData);
   };
 
+  const selectedCategory = categories.find((c) => c.id === formData.category_id);
+  const tcgParent = selectedCategory?.parent_id
+    ? categories.find((c) => c.id === selectedCategory.parent_id)
+    : null;
+  const isTcgFlow =
+    selectedCategory?.slug === 'tcg' || tcgParent?.slug === 'tcg';
+  const tcgCategoryIdForSelector =
+    selectedCategory?.slug === 'tcg'
+      ? null
+      : selectedCategory?.tcg_category_id ?? null;
+
+  const handleTcgSelect = (updates) => {
+    setFormData((prev) => ({ ...prev, ...updates }));
+  };
+
   const validateForm = () => {
     const errors = {};
 
-    if (!formData.name.trim()) errors.name = 'El nombre es requerido';
-    if (!formData.price || parseFloat(formData.price) <= 0) {
-      errors.price = 'El precio debe ser mayor a 0';
+    if (isTcgFlow) {
+      if (!formData.name?.trim()) errors.name = 'Selecciona un producto TCG';
+      if (!formData.category_id) errors.category_id = 'Selecciona una categoría';
+      if (!formData.tcg_product_id) errors.tcg_product_id = 'Selecciona un producto';
+      if (
+        formData.stock_quantity === '' ||
+        formData.stock_quantity === undefined ||
+        parseInt(formData.stock_quantity, 10) < 0
+      ) {
+        errors.stock_quantity = 'Indica la cantidad en stock';
+      }
+    } else {
+      if (!formData.name.trim()) errors.name = 'El nombre es requerido';
+      if (!formData.price || parseFloat(formData.price) <= 0) {
+        errors.price = 'El precio debe ser mayor a 0';
+      }
     }
 
     setValidationErrors(errors);
@@ -430,7 +463,7 @@ export default function CreateProductPage() {
       const slug = generateSlug(formData.name);
       const productData = {
         name: formData.name,
-        slug: slug,
+        slug,
         description: formData.description || null,
         short_description: formData.short_description || null,
         price: formData.price && parseFloat(formData.price) > 0 ? parseFloat(formData.price) : 0,
@@ -439,13 +472,17 @@ export default function CreateProductPage() {
         barcode: formData.barcode || null,
         category_id: formData.category_id || null,
         brand_id: formData.brand_id || null,
-        stock_quantity: parseInt(formData.stock_quantity) || 0,
-        low_stock_threshold: parseInt(formData.low_stock_threshold) || 5,
+        stock_quantity: parseInt(formData.stock_quantity, 10) || 0,
+        low_stock_threshold: parseInt(formData.low_stock_threshold, 10) || 5,
         is_active: false,
         is_featured: formData.is_featured || false,
         meta_keywords: formData.tags && formData.tags.trim() ? formData.tags.split(',').map(tag => tag.trim()).join(', ') : null,
         images: formData.images || [],
-        features: formData.features && formData.features.trim() ? formData.features.split('\n').map(feature => feature.trim()).filter(feature => feature) : []
+        features: formData.features && formData.features.trim() ? formData.features.split('\n').map(feature => feature.trim()).filter(Boolean) : [],
+        tcg_product_id: formData.tcg_product_id ?? null,
+        tcg_group_id: formData.tcg_group_id ?? null,
+        tcg_category_id: formData.tcg_category_id ?? null,
+        tcg_sub_type_name: formData.tcg_sub_type_name ?? null
       };
 
       let response;
@@ -501,24 +538,29 @@ export default function CreateProductPage() {
       setLoading(true);
       
       const slug = generateSlug(formData.name);
+      const priceVal = formData.price && parseFloat(formData.price) > 0 ? parseFloat(formData.price) : 0;
       const productData = {
         name: formData.name,
-        slug: slug,
+        slug,
         description: formData.description || null,
         short_description: formData.short_description || null,
-        price: parseFloat(formData.price),
+        price: priceVal,
         cost_price: formData.cost_price ? parseFloat(formData.cost_price) : null,
         sku: formData.sku || null,
         barcode: formData.barcode || null,
         category_id: formData.category_id || null,
         brand_id: formData.brand_id || null,
-        stock_quantity: parseInt(formData.stock_quantity) || 0,
-        low_stock_threshold: parseInt(formData.low_stock_threshold) || 5,
+        stock_quantity: parseInt(formData.stock_quantity, 10) || 0,
+        low_stock_threshold: parseInt(formData.low_stock_threshold, 10) || 5,
         is_active: true,
         is_featured: formData.is_featured || false,
         meta_keywords: formData.tags && formData.tags.trim() ? formData.tags.split(',').map(tag => tag.trim()).join(', ') : null,
         images: formData.images || [],
-        features: formData.features && formData.features.trim() ? formData.features.split('\n').map(feature => feature.trim()).filter(feature => feature) : []
+        features: formData.features && formData.features.trim() ? formData.features.split('\n').map(feature => feature.trim()).filter(Boolean) : [],
+        tcg_product_id: formData.tcg_product_id ?? null,
+        tcg_group_id: formData.tcg_group_id ?? null,
+        tcg_category_id: formData.tcg_category_id ?? null,
+        tcg_sub_type_name: formData.tcg_sub_type_name ?? null
       };
 
       let response;
@@ -568,10 +610,60 @@ export default function CreateProductPage() {
       <div className={styles.formContent}>
         <div className={styles.formIntro}>
           <h2>📦 Crear Nuevo Producto</h2>
-          <p>Completa la información de tu producto. Comienza subiendo las imágenes y continúa con los demás campos.</p>
+          <p>
+            {isTcgFlow
+              ? 'Selecciona la categoría TCG y el producto del catálogo para agregar al inventario.'
+              : 'Completa la información de tu producto. Comienza subiendo las imágenes y continúa con los demás campos.'}
+          </p>
         </div>
-        
-        {/* Imágenes del Producto - PRIMER ELEMENTO */}
+
+        {/* Categorización - siempre visible */}
+        <div className={styles.subsection}>
+          <h3>📋 Categorización</h3>
+          <div className={styles.field}>
+            <label htmlFor="category_id">
+              Categoría del Producto
+              <Tooltip content="Para productos TCG, selecciona TCG o una subcategoría (Pokemon, Magic, etc.)">
+                <span className={styles.helpIcon}>?</span>
+              </Tooltip>
+            </label>
+            <SmartComboBox
+              value={formData.category_id}
+              onChange={(value) => {
+                const cat = categories.find((c) => c.id === value);
+                setFormData((prev) => ({
+                  ...prev,
+                  category_id: value,
+                  tcg_product_id: null,
+                  tcg_group_id: null,
+                  tcg_category_id: cat?.tcg_category_id ?? null,
+                  tcg_sub_type_name: null,
+                  name: '',
+                  description: '',
+                  images: [],
+                  price: ''
+                }));
+              }}
+              options={categories}
+              placeholder="Buscar o crear categoría (opcional)..."
+              createEndpoint="/api/admin/categories"
+              createLabel="categoría"
+              onOptionsUpdate={handleCategoryUpdate}
+            />
+          </div>
+
+          {isTcgFlow && (
+            <TcgProductSelector
+              tcgCategoryId={tcgCategoryIdForSelector}
+              formData={formData}
+              onSelect={handleTcgSelect}
+            />
+          )}
+        </div>
+
+        {!isTcgFlow && (
+          <>
+        {/* Imágenes del Producto */}
         <div className={styles.subsection}>
           <h3>🖼️ Imágenes del Producto</h3>
           
@@ -710,29 +802,11 @@ export default function CreateProductPage() {
           </div>
         </div>
 
-        {/* Categorización */}
+        {/* Categorización y Etiquetas */}
         <div className={styles.subsection}>
-          <h3>📋 Categorización y Etiquetas</h3>
+          <h3>📋 Etiquetas y Características</h3>
           
           <div className={styles.fieldRow}>
-            <div className={styles.field}>
-              <label htmlFor="category_id">
-                Categoría del Producto
-                <Tooltip content="Ayuda a los clientes a encontrar tu producto. Puedes crear una nueva si no existe. Campo opcional">
-                  <span className={styles.helpIcon}>?</span>
-                </Tooltip>
-              </label>
-              <SmartComboBox
-                value={formData.category_id}
-                onChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}
-                options={categories}
-                placeholder="Buscar o crear categoría (opcional)..."
-                createEndpoint="/api/admin/categories"
-                createLabel="categoría"
-                onOptionsUpdate={handleCategoryUpdate}
-              />
-            </div>
-
             <div className={styles.field}>
               <label htmlFor="brand_id">
                 Marca del Producto
@@ -998,6 +1072,8 @@ export default function CreateProductPage() {
             </div>
           </div>
         </div>
+        </>
+        )}
 
         {/* Configuración del Producto */}
         <div className={styles.subsection}>

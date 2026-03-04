@@ -83,6 +83,8 @@ async function createCategory(category) {
     image_url: category.image_url || null,
     is_active: category.is_active !== undefined ? Boolean(category.is_active) : true,
     sort_order: Number.isFinite(Number(category.sort_order)) ? Number(category.sort_order) : 0,
+    parent_id: category.parent_id || null,
+    tcg_category_id: category.tcg_category_id != null ? Number(category.tcg_category_id) : null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
@@ -139,6 +141,16 @@ async function hasProductsWithCategoryId(categoryId) {
   return !snapshot.empty;
 }
 
+async function hasSubcategories(categoryId) {
+  const snapshot = await db
+    .collection(CATEGORIES_COLLECTION)
+    .where('parent_id', '==', categoryId)
+    .limit(1)
+    .get();
+
+  return !snapshot.empty;
+}
+
 async function hasProductsWithBrandId(brandId) {
   const snapshot = await db
     .collection(PRODUCTS_COLLECTION)
@@ -161,5 +173,6 @@ export {
   updateById,
   deleteById,
   hasProductsWithCategoryId,
+  hasSubcategories,
   hasProductsWithBrandId
 };

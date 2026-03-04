@@ -6,6 +6,7 @@ import {
   findBySlugExcludingId,
   getById,
   hasProductsWithCategoryId,
+  hasSubcategories,
   updateById
 } from '../../../../../lib/firebaseCatalog';
 
@@ -39,7 +40,9 @@ export async function PUT(request, { params }) {
       slug,
       description,
       image_url,
-      is_active
+      is_active,
+      parent_id,
+      tcg_category_id
     } = body;
 
     // Validate required fields
@@ -62,12 +65,43 @@ export async function PUT(request, { params }) {
       }
     }
 
+    // Validate parent_id: prevent circular references and validate parent exists
+    const resolvedParentId = parent_id || null;
+    if (resolvedParentId) {
+      if (resolvedParentId === id) {
+        return NextResponse.json(
+          { error: 'Una categoría no puede ser su propia padre' },
+          { status: 400 }
+        );
+      }
+      const parent = await getById(CATEGORIES_COLLECTION, resolvedParentId);
+      if (!parent) {
+        return NextResponse.json(
+          { error: 'La categoría padre no existe' },
+          { status: 400 }
+        );
+      }
+      // Prevent setting a descendant as parent (cycle check)
+      let current = parent;
+      while (current?.parent_id) {
+        if (current.parent_id === id) {
+          return NextResponse.json(
+            { error: 'No se puede crear una referencia circular entre categorías' },
+            { status: 400 }
+          );
+        }
+        current = await getById(CATEGORIES_COLLECTION, current.parent_id);
+      }
+    }
+
     const updatedCategory = await updateById(CATEGORIES_COLLECTION, id, {
       name,
       slug,
       description: description ?? null,
       image_url: image_url ?? null,
-      is_active: is_active !== undefined ? Boolean(is_active) : existingCategory.is_active
+      is_active: is_active !== undefined ? Boolean(is_active) : existingCategory.is_active,
+      parent_id: resolvedParentId,
+      tcg_category_id: tcg_category_id != null ? Number(tcg_category_id) : null
     });
 
     return NextResponse.json({
@@ -114,6 +148,15 @@ export async function DELETE(request, { params }) {
     if (hasProducts) {
       return NextResponse.json(
         { error: 'Cannot delete category that has products. Move the products to another category first.' },
+        { status: 400 }
+      );
+    }
+
+    // Check if category has subcategories
+    const hasChildCategories = await hasSubcategories(id);
+    if (hasChildCategories) {
+      return NextResponse.json(
+        { error: 'No se puede eliminar una categoría con subcategorías. Elimina o mueve las subcategorías primero.' },
         { status: 400 }
       );
     }

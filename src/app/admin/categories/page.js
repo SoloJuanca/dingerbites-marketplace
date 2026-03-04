@@ -19,17 +19,34 @@ export default function CategoriesPage() {
     name: '',
     description: '',
     image_url: '',
-    is_active: true
+    is_active: true,
+    parent_id: '',
+    tcg_category_id: ''
   });
+  const [tcgApiCategories, setTcgApiCategories] = useState([]);
 
   useEffect(() => {
     loadCategories();
   }, []);
 
+  const selectedParent = categories.find((c) => c.id === formData.parent_id);
+  const isTcgParent = selectedParent?.slug === 'tcg';
+
+  useEffect(() => {
+    if (isTcgParent) {
+      fetch('/api/tcg/categories')
+        .then((r) => r.json())
+        .then((d) => setTcgApiCategories(d.results || []))
+        .catch(() => setTcgApiCategories([]));
+    } else {
+      setTcgApiCategories([]);
+    }
+  }, [isTcgParent]);
+
   const loadCategories = async () => {
     try {
       setLoading(true);
-      const response = await apiRequest('/api/categories');
+      const response = await apiRequest('/api/admin/categories');
       
       if (response.ok) {
         const data = await response.json();
@@ -61,7 +78,9 @@ export default function CategoriesPage() {
 
       const categoryData = {
         ...formData,
-        slug
+        slug,
+        parent_id: formData.parent_id || null,
+        tcg_category_id: formData.tcg_category_id || null
       };
 
       const url = editingCategory 
@@ -95,7 +114,9 @@ export default function CategoriesPage() {
       name: category.name,
       description: category.description || '',
       image_url: category.image_url || '',
-      is_active: category.is_active
+      is_active: category.is_active,
+      parent_id: category.parent_id || '',
+      tcg_category_id: category.tcg_category_id ?? ''
     });
     setShowModal(true);
   };
@@ -130,7 +151,9 @@ export default function CategoriesPage() {
       name: '',
       description: '',
       image_url: '',
-      is_active: true
+      is_active: true,
+      parent_id: '',
+      tcg_category_id: ''
     });
     setShowModal(true);
   };
@@ -142,9 +165,86 @@ export default function CategoriesPage() {
       name: '',
       description: '',
       image_url: '',
-      is_active: true
+      is_active: true,
+      parent_id: '',
+      tcg_category_id: ''
     });
   };
+
+  /** Build tree: [{category, children: [...]}] */
+  const buildCategoryTree = (items, parentId = null) => {
+    return items
+      .filter((c) => (c.parent_id || null) === parentId)
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+      .map((cat) => ({
+        ...cat,
+        children: buildCategoryTree(items, cat.id)
+      }));
+  };
+
+  const categoryTree = buildCategoryTree(categories);
+
+  /** Get options for parent selector (exclude self and descendants when editing) */
+  const getParentOptions = () => {
+    const excludeIds = new Set();
+    if (editingCategory) {
+      excludeIds.add(editingCategory.id);
+      const collectDescendants = (id) => {
+        categories.filter((c) => c.parent_id === id).forEach((c) => {
+          excludeIds.add(c.id);
+          collectDescendants(c.id);
+        });
+      };
+      collectDescendants(editingCategory.id);
+    }
+    return categories
+      .filter((c) => !excludeIds.has(c.id))
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  };
+
+  const renderCategoryTree = (nodes, depth = 0) => (
+    <>
+      {nodes.map((cat) => (
+        <div key={cat.id} className={styles.categoryRow} style={{ paddingLeft: depth * 24 }}>
+          <div className={styles.categoryCard}>
+            <div className={styles.cardImage}>
+              {cat.image_url ? (
+                <Image
+                  src={cat.image_url}
+                  alt={cat.name}
+                  width={120}
+                  height={120}
+                  className={styles.image}
+                />
+              ) : (
+                <div className={styles.imagePlaceholder}>🏷️</div>
+              )}
+            </div>
+            <div className={styles.cardContent}>
+              <h3 className={styles.categoryName}>
+                {depth > 0 && <span className={styles.subcategoryIndicator}>↳ </span>}
+                {cat.name}
+              </h3>
+              <p className={styles.categoryDescription}>
+                {cat.description || 'Sin descripción'}
+              </p>
+              <div className={styles.categoryMeta}>
+                <span className={styles.categorySlug}>/{cat.slug}</span>
+                <span className={`${styles.statusBadge} ${cat.is_active ? styles.active : styles.inactive}`}>
+                  {cat.is_active ? 'Activa' : 'Inactiva'}
+                </span>
+              </div>
+            </div>
+            <div className={styles.cardActions}>
+              <button onClick={() => handleEdit(cat)} className={styles.editButton}>✏️ Editar</button>
+              <button onClick={() => handleDelete(cat.id, cat.name)} className={styles.deleteButton}>🗑️ Eliminar</button>
+            </div>
+          </div>
+          {cat.children?.length > 0 && renderCategoryTree(cat.children, depth + 1)}
+        </div>
+      ))}
+    </>
+  );
 
   return (
     <AdminLayout title="Gestión de Categorías">
@@ -172,53 +272,7 @@ export default function CategoriesPage() {
           </div>
         ) : (
           <div className={styles.gridContainer}>
-            {categories.map(category => (
-              <div key={category.id} className={styles.categoryCard}>
-                <div className={styles.cardImage}>
-                  {category.image_url ? (
-                    <Image
-                      src={category.image_url}
-                      alt={category.name}
-                      width={120}
-                      height={120}
-                      className={styles.image}
-                    />
-                  ) : (
-                    <div className={styles.imagePlaceholder}>🏷️</div>
-                  )}
-                </div>
-                
-                <div className={styles.cardContent}>
-                  <h3 className={styles.categoryName}>{category.name}</h3>
-                  <p className={styles.categoryDescription}>
-                    {category.description || 'Sin descripción'}
-                  </p>
-                  <div className={styles.categoryMeta}>
-                    <span className={styles.categorySlug}>/{category.slug}</span>
-                    <span className={`${styles.statusBadge} ${
-                      category.is_active ? styles.active : styles.inactive
-                    }`}>
-                      {category.is_active ? 'Activa' : 'Inactiva'}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className={styles.cardActions}>
-                  <button
-                    onClick={() => handleEdit(category)}
-                    className={styles.editButton}
-                  >
-                    ✏️ Editar
-                  </button>
-                  <button
-                    onClick={() => handleDelete(category.id, category.name)}
-                    className={styles.deleteButton}
-                  >
-                    🗑️ Eliminar
-                  </button>
-                </div>
-              </div>
-            ))}
+            {categoryTree.length > 0 && renderCategoryTree(categoryTree)}
 
             {categories.length === 0 && (
               <div className={styles.emptyState}>
@@ -278,6 +332,40 @@ export default function CategoriesPage() {
                     placeholder="https://ejemplo.com/imagen.jpg"
                   />
                 </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Categoría padre</label>
+                  <select
+                    value={formData.parent_id}
+                    onChange={(e) => setFormData(prev => ({ ...prev, parent_id: e.target.value, tcg_category_id: '' }))}
+                    className={styles.formSelect}
+                  >
+                    <option value="">Ninguna (categoría principal)</option>
+                    {getParentOptions().map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.parent_id ? `  ↳ ${c.name}` : c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {isTcgParent && (
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Categoría TCG (API)</label>
+                    <select
+                      value={formData.tcg_category_id}
+                      onChange={(e) => setFormData(prev => ({ ...prev, tcg_category_id: e.target.value }))}
+                      className={styles.formSelect}
+                    >
+                      <option value="">Ninguna</option>
+                      {tcgApiCategories.map((c) => (
+                        <option key={c.categoryId} value={c.categoryId}>
+                          {c.displayName || c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div className={styles.formGroup}>
                   <label className={styles.checkboxLabel}>

@@ -40,6 +40,10 @@ export default function EditProductPage() {
     brand_id: '',
     stock_quantity: '0',
     low_stock_threshold: '5',
+    tcg_product_id: null,
+    tcg_group_id: null,
+    tcg_category_id: null,
+    tcg_sub_type_name: null,
     weight_grams: '',
     length_cm: '',
     width_cm: '',
@@ -112,7 +116,11 @@ export default function EditProductPage() {
           is_active: product.is_active || false,
           meta_title: product.meta_title || '',
           meta_description: product.meta_description || '',
-          images: product.images || []
+          images: product.images || [],
+          tcg_product_id: product.tcg_product_id ?? null,
+          tcg_group_id: product.tcg_group_id ?? null,
+          tcg_category_id: product.tcg_category_id ?? null,
+          tcg_sub_type_name: product.tcg_sub_type_name ?? null
         });
 
         setOriginalImages(product.images || []);
@@ -135,7 +143,7 @@ export default function EditProductPage() {
       const response = await apiRequest('/api/admin/categories');
       if (response.ok) {
         const data = await response.json();
-        const categories = Array.isArray(data.categories.rows) ? data.categories.rows : [];
+        const categories = Array.isArray(data.categories) ? data.categories : (Array.isArray(data.categories?.rows) ? data.categories.rows : []);
         setCategories(categories);
       } else {
         console.error('Error response loading categories:', response.status);
@@ -158,7 +166,7 @@ export default function EditProductPage() {
       const response = await apiRequest('/api/admin/brands');
       if (response.ok) {
         const data = await response.json();
-        const brands = Array.isArray(data.brands.rows) ? data.brands.rows : [];
+        const brands = Array.isArray(data.brands) ? data.brands : (Array.isArray(data.brands?.rows) ? data.brands.rows : []);
         setBrands(brands);
       } else {
         console.error('Error response loading brands:', response.status);
@@ -201,12 +209,13 @@ export default function EditProductPage() {
     setBrands(prev => [...prev, newBrand]);
   };
 
+  const isTcgProduct = formData.tcg_product_id != null;
   const validateForm = () => {
     const errors = {};
 
     if (!formData.name.trim()) errors.name = 'El nombre es requerido';
     if (!formData.slug.trim()) errors.slug = 'El slug es requerido';
-    if (!formData.price || parseFloat(formData.price) <= 0) {
+    if (!isTcgProduct && (!formData.price || parseFloat(formData.price) <= 0)) {
       errors.price = 'El precio debe ser mayor a 0';
     }
 
@@ -245,7 +254,11 @@ export default function EditProductPage() {
         is_featured: formData.is_featured || false,
         is_active: formData.is_active || false,
         meta_title: formData.meta_title || null,
-        meta_description: formData.meta_description || null
+        meta_description: formData.meta_description || null,
+        tcg_product_id: formData.tcg_product_id ?? null,
+        tcg_group_id: formData.tcg_group_id ?? null,
+        tcg_category_id: formData.tcg_category_id ?? null,
+        tcg_sub_type_name: formData.tcg_sub_type_name ?? null
       };
       // Only send images if they have been modified from the original
       const imagesChanged = JSON.stringify(formData.images) !== JSON.stringify(originalImages);

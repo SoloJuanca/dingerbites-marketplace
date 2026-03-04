@@ -4,6 +4,7 @@ import {
   CATEGORIES_COLLECTION,
   createCategory,
   findBySlug,
+  getById,
   listCollection
 } from '../../../../lib/firebaseCatalog';
 
@@ -58,7 +59,9 @@ export async function POST(request) {
       slug,
       description,
       image_url,
-      is_active
+      is_active,
+      parent_id,
+      tcg_category_id
     } = body;
 
     // Validate required fields
@@ -79,12 +82,25 @@ export async function POST(request) {
       );
     }
 
+    // Validate parent exists if provided
+    if (parent_id) {
+      const parent = await getById(CATEGORIES_COLLECTION, parent_id);
+      if (!parent) {
+        return NextResponse.json(
+          { error: 'La categoría padre no existe' },
+          { status: 400 }
+        );
+      }
+    }
+
     const newCategory = await createCategory({
       name,
       slug,
       description,
       image_url,
-      is_active: is_active !== undefined ? is_active : true
+      is_active: is_active !== undefined ? is_active : true,
+      parent_id: parent_id || null,
+      tcg_category_id: tcg_category_id != null ? Number(tcg_category_id) : null
     });
 
     return NextResponse.json({

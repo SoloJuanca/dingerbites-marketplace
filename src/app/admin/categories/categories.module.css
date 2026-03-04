@@ -62,9 +62,21 @@
 
 /* Grid Container */
 .gridContainer {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Category Row (tree structure) */
+.categoryRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.subcategoryIndicator {
+  color: #6b7280;
+  font-size: 0.875em;
 }
 
 /* Category Card */
@@ -341,13 +353,19 @@
 }
 
 .formInput,
-.formTextarea {
+.formTextarea,
+.formSelect {
   padding: 10px 12px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 0.875rem;
   transition: all 0.2s ease;
   background: white;
+}
+
+.formSelect {
+  cursor: pointer;
+  appearance: auto;
 }
 
 .formInput:focus,

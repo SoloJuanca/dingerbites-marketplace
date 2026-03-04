@@ -1,0 +1,85 @@
+import { NextResponse } from 'next/server';
+import { db } from '../../../../../../lib/firebaseAdmin';
+import { convertUsdToMxn } from '../../../../../../lib/currency';
+
+const PRODUCTS_COLLECTION = 'products';
+const TCG_BASE = 'https://tcgcsv.com/tcgplayer';
+
+export async function GET(request, { params }) {
+  try {
+    const { productId } = await params;
+    if (!productId) {
+      return NextResponse.json({ error: 'productId required' }, { status: 400 });
+    }
+
+    const productRef = db.collection(PRODUCTS_COLLECTION).doc(String(productId));
+    const productSnap = await productRef.get();
+    if (!productSnap.exists) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+
+    const product = productSnap.data();
+    const tcgProductId = product.tcg_product_id;
+    const tcgGroupId = product.tcg_group_id;
+    const tcgCategoryId = product.tcg_category_id;
+    const tcgSubTypeName = product.tcg_sub_type_name || 'Normal';
+
+    if (!tcgProductId || !tcgGroupId || !tcgCategoryId) {
+      return NextResponse.json(
+        { error: 'Product is not a TCG product with price data' },
+        { status: 400 }
+      );
+    }
+
+    const res = await fetch(
+      `${TCG_BASE}/${tcgCategoryId}/${tcgGroupId}/prices`,
+      { next: { revalidate: 3600 } }
+    );
+    if (!res.ok) {
+      throw new Error(`TCG API error: ${res.status}`);
+    }
+    const data = await res.json();
+    const results = data.results || [];
+
+    const tcgProductIdNum = Number(tcgProductId);
+    const normSubType = (s) => (s || 'Normal').trim();
+
+    let priceRow = results.find(
+      (p) =>
+        Number(p.productId) === tcgProductIdNum &&
+        normSubType(p.subTypeName) === normSubType(tcgSubTypeName)
+    );
+
+    if (!priceRow) {
+      priceRow = results.find(
+        (p) => Number(p.productId) === tcgProductIdNum
+      );
+    }
+
+    if (!priceRow) {
+      return NextResponse.json({
+        success: true,
+        marketPrice: null,
+        marketPriceMxn: null,
+        message: 'Precio no disponible'
+      });
+    }
+
+    const marketPriceUsd =
+      priceRow.marketPrice ?? priceRow.midPrice ?? priceRow.lowPrice ?? null;
+    const marketPriceMxn =
+      marketPriceUsd != null ? convertUsdToMxn(marketPriceUsd) : null;
+
+    return NextResponse.json({
+      success: true,
+      marketPrice: marketPriceUsd,
+      marketPriceMxn
+    });
+  } catch (err) {
+    console.error('Error fetching TCG market price:', err);
+    return NextResponse.json(
+      { error: 'Failed to fetch market price' },
+      { status: 500 }
+    );
+  }
+}
