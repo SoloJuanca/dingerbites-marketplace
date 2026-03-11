@@ -416,6 +416,51 @@
   font-size: 14px;
 }
 
+/* IA Assistant */
+.aiActionsRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.aiButton {
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: none;
+  background: #4c51bf;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 6px rgba(76, 81, 191, 0.3);
+}
+
+.aiButton:hover:not(:disabled) {
+  background: #434190;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(67, 65, 144, 0.35);
+}
+
+.aiButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.aiHint {
+  flex: 1;
+  font-size: 13px;
+  color: #4a5568;
+}
+
+.aiError {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #c53030;
+}
+
 /* Upload Container */
 .uploadContainer {
   position: relative;

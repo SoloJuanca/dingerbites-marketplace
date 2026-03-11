@@ -8,8 +8,9 @@ import styles from './pos.module.css';
 
 const PAYMENT_METHODS = [
   'Efectivo',
-  'Transferencia',
   'Tarjeta',
+  'Stripe',
+  'Transferencia',
   'Otro'
 ];
 

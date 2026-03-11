@@ -54,6 +54,12 @@ export default function AdminSidebar({ isOpen, onToggle }) {
       href: '/admin/orders'
     },
     {
+      id: 'reports-payments',
+      label: 'Reporte de pagos',
+      icon: '💰',
+      href: '/admin/reports/payment-methods'
+    },
+    {
       id: 'pos',
       label: 'Punto de venta',
       icon: '🧾',

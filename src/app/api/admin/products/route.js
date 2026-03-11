@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../lib/auth';
 import { db } from '../../../../lib/firebaseAdmin';
+import { createCategory, CATEGORIES_COLLECTION, findBySlug } from '../../../../lib/firebaseCatalog';
 
 const PRODUCTS_COLLECTION = 'products';
-const CATEGORIES_COLLECTION = 'product_categories';
 const BRANDS_COLLECTION = 'product_brands';
 
 function paginate(items, page, limit) {
@@ -156,6 +156,7 @@ export async function POST(request) {
       meta_keywords,
       images,
       features,
+      suggested_category_name,
       tcg_product_id,
       tcg_group_id,
       tcg_category_id,
@@ -194,6 +195,37 @@ export async function POST(request) {
     }
 
     const now = new Date().toISOString();
+
+    let finalCategoryId = category_id || null;
+
+    if (!finalCategoryId && suggested_category_name && suggested_category_name.trim()) {
+      const normalizedName = suggested_category_name.trim();
+      const slugBase = normalizedName
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+      const existingCategory = await findBySlug(CATEGORIES_COLLECTION, slugBase);
+
+      if (existingCategory) {
+        finalCategoryId = existingCategory.id || existingCategory.docId || null;
+      } else {
+        const newCategory = await createCategory({
+          name: normalizedName,
+          slug: slugBase,
+          description: '',
+          image_url: '',
+          is_active: true,
+          parent_id: null,
+          tcg_category_id: null
+        });
+        finalCategoryId = newCategory.id || newCategory.docId || null;
+      }
+    }
     const normalizedImages = Array.isArray(images)
       ? images
           .map((img, idx) => {
@@ -227,7 +259,7 @@ export async function POST(request) {
       barcode: barcode || null,
       weight_grams: weight_grams !== undefined ? toNumber(weight_grams, 0) : null,
       dimensions_cm: dimensions_cm || null,
-      category_id: category_id || null,
+      category_id: finalCategoryId,
       brand_id: brand_id || null,
       stock_quantity: toNumber(stock_quantity, 0),
       low_stock_threshold: toNumber(low_stock_threshold, 5),

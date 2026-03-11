@@ -20,6 +20,8 @@ export async function GET(request) {
     const status = searchParams.get('status') || '';
     const dateFrom = searchParams.get('dateFrom') || '';
     const dateTo = searchParams.get('dateTo') || '';
+    const payment_method = searchParams.get('payment_method') || '';
+    const created_by = searchParams.get('created_by') || '';
 
     const result = await listOrdersAdmin({
       page,
@@ -27,7 +29,9 @@ export async function GET(request) {
       search,
       status,
       dateFrom,
-      dateTo
+      dateTo,
+      payment_method,
+      created_by
     });
 
     return NextResponse.json(result);

@@ -299,6 +299,18 @@ export async function listOrdersAdmin(options = {}) {
     orders = orders.filter((o) => new Date(o.created_at || 0).getTime() <= to);
   }
 
+  const paymentMethodFilter = (options.payment_method || '').trim();
+  if (paymentMethodFilter) {
+    orders = orders.filter(
+      (o) => (o.payment_method || '').toLowerCase() === paymentMethodFilter.toLowerCase()
+    );
+  }
+
+  const createdByFilter = (options.created_by || '').trim();
+  if (createdByFilter) {
+    orders = orders.filter((o) => String(o.user_id || '') === createdByFilter);
+  }
+
   orders.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
   const statusIds = [...new Set(orders.map((o) => o.status_id).filter(Boolean))];
@@ -354,6 +366,141 @@ export async function listOrdersAdmin(options = {}) {
       delivered_orders: deliveredCount,
       recent_orders: recentOrders.length,
       total_revenue: totalRevenue
+    }
+  };
+}
+
+/** Normalize payment_method for report grouping: Efectivo, Tarjeta, Stripe, Otros */
+function normalizePaymentMethodForReport(raw) {
+  if (!raw || typeof raw !== 'string') return 'Otros';
+  const m = raw.trim().toLowerCase();
+  if (m === 'efectivo' || m === 'pago contra entrega') return 'Efectivo';
+  if (m === 'tarjeta') return 'Tarjeta';
+  if (m === 'stripe') return 'Stripe';
+  return 'Otros';
+}
+
+/**
+ * Admin: Payment methods report — summary by method, filtered orders, optional groupBy.
+ * Options: dateFrom, dateTo, status, payment_method (Efectivo|Tarjeta|Stripe|Otros), created_by (user_id), groupBy (day|week|month), page, limit.
+ * If order has payments[] array (future), sums by method and marks as "Mixto"; otherwise uses payment_method.
+ */
+export async function getPaymentReportData(options = {}) {
+  const snapshot = await db.collection(ORDERS_COLLECTION).get();
+  let orders = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  if (options.dateFrom) {
+    const from = new Date(options.dateFrom).getTime();
+    orders = orders.filter((o) => new Date(o.created_at || 0).getTime() >= from);
+  }
+  if (options.dateTo) {
+    const to = new Date(options.dateTo + ' 23:59:59').getTime();
+    orders = orders.filter((o) => new Date(o.created_at || 0).getTime() <= to);
+  }
+
+  const statusName = (options.status || '').trim();
+  if (statusName) {
+    const statusSnap = await db
+      .collection(ORDER_STATUSES_COLLECTION)
+      .where('name', '==', statusName)
+      .limit(1)
+      .get();
+    const statusId = statusSnap.empty ? null : statusSnap.docs[0].id;
+    if (statusId) orders = orders.filter((o) => String(o.status_id) === statusId);
+  }
+
+  const filterPaymentMethod = (options.payment_method || '').trim();
+  if (filterPaymentMethod) {
+    orders = orders.filter((o) => {
+      const normalized = normalizePaymentMethodForReport(o.payment_method);
+      return normalized === filterPaymentMethod;
+    });
+  }
+
+  const createdBy = (options.created_by || '').trim();
+  if (createdBy) {
+    orders = orders.filter((o) => String(o.user_id || '') === createdBy);
+  }
+
+  orders.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+
+  const statusIds = [...new Set(orders.map((o) => o.status_id).filter(Boolean))];
+  const userIds = [...new Set(orders.map((o) => o.user_id).filter(Boolean))];
+  const [statusDocs, userDocs] = await Promise.all([
+    Promise.all(statusIds.map((id) => db.collection(ORDER_STATUSES_COLLECTION).doc(String(id)).get())),
+    Promise.all(userIds.map((id) => db.collection('users').doc(String(id)).get()))
+  ]);
+  const statusById = new Map(statusDocs.filter((d) => d.exists).map((d) => [d.id, d.data()]));
+  const userById = new Map(userDocs.filter((d) => d.exists).map((d) => [d.id, d.data()]));
+
+  const summaryByMethod = { Efectivo: { count: 0, amount: 0 }, Tarjeta: { count: 0, amount: 0 }, Stripe: { count: 0, amount: 0 }, Otros: { count: 0, amount: 0 } };
+  let totalAmount = 0;
+
+  orders.forEach((o) => {
+    const amount = Number(o.total_amount) || 0;
+    totalAmount += amount;
+    const key = normalizePaymentMethodForReport(o.payment_method);
+    if (!summaryByMethod[key]) summaryByMethod[key] = { count: 0, amount: 0 };
+    summaryByMethod[key].count += 1;
+    summaryByMethod[key].amount += amount;
+  });
+
+  const groupBy = (options.groupBy || '').toLowerCase();
+  let grouped = null;
+  if (groupBy === 'day' || groupBy === 'week' || groupBy === 'month') {
+    const map = new Map();
+    orders.forEach((o) => {
+      const d = new Date(o.created_at || 0);
+      let key;
+      if (groupBy === 'day') key = d.toISOString().slice(0, 10);
+      else if (groupBy === 'week') {
+        const start = new Date(d);
+        start.setDate(d.getDate() - d.getDay());
+        key = start.toISOString().slice(0, 10);
+      } else key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+      const cur = map.get(key) || { period: key, orders: 0, total: 0, byMethod: { Efectivo: 0, Tarjeta: 0, Stripe: 0, Otros: 0 } };
+      cur.orders += 1;
+      cur.total += Number(o.total_amount) || 0;
+      const methodKey = normalizePaymentMethodForReport(o.payment_method);
+      cur.byMethod[methodKey] = (cur.byMethod[methodKey] || 0) + (Number(o.total_amount) || 0);
+      map.set(key, cur);
+    });
+    grouped = [...map.values()].sort((a, b) => a.period.localeCompare(b.period));
+  }
+
+  const page = Math.max(1, Number(options.page) || 1);
+  const limit = Math.max(1, Math.min(Number(options.limit) || 50, 500));
+  const total = orders.length;
+  const start = (page - 1) * limit;
+  const paginated = orders.slice(start, start + limit).map((o) => {
+    const status = statusById.get(String(o.status_id));
+    const user = o.user_id ? userById.get(String(o.user_id)) : null;
+    const cashierName = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email : null;
+    return {
+      ...o,
+      status_name: status?.name ?? null,
+      status_color: status?.color ?? null,
+      customer_name: user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : (o.customer_email || 'Invitado'),
+      cashier_name: cashierName,
+      payment_method_display: o.payment_method || 'No especificado',
+      payment_method_group: normalizePaymentMethodForReport(o.payment_method)
+    };
+  });
+
+  return {
+    summary: {
+      total_orders: total,
+      total_amount: totalAmount,
+      by_method: summaryByMethod
+    },
+    orders: paginated,
+    grouped,
+    pagination: {
+      total,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+      hasNextPage: page < Math.ceil(total / limit),
+      hasPrevPage: page > 1
     }
   };
 }

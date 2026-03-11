@@ -43,11 +43,15 @@ export default function CreateProductPage() {
     features: '',
     is_featured: false,
     is_active: false,
-    images: []
+    images: [],
+    suggested_category_name: ''
   });
   const [uploadingImages, setUploadingImages] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const [scanningBarcode, setScanningBarcode] = useState(false);
+  const [aiContextText, setAiContextText] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(null);
 
   // Log cuando cambia el código de barras en formData
   useEffect(() => {
@@ -316,6 +320,64 @@ export default function CreateProductPage() {
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
       .trim('-');
+  };
+
+  const handleAiGenerate = async () => {
+    if ((!aiContextText || !aiContextText.trim()) && (!formData.images || formData.images.length === 0)) {
+      toast.error('Agrega al menos una imagen o algunas palabras clave para que la IA pueda ayudarte');
+      return;
+    }
+
+    setAiError(null);
+    setAiLoading(true);
+
+    try {
+      const response = await apiRequest('/api/admin/ai/generate-listing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          images: formData.images || [],
+          contextText: aiContextText,
+          currentFields: {
+            name: formData.name,
+            short_description: formData.short_description,
+            description: formData.description,
+            tags: formData.tags
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'No se pudieron generar sugerencias en este momento');
+      }
+
+      const data = await response.json();
+
+      setFormData(prev => {
+        const updated = {
+          ...prev,
+          name: data.title || prev.name,
+          short_description: data.shortDescription || prev.short_description,
+          description: data.description || prev.description,
+          tags: Array.isArray(data.tags) ? data.tags.join(', ') : (data.tags || prev.tags),
+          suggested_category_name: data.suggestedCategory || prev.suggested_category_name || ''
+        };
+        updated.sku = generateSKUFromData(updated);
+        if (updated.name) updated.slug = generateSlug(updated.name);
+        return updated;
+      });
+
+      toast.success('Sugerencias generadas. Revisa y ajusta antes de publicar.');
+    } catch (error) {
+      console.error('Error generating AI suggestions:', error);
+      setAiError(error.message || 'No se pudieron generar sugerencias en este momento. Intenta de nuevo más tarde.');
+      toast.error(error.message || 'No se pudieron generar sugerencias en este momento');
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   // Formulario unificado - sin navegación por pasos
@@ -617,53 +679,52 @@ export default function CreateProductPage() {
           </p>
         </div>
 
-        {/* Categorización - siempre visible */}
-        <div className={styles.subsection}>
-          <h3>📋 Categorización</h3>
-          <div className={styles.field}>
-            <label htmlFor="category_id">
-              Categoría del Producto
-              <Tooltip content="Para productos TCG, selecciona TCG o una subcategoría (Pokemon, Magic, etc.)">
-                <span className={styles.helpIcon}>?</span>
-              </Tooltip>
-            </label>
-            <SmartComboBox
-              value={formData.category_id}
-              onChange={(value) => {
-                const cat = categories.find((c) => c.id === value);
-                setFormData((prev) => ({
-                  ...prev,
-                  category_id: value,
-                  tcg_product_id: null,
-                  tcg_group_id: null,
-                  tcg_category_id: cat?.tcg_category_id ?? null,
-                  tcg_sub_type_name: null,
-                  name: '',
-                  description: '',
-                  images: [],
-                  price: ''
-                }));
-              }}
-              options={categories}
-              placeholder="Buscar o crear categoría (opcional)..."
-              createEndpoint="/api/admin/categories"
-              createLabel="categoría"
-              onOptionsUpdate={handleCategoryUpdate}
-            />
-          </div>
-
-          {isTcgFlow && (
+        {/* Categorización - solo primero en flujo TCG (elige categoría antes del producto) */}
+        {isTcgFlow && (
+          <div className={styles.subsection}>
+            <h3>📋 Categorización</h3>
+            <div className={styles.field}>
+              <label htmlFor="category_id">
+                Categoría del Producto
+                <Tooltip content="Para productos TCG, selecciona TCG o una subcategoría (Pokemon, Magic, etc.)">
+                  <span className={styles.helpIcon}>?</span>
+                </Tooltip>
+              </label>
+              <SmartComboBox
+                value={formData.category_id}
+                onChange={(value) => {
+                  const cat = categories.find((c) => c.id === value);
+                  setFormData((prev) => ({
+                    ...prev,
+                    category_id: value,
+                    tcg_product_id: null,
+                    tcg_group_id: null,
+                    tcg_category_id: cat?.tcg_category_id ?? null,
+                    tcg_sub_type_name: null,
+                    name: '',
+                    description: '',
+                    images: [],
+                    price: ''
+                  }));
+                }}
+                options={categories}
+                placeholder="Buscar o crear categoría (opcional)..."
+                createEndpoint="/api/admin/categories"
+                createLabel="categoría"
+                onOptionsUpdate={handleCategoryUpdate}
+              />
+            </div>
             <TcgProductSelector
               tcgCategoryId={tcgCategoryIdForSelector}
               formData={formData}
               onSelect={handleTcgSelect}
             />
-          )}
-        </div>
+          </div>
+        )}
 
         {!isTcgFlow && (
           <>
-        {/* Imágenes del Producto */}
+        {/* Imágenes del Producto - primero para flujo lineal */}
         <div className={styles.subsection}>
           <h3>🖼️ Imágenes del Producto</h3>
           
@@ -732,6 +793,100 @@ export default function CreateProductPage() {
               <li>• Resolución mínima recomendada: 800x800 píxeles</li>
               <li>• Formatos compatibles: JPG, PNG, WebP</li>
             </ul>
+          </div>
+        </div>
+
+        {/* Asistente IA - después de subir imágenes para flujo lineal */}
+        <div className={styles.subsection}>
+          <h3>🧠 Asistente IA para este producto</h3>
+          <div className={styles.field}>
+            <label htmlFor="ai_context">
+              Contexto para IA
+              <Tooltip content="Escribe palabras clave, tipo de producto, público objetivo o detalles importantes para que la IA genere título, descripciones y etiquetas.">
+                <span className={styles.helpIcon}>?</span>
+              </Tooltip>
+            </label>
+            <textarea
+              id="ai_context"
+              name="ai_context"
+              value={aiContextText}
+              onChange={(e) => setAiContextText(e.target.value)}
+              rows={3}
+              className={styles.textarea}
+              placeholder="Ej: esmalte de uñas vegano, larga duración, acabado brillante, ideal para salones profesionales..."
+            />
+            <small className={styles.helpText}>
+              Cuanta más información agregues (beneficios, materiales, uso, público objetivo), mejores sugerencias obtendrás.
+            </small>
+          </div>
+
+          <div className={styles.aiActionsRow}>
+            <button
+              type="button"
+              onClick={handleAiGenerate}
+              disabled={aiLoading}
+              className={styles.aiButton}
+            >
+              {aiLoading ? 'Generando sugerencias...' : 'Rellenar con IA'}
+            </button>
+            <p className={styles.aiHint}>
+              La IA usará las imágenes que ya subiste y este contexto para prellenar nombre, descripciones y etiquetas. Siempre podrás editarlas antes de publicar.
+            </p>
+          </div>
+
+          {aiError && (
+            <p className={styles.aiError}>
+              {aiError}
+            </p>
+          )}
+        </div>
+
+        {/* Categorización - después de IA para revisar/editar categoría sugerida */}
+        <div className={styles.subsection}>
+          <h3>📋 Categorización</h3>
+          <div className={styles.field}>
+            <label htmlFor="suggested_category_name">
+              Categoría sugerida por IA
+              <Tooltip content="Campo sugerido por IA. Puedes editarlo libremente. Si no coincide con una categoría existente, se creará al publicar.">
+                <span className={styles.helpIcon}>?</span>
+              </Tooltip>
+            </label>
+            <input
+              type="text"
+              id="suggested_category_name"
+              name="suggested_category_name"
+              value={formData.suggested_category_name || ''}
+              onChange={handleInputChange}
+              className={styles.input}
+              placeholder="Ej: Esmaltes veganos profesionales"
+            />
+            <small className={styles.helpText}>
+              Si este nombre coincide con una categoría existente, se usará automáticamente. Si no, se creará una nueva cuando publiques.
+            </small>
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="category_id">
+              Categoría del Producto (opcional)
+              <Tooltip content="También puedes elegir una categoría existente en lugar de la sugerida por IA.">
+                <span className={styles.helpIcon}>?</span>
+              </Tooltip>
+            </label>
+            <SmartComboBox
+              value={formData.category_id}
+              onChange={(value) => {
+                const cat = categories.find((c) => c.id === value);
+                setFormData((prev) => ({
+                  ...prev,
+                  category_id: value,
+                  tcg_category_id: cat?.tcg_category_id ?? null
+                }));
+              }}
+              options={categories}
+              placeholder="Buscar o crear categoría (opcional)..."
+              createEndpoint="/api/admin/categories"
+              createLabel="categoría"
+              onOptionsUpdate={handleCategoryUpdate}
+            />
           </div>
         </div>
 
