@@ -89,26 +89,7 @@ export default function EditProductPage() {
   const steps = productType === 'tcg' ? STEPS_TCG : STEPS_NORMAL;
   const getSteps = () => (productType === 'tcg' ? STEPS_TCG : STEPS_NORMAL);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadProduct();
-      loadCategories();
-      loadBrands();
-    }
-  }, [productId, user]);
-
-  // Inicializar parent_category_id al cargar producto (cuando ya tenemos categorías y category_id)
-  useEffect(() => {
-    if (categories.length === 0 || !formData.category_id) return;
-    const cat = categories.find((c) => c.id === formData.category_id);
-    if (!cat) return;
-    const parentId = cat.parent_id || formData.category_id;
-    setFormData((prev) =>
-      prev.parent_category_id === parentId ? prev : { ...prev, parent_category_id: parentId }
-    );
-  }, [categories, formData.category_id]);
-  
-  const loadProduct = async () => {
+  const loadProduct = useCallback(async () => {
     setLoadingProduct(true);
     try {
       const response = await apiRequest(`/api/admin/products/${productId}`);
@@ -170,7 +151,6 @@ export default function EditProductPage() {
         setProductType(product.tcg_product_id != null ? 'tcg' : 'normal');
         setOriginalImages(product.images || []);
         setOriginalFeatures(Array.isArray(product.features) ? product.features.join('\n') : '');
-        setOriginalStatus(product.is_active ? 'published' : 'draft');
       } else {
         console.error('Error loading product:', response.status);
         toast.error('Error al cargar el producto');
@@ -181,9 +161,9 @@ export default function EditProductPage() {
     } finally {
       setLoadingProduct(false);
     }
-  };
+  }, [productId, apiRequest]);
 
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     try {
       const response = await apiRequest('/api/admin/categories');
       if (response.ok) {
@@ -204,9 +184,9 @@ export default function EditProductPage() {
       console.error('Error loading categories:', error);
       toast.error('Error al conectar con categorías');
     }
-  };
+  }, [apiRequest]);
 
-  const loadBrands = async () => {
+  const loadBrands = useCallback(async () => {
     try {
       const response = await apiRequest('/api/admin/brands');
       if (response.ok) {
@@ -227,7 +207,26 @@ export default function EditProductPage() {
       console.error('Error loading brands:', error);
       toast.error('Error al conectar con marcas');
     }
-  };
+  }, [apiRequest]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadProduct();
+      loadCategories();
+      loadBrands();
+    }
+  }, [isAuthenticated, loadProduct, loadCategories, loadBrands]);
+
+  // Inicializar parent_category_id al cargar producto (cuando ya tenemos categorías y category_id)
+  useEffect(() => {
+    if (categories.length === 0 || !formData.category_id) return;
+    const cat = categories.find((c) => c.id === formData.category_id);
+    if (!cat) return;
+    const parentId = cat.parent_id || formData.category_id;
+    setFormData((prev) =>
+      prev.parent_category_id === parentId ? prev : { ...prev, parent_category_id: parentId }
+    );
+  }, [categories, formData.category_id]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;

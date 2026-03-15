@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../../lib/AuthContext';
@@ -18,7 +18,7 @@ function formatDate(dateString) {
   });
 }
 
-export default function AdminQuestionsPage() {
+function AdminQuestionsContent() {
   const { apiRequest, isAuthenticated } = useAuth();
   const searchParams = useSearchParams();
   const [questions, setQuestions] = useState([]);
@@ -238,5 +238,19 @@ export default function AdminQuestionsPage() {
         )}
       </div>
     </AdminLayout>
+  );
+}
+
+export default function AdminQuestionsPage() {
+  return (
+    <Suspense
+      fallback={
+        <AdminLayout title="Preguntas de productos">
+          <div className={styles.container}><p>Cargando...</p></div>
+        </AdminLayout>
+      }
+    >
+      <AdminQuestionsContent />
+    </Suspense>
   );
 }
