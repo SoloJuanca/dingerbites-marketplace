@@ -556,7 +556,7 @@
   padding: 12px 0 0 0;
   margin-top: 12px;
   border-top: 2px solid #e2e8f0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: #2d3748;
 }
@@ -647,7 +647,7 @@
   }
   
   .logoText {
-    font-size: 18px;
+    font-size: 16px;
   }
   
   .backToCart {
@@ -672,7 +672,7 @@
   }
   
   .section h2 {
-    font-size: 18px;
+    font-size: 16px;
   }
   
   .inputGroup input,
@@ -695,7 +695,7 @@
   }
   
   .orderSummary h2 {
-    font-size: 18px;
+    font-size: 16px;
   }
   
   .row {

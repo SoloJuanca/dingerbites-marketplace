@@ -1,39 +1,15 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import styles from './HomeCategories.module.css';
 
-export default function HomeCategories() {
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+export default function HomeCategories({ categories = [] }) {
   const trackRef = useRef(null);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    fetch('/api/home?section=categories')
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('error'))))
-      .then((data) => {
-        if (!isMounted) return;
-        const items = Array.isArray(data.categories) ? data.categories : [];
-        setCategories(items.filter((category) => category?.slug).slice(0, 8));
-      })
-      .catch(() => {
-        if (!isMounted) return;
-        setError('No se pudieron cargar las categorías.');
-      })
-      .finally(() => {
-        if (!isMounted) return;
-        setLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const filteredCategories = (Array.isArray(categories) ? categories : [])
+    .filter((category) => category?.slug)
+    .slice(0, 8);
 
   const handleScroll = (direction) => {
     if (!trackRef.current) return;
@@ -67,15 +43,11 @@ export default function HomeCategories() {
           </div>
         </header>
 
-        {loading ? (
-          <div className={styles.stateBox}>Cargando categorías...</div>
-        ) : error ? (
-          <div className={styles.stateBox}>{error}</div>
-        ) : categories.length === 0 ? (
+        {filteredCategories.length === 0 ? (
           <div className={styles.stateBox}>No hay categorías disponibles.</div>
         ) : (
           <div className={styles.carouselTrack} ref={trackRef}>
-            {categories.map((category) => (
+            {filteredCategories.map((category) => (
               <Link
                 href={`/catalog?category=${encodeURIComponent(category.slug)}`}
                 key={category.id || category.slug}

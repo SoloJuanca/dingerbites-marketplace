@@ -206,7 +206,7 @@ export function generateAdminEmailContent(orderData) {
             </tr>
             <tr>
               <td style="padding: 8px 0; font-weight: bold; color: #4a5568;">Total:</td>
-              <td style="padding: 8px 0; color: #2d3748; font-size: 18px; font-weight: bold;">${formatCurrency(total_amount)}</td>
+              <td style="padding: 8px 0; color: #2d3748; font-size: 16px; font-weight: bold;">${formatCurrency(total_amount)}</td>
             </tr>
           </table>
         </div>
@@ -387,7 +387,7 @@ export function generateCustomerEmailContent(orderData) {
 
         <!-- Información del Pedido -->
         <div style="background-color: #f7fafc; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
-          <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 18px;">📋 Resumen de tu Pedido</h3>
+          <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 16px;">📋 Resumen de tu Pedido</h3>
           <table style="width: 100%; border-collapse: collapse;">
             <tr>
               <td style="padding: 8px 0; font-weight: bold; color: #4a5568;">Número de Pedido:</td>
@@ -399,14 +399,14 @@ export function generateCustomerEmailContent(orderData) {
             </tr>
             <tr>
               <td style="padding: 8px 0; font-weight: bold; color: #4a5568;">Total:</td>
-              <td style="padding: 8px 0; color: #2d3748; font-size: 18px; font-weight: bold;">${formatCurrency(total_amount)}</td>
+              <td style="padding: 8px 0; color: #2d3748; font-size: 16px; font-weight: bold;">${formatCurrency(total_amount)}</td>
             </tr>
           </table>
         </div>
 
         <!-- Detalles del Pedido -->
         <div style="margin-bottom: 32px;">
-          <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 18px;">📦 Detalles de tu Pedido</h3>
+          <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 16px;">📦 Detalles de tu Pedido</h3>
           ${itemsHtml}
         </div>
 
@@ -417,7 +417,7 @@ export function generateCustomerEmailContent(orderData) {
 
         <!-- Información de Entrega -->
         <div style="margin-bottom: 32px;">
-          <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 18px;">🚚 Información de Entrega</h3>
+          <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 16px;">🚚 Información de Entrega</h3>
           <div style="background-color: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
             <p style="margin: 0 0 12px 0; color: #2d3748;"><strong>Método de Entrega:</strong> ${shipping_method || 'No especificado'}</p>
             <p style="margin: 0 0 12px 0; color: #2d3748;"><strong>Método de Pago:</strong> ${payment_method || 'No especificado'}</p>
@@ -448,7 +448,7 @@ export function generateCustomerEmailContent(orderData) {
 
         <!-- Estado del Pedido -->
         <div style="background: linear-gradient(135deg, #fef5e7 0%, #fed7aa 100%); padding: 24px; border-radius: 12px; margin-bottom: 32px; border: 1px solid #f6ad55;">
-          <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 18px;">📊 Estado de tu Pedido</h3>
+          <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 16px;">📊 Estado de tu Pedido</h3>
           <p style="color: #4a5568; margin: 0 0 16px 0;">
             Tu pedido está actualmente <strong style="color: #c05621;">en proceso</strong>. Nuestro equipo está revisando los detalles y preparando tu orden.
           </p>
@@ -459,7 +459,7 @@ export function generateCustomerEmailContent(orderData) {
 
         <!-- Contacto -->
         <div style="background-color: #f7fafc; padding: 24px; border-radius: 8px; margin-bottom: 32px;">
-          <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 18px;">📞 ¿Necesitas Ayuda?</h3>
+          <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 16px;">📞 ¿Necesitas Ayuda?</h3>
           <p style="color: #4a5568; margin: 0 0 16px 0;">
             Si tienes alguna pregunta sobre tu pedido o necesitas hacer algún cambio, no dudes en contactarnos:
           </p>

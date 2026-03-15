@@ -7,37 +7,11 @@ import styles from './HomeBannerCarousel.module.css';
 
 const AUTOPLAY_MS = 5000;
 
-export default function HomeBannerCarousel() {
-  const [banners, setBanners] = useState([]);
+export default function HomeBannerCarousel({ banners = [] }) {
   const [index, setIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    let isMounted = true;
-
-    fetch('/api/banners')
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('error'))))
-      .then((data) => {
-        if (!isMounted) return;
-        setBanners(Array.isArray(data.banners) ? data.banners : []);
-      })
-      .catch(() => {
-        if (!isMounted) return;
-        setError('No se pudieron cargar los banners.');
-      })
-      .finally(() => {
-        if (!isMounted) return;
-        setLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   const safeBanners = useMemo(
-    () => banners.filter((banner) => banner?.image_url),
+    () => (Array.isArray(banners) ? banners : []).filter((banner) => banner?.image_url),
     [banners]
   );
 
@@ -54,26 +28,6 @@ export default function HomeBannerCarousel() {
     const normalized = (nextIndex + safeBanners.length) % safeBanners.length;
     setIndex(normalized);
   };
-
-  if (loading) {
-    return (
-      <section className={styles.section} aria-label="Banners principales">
-        <div className="container">
-          <div className={styles.stateBox}>Cargando banners...</div>
-        </div>
-      </section>
-    );
-  }
-
-  if (error) {
-    return (
-      <section className={styles.section} aria-label="Banners principales">
-        <div className="container">
-          <div className={styles.stateBox}>{error}</div>
-        </div>
-      </section>
-    );
-  }
 
   if (safeBanners.length === 0) {
     return (

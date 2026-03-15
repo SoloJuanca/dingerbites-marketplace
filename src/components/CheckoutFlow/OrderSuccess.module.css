@@ -35,7 +35,7 @@
 }
 
 .orderNumber {
-  font-size: 18px;
+  font-size: 16px;
   color: #666;
   margin: 0;
 }
@@ -101,7 +101,7 @@
 .guestActions h4,
 .userActions h4 {
   color: #2c5530;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   margin-bottom: 16px;
 }

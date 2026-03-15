@@ -1,27 +1,10 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Icon from '../Icon/Icon';
 import styles from './HomeReviews.module.css';
 
-export default function HomeReviews() {
-  const [reviews, setReviews] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch('/api/reviews/general?limit=12')
-      .then((res) => res.ok ? res.json() : Promise.reject())
-      .then((data) => {
-        setReviews(Array.isArray(data.reviews) ? data.reviews : []);
-      })
-      .catch(() => {
-        setReviews([]);
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading || reviews.length === 0) {
+export default function HomeReviews({ reviews = [] }) {
+  const reviewList = Array.isArray(reviews) ? reviews : [];
+  if (reviewList.length === 0) {
     return null;
   }
 
@@ -30,7 +13,7 @@ export default function HomeReviews() {
       <div className={styles.container}>
         <h2 className={styles.sectionTitle}>Lo que dicen nuestros clientes</h2>
         <div className={styles.reviewsGrid}>
-          {reviews.map((review) => (
+          {reviewList.map((review) => (
             <div key={review.id} className={styles.reviewCard}>
               {review.image_url && (
                 <div className={styles.reviewImageWrap}>

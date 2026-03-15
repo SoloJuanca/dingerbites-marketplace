@@ -134,7 +134,7 @@
 .collapseIcon {
   transition: transform 0.2s;
   color: #6c757d;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .collapseIcon.expanded {
@@ -326,7 +326,7 @@
   }
   
   .title {
-    font-size: 18px;
+    font-size: 16px;
   }
   
   .content {

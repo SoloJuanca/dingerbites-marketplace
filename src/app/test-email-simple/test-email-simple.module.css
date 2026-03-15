@@ -43,7 +43,7 @@
 .apiInfo h3 {
   color: #276749;
   margin: 0 0 12px 0;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .apiInfo code {
@@ -148,7 +148,7 @@
 .error h3 {
   color: #c53030;
   margin: 0 0 12px 0;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .error p {

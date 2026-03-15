@@ -39,7 +39,7 @@
 }
 
 .heroSubtitle {
-  font-size: 18px;
+  font-size: 16px;
   color: #4a5568;
   line-height: 1.6;
   margin-bottom: 32px;
@@ -61,7 +61,7 @@
   color: white;
   padding: 16px 32px;
   border-radius: 12px;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   text-decoration: none;
   display: inline-flex;
@@ -91,7 +91,7 @@
 }
 
 .sectionIntro {
-  font-size: 18px;
+  font-size: 16px;
   color: #4a5568;
   text-align: center;
   margin-bottom: 40px;
@@ -261,6 +261,6 @@
     width: 100%;
     justify-content: center;
     padding: 16px 24px;
-    font-size: 18px;
+    font-size: 16px;
   }
 }

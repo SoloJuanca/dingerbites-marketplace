@@ -54,7 +54,7 @@
 }
 
 .subtitle {
-  font-size: 18px;
+  font-size: 16px;
   color: #718096;
   margin: 0 0 32px 0;
 }
@@ -81,7 +81,7 @@
 
 .orderNumber .value {
   font-family: monospace;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .detailRow {
@@ -151,7 +151,7 @@
 
 .transferDetails h4 {
   margin: 0 0 16px 0;
-  font-size: 18px;
+  font-size: 16px;
   color: #2d3748;
 }
 
@@ -173,7 +173,7 @@
 }
 
 .nextSteps h3 {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: #2d3748;
   margin: 0 0 16px 0;
@@ -292,6 +292,6 @@
   }
   
   .total {
-    font-size: 18px;
+    font-size: 16px;
   }
 }

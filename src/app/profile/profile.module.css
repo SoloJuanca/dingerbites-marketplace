@@ -15,7 +15,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 16px;
   color: #4a5568;
   font-weight: 500;
 }
@@ -39,7 +39,7 @@
 }
 
 .welcome {
-  font-size: 18px;
+  font-size: 16px;
   color: #718096;
   margin: 0;
 }
@@ -166,7 +166,7 @@
 }
 
 .orderNumber {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: #2d3748;
 }
@@ -222,7 +222,7 @@
 }
 
 .addressHeader h3 {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: #2d3748;
   margin: 0;
@@ -396,7 +396,7 @@
 
 .notificationTitle {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   color: #2d3748;
 }
 
@@ -435,7 +435,7 @@
 
 .stockAlertName {
   color: #2d3748;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   text-decoration: none;
 }
@@ -474,7 +474,7 @@
 
 .couponCode {
   font-family: monospace;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: #2d3748;
   letter-spacing: 1px;
@@ -512,7 +512,7 @@
 }
 
 .emptyState p {
-  font-size: 18px;
+  font-size: 16px;
   margin: 0;
 }
 

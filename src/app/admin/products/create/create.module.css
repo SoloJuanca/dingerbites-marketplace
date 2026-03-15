@@ -294,7 +294,7 @@
 
 .stepsHeader h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: #2d3748;
 }
@@ -622,7 +622,7 @@
 
 .profitItem strong {
   color: #1a365d;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 /* Info Cards */
@@ -827,7 +827,7 @@
 
 .configSection h3 {
   margin: 0 0 16px 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: #2d3748;
 }
@@ -1069,7 +1069,7 @@
 .skuPreview h3 {
   margin: 0 0 16px 0;
   color: #0c4a6e;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .skuDisplay {
