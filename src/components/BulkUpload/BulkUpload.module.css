@@ -80,8 +80,22 @@
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   justify-content: center;
+}
+
+.dryRunOption {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .uploadButton {

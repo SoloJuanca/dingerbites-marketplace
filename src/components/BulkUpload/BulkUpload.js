@@ -1,17 +1,20 @@
 'use client';
 
 import { useState } from 'react';
+import { useAuth } from '../../lib/AuthContext';
 import styles from './BulkUpload.module.css';
 
 export default function BulkUpload() {
+  const { apiRequest } = useAuth();
   const [file, setFile] = useState(null);
+  const [dryRun, setDryRun] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
-    if (selectedFile && selectedFile.type === 'text/csv') {
+    if (selectedFile && selectedFile.name.toLowerCase().endsWith('.csv')) {
       setFile(selectedFile);
       setError(null);
     } else {
@@ -33,8 +36,11 @@ export default function BulkUpload() {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('dryRun', String(dryRun));
+      formData.append('categoryId', '89');
+      formData.append('groupId', '24344');
 
-      const response = await fetch('/api/products/bulk-upload', {
+      const response = await apiRequest('/api/admin/products/tcg-bulk-upload', {
         method: 'POST',
         body: formData,
       });
@@ -53,20 +59,24 @@ export default function BulkUpload() {
     }
   };
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
+    const template = 'Nombre,Stock Normal,Stock Foil\nBlazing Scorcher,15,1\nFury Rune,9,0';
+    const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = '/template_bulk_upload_productos.csv';
-    link.download = 'template_bulk_upload_productos.csv';
+    link.href = url;
+    link.download = 'template_tcg_bulk_upload.csv';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h2>📦 Carga Masiva de Productos</h2>
-        <p>Sube múltiples productos a la vez usando un archivo CSV</p>
+        <h2>📦 Carga Masiva TCG (Riftbound)</h2>
+        <p>Importa stock por carta para Normal/Foil con integración TCG (89/24344)</p>
       </div>
 
       <div className={styles.uploadSection}>
@@ -94,12 +104,25 @@ export default function BulkUpload() {
         )}
 
         <div className={styles.actions}>
+          <label className={styles.dryRunOption}>
+            <input
+              type="checkbox"
+              checked={dryRun}
+              onChange={(e) => setDryRun(e.target.checked)}
+            />
+            Ejecutar en modo simulación (dry run)
+          </label>
+
           <button
             onClick={handleUpload}
             disabled={!file || uploading}
             className={styles.uploadButton}
           >
-            {uploading ? '⏳ Subiendo...' : '🚀 Subir Productos'}
+            {uploading
+              ? '⏳ Procesando...'
+              : dryRun
+                ? '🧪 Validar CSV'
+                : '🚀 Importar Stock'}
           </button>
 
           <button
@@ -120,45 +143,85 @@ export default function BulkUpload() {
 
       {results && (
         <div className={styles.results}>
-          <h3>✅ Resultados de la Carga</h3>
+          <h3>✅ Resultado del Proceso</h3>
           
           <div className={styles.summary}>
             <div className={styles.summaryItem}>
-              <span className={styles.summaryLabel}>Total procesados:</span>
-              <span className={styles.summaryValue}>{results.results.total}</span>
+              <span className={styles.summaryLabel}>Filas CSV:</span>
+              <span className={styles.summaryValue}>{results.summary.totalRows}</span>
             </div>
             <div className={styles.summaryItem}>
-              <span className={styles.summaryLabel}>Exitosos:</span>
-              <span className={styles.summaryValueSuccess}>{results.results.success.length}</span>
+              <span className={styles.summaryLabel}>Agrupadas:</span>
+              <span className={styles.summaryValue}>{results.summary.groupedCards}</span>
             </div>
             <div className={styles.summaryItem}>
-              <span className={styles.summaryLabel}>Errores:</span>
-              <span className={styles.summaryValueError}>{results.results.errors.length}</span>
+              <span className={styles.summaryLabel}>Creados:</span>
+              <span className={styles.summaryValueSuccess}>{results.summary.created}</span>
+            </div>
+            <div className={styles.summaryItem}>
+              <span className={styles.summaryLabel}>Actualizados:</span>
+              <span className={styles.summaryValueSuccess}>{results.summary.updated}</span>
+            </div>
+            <div className={styles.summaryItem}>
+              <span className={styles.summaryLabel}>No encontrados:</span>
+              <span className={styles.summaryValueError}>{results.summary.unmatched}</span>
+            </div>
+            <div className={styles.summaryItem}>
+              <span className={styles.summaryLabel}>Warnings:</span>
+              <span className={styles.summaryValueError}>{results.summary.warnings}</span>
             </div>
           </div>
 
-          {results.results.success.length > 0 && (
+          {Array.isArray(results.report?.created) && results.report.created.length > 0 && (
             <div className={styles.successSection}>
-              <h4>✅ Productos Creados Exitosamente</h4>
+              <h4>✅ Productos Creados</h4>
               <div className={styles.productList}>
-                {results.results.success.map((product, index) => (
+                {results.report.created.map((product, index) => (
                   <div key={index} className={styles.productItem}>
                     <span className={styles.productName}>{product.name}</span>
-                    <span className={styles.productPrice}>${product.price}</span>
+                    <span className={styles.productPrice}>Stock: {product.stock}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {results.results.errors.length > 0 && (
+          {Array.isArray(results.report?.updated) && results.report.updated.length > 0 && (
+            <div className={styles.successSection}>
+              <h4>🔄 Productos Actualizados</h4>
+              <div className={styles.productList}>
+                {results.report.updated.map((product, index) => (
+                  <div key={index} className={styles.productItem}>
+                    <span className={styles.productName}>{product.name}</span>
+                    <span className={styles.productPrice}>Stock: {product.stock}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {Array.isArray(results.report?.unmatched) && results.report.unmatched.length > 0 && (
             <div className={styles.errorSection}>
-              <h4>❌ Errores Encontrados</h4>
+              <h4>❌ Cartas No Encontradas en TCG</h4>
               <div className={styles.errorList}>
-                {results.results.errors.map((error, index) => (
+                {results.report.unmatched.map((entry, index) => (
                   <div key={index} className={styles.errorItem}>
-                    <span className={styles.errorRow}>Fila {error.row}:</span>
-                    <span className={styles.errorMessage}>{error.error}</span>
+                    <span className={styles.errorRow}>{entry.sourceNames?.[0]}:</span>
+                    <span className={styles.errorMessage}>{entry.reason}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {Array.isArray(results.report?.warnings) && results.report.warnings.length > 0 && (
+            <div className={styles.errorSection}>
+              <h4>⚠️ Warnings</h4>
+              <div className={styles.errorList}>
+                {results.report.warnings.map((warning, index) => (
+                  <div key={index} className={styles.errorItem}>
+                    <span className={styles.errorRow}>{warning.card}:</span>
+                    <span className={styles.errorMessage}>{warning.reason}</span>
                   </div>
                 ))}
               </div>
@@ -170,14 +233,13 @@ export default function BulkUpload() {
       <div className={styles.instructions}>
         <h3>📋 Instrucciones</h3>
         <ul>
-          <li>Descarga el template CSV para ver el formato correcto</li>
-          <li>Asegúrate de que las categorías y marcas existan en el sistema</li>
-          <li>Los campos obligatorios son: nombre, precio, categoria, activo</li>
-          <li>Los precios deben estar en formato decimal (ej: 89.00)</li>
-          <li>Los valores booleanos deben ser: true o false</li>
-          <li>Las imágenes deben ser URLs válidas (recomendamos Unsplash)</li>
+          <li>Usa columnas: Nombre, Stock Normal, Stock Foil</li>
+          <li>Primero ejecuta dry run para revisar no encontrados y warnings</li>
+          <li>Normal y Foil se guardan como productos separados</li>
+          <li>La importación usa integración TCG: categoría 89 y grupo 24344</li>
+          <li>El upsert se hace por tcg_product_id + tcg_sub_type_name</li>
         </ul>
       </div>
     </div>
   );
-} 
+}

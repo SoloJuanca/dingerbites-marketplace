@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../../../lib/AuthContext';
 import { confirmToast } from '../../../lib/toastHelpers';
 import AdminLayout from '../../../components/admin/AdminLayout/AdminLayout';
+import BulkUpload from '../../../components/BulkUpload/BulkUpload';
 import styles from './products.module.css';
 
 export default function ProductsPage() {
@@ -27,6 +28,7 @@ export default function ProductsPage() {
     total: 0,
     totalPages: 0
   });
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -169,6 +171,13 @@ export default function ProductsPage() {
             </span>
           </div>
           <div className={styles.headerRight}>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => setShowBulkUpload((prev) => !prev)}
+            >
+              {showBulkUpload ? '✖️ Cerrar Carga Bulk' : '📦 Carga Bulk TCG'}
+            </button>
             <Link href="/admin/products/create" className={styles.createButton}>
               ➕ Agregar Producto
             </Link>
@@ -229,6 +238,12 @@ export default function ProductsPage() {
             </select>
           </div>
         </div>
+
+        {showBulkUpload && (
+          <section className={styles.bulkUploadSection}>
+            <BulkUpload />
+          </section>
+        )}
 
         {/* Products Table */}
         {loading ? (
