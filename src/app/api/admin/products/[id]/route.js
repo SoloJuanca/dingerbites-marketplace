@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../../lib/auth';
 import { db } from '../../../../../lib/firebaseAdmin';
+import { notifyBackInStockSubscribers } from '../../../../../lib/stockAlerts';
 
 const PRODUCTS_COLLECTION = 'products';
 const CATEGORIES_COLLECTION = 'product_categories';
@@ -103,6 +104,7 @@ export async function PUT(request, { params }) {
       );
     }
     const existingProduct = existingSnap.data();
+    const previousStock = toNumber(existingProduct.stock_quantity, 0);
 
     const {
       name,
@@ -208,6 +210,17 @@ export async function PUT(request, { params }) {
     await productRef.update(updateData);
     const updatedSnap = await productRef.get();
     const updatedProduct = { id: updatedSnap.id, ...updatedSnap.data() };
+
+    try {
+      await notifyBackInStockSubscribers({
+        productId: id,
+        product: updatedProduct,
+        previousStock,
+        newStock: toNumber(updateData.stock_quantity, 0)
+      });
+    } catch (notifyError) {
+      console.error('Failed to notify back-in-stock subscribers:', notifyError);
+    }
 
     return NextResponse.json({
       success: true,

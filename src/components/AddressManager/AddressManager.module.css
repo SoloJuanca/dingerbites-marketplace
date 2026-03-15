@@ -14,7 +14,7 @@
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--brand-dark);
 }
 
 .addButton {
@@ -100,7 +100,7 @@
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--brand-dark);
 }
 
 .defaultBadge {
@@ -180,7 +180,7 @@
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--brand-dark);
 }
 
 .closeButton {

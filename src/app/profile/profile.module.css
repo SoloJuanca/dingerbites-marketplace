@@ -350,6 +350,106 @@
   width: 100%;
 }
 
+.stockAlertsSection {
+  width: 100%;
+}
+
+.notificationsSection {
+  width: 100%;
+}
+
+.stockAlertsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.notificationsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.notificationCard {
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  background: #ffffff;
+}
+
+.notificationUnread {
+  border-color: #c4b5fd;
+  box-shadow: 0 0 0 3px rgba(107, 33, 168, 0.08);
+}
+
+.notificationRead {
+  opacity: 0.9;
+}
+
+.notificationHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.notificationTitle {
+  margin: 0;
+  font-size: 18px;
+  color: #2d3748;
+}
+
+.notificationDate {
+  font-size: 13px;
+  color: #718096;
+}
+
+.notificationMessage {
+  margin: 0 0 16px 0;
+  color: #4a5568;
+  line-height: 1.5;
+}
+
+.notificationActions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.stockAlertCard {
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.stockAlertInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stockAlertName {
+  color: #2d3748;
+  font-size: 18px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.stockAlertName:hover {
+  color: var(--brand-primary);
+}
+
+.stockAlertMeta {
+  margin: 0;
+  color: #718096;
+  font-size: 14px;
+}
+
 .couponsList {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -644,6 +744,22 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
+  }
+
+  .stockAlertCard {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .notificationHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .notificationActions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
   }
   
   .addressesList {

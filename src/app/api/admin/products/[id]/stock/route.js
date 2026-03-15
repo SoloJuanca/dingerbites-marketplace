@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../../../lib/auth';
 import { db } from '../../../../../../lib/firebaseAdmin';
+import { notifyBackInStockSubscribers } from '../../../../../../lib/stockAlerts';
 
 // PATCH /api/admin/products/[id]/stock - Update product stock
 export async function PATCH(request, { params }) {
@@ -50,6 +51,17 @@ export async function PATCH(request, { params }) {
     });
     const updatedSnap = await productRef.get();
     const updatedProduct = { id: updatedSnap.id, ...updatedSnap.data() };
+
+    try {
+      await notifyBackInStockSubscribers({
+        productId: id,
+        product: updatedProduct,
+        previousStock,
+        newStock: stockQuantity
+      });
+    } catch (notifyError) {
+      console.error('Failed to notify back-in-stock subscribers:', notifyError);
+    }
 
     return NextResponse.json({
       success: true,

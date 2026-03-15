@@ -105,6 +105,10 @@ export default function Header() {
                           <Icon name="favorite" size={18} />
                           Favoritos
                         </Link>
+                        <Link href="/profile?tab=stock-alerts" className={styles.userDropdownItem} onClick={() => setIsUserMenuOpen(false)}>
+                          <Icon name="notifications" size={18} />
+                          Recordatorios
+                        </Link>
                         {isAdminUser && (
                           <Link href="/admin" className={styles.userDropdownItem} onClick={() => setIsUserMenuOpen(false)}>
                             <Icon name="admin_panel_settings" size={18} />
@@ -176,6 +180,9 @@ export default function Header() {
                 </Link>
                 <Link href="/profile?tab=wishlist" className={styles.mobileNavLink} onClick={closeMenu}>
                   Favoritos
+                </Link>
+                <Link href="/profile?tab=stock-alerts" className={styles.mobileNavLink} onClick={closeMenu}>
+                  Recordatorios
                 </Link>
                 {isAdminUser && (
                   <Link href="/admin" className={styles.mobileNavLink} onClick={closeMenu}>

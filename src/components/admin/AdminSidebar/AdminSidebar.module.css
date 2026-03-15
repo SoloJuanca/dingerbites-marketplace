@@ -220,7 +220,7 @@
 .menuLink:hover,
 .menuButton:hover {
   background: #f8fafc;
-  color: #1f2937;
+  color: var(--brand-dark);
 }
 
 .menuLink.active,

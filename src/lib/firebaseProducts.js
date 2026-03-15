@@ -303,7 +303,10 @@ export async function getProductBySlug(slug) {
       images,
       image: images[0] || null,
       features,
-      tcg_product_id: p.tcg_product_id ?? null
+      tcg_product_id: p.tcg_product_id ?? null,
+      stock_quantity: toNum(p.stock_quantity, 0),
+      low_stock_threshold: toNum(p.low_stock_threshold, 0),
+      allow_backorders: Boolean(p.allow_backorders)
     };
   } catch (err) {
     console.error('Error getting product by slug (Firestore):', err);

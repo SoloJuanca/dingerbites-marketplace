@@ -23,7 +23,7 @@
 .pageTitle {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--brand-dark);
   margin: 0;
 }
 
@@ -99,11 +99,14 @@
   background: white;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .table {
   width: 100%;
+  min-width: 960px;
   border-collapse: collapse;
 }
 
@@ -175,7 +178,7 @@
 
 .productName {
   font-weight: 600;
-  color: #1f2937;
+  color: var(--brand-dark);
   line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -235,7 +238,7 @@
 
 .stockQuantity {
   font-weight: 600;
-  color: #1f2937;
+  color: var(--brand-dark);
 }
 
 .stockStatus {
@@ -410,14 +413,6 @@
   .filters {
     grid-template-columns: 1fr;
     gap: 12px;
-  }
-  
-  .tableContainer {
-    overflow-x: auto;
-  }
-  
-  .table {
-    min-width: 800px;
   }
   
   .pagination {

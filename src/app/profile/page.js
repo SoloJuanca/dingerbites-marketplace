@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -19,10 +20,14 @@ function ProfileContent() {
   const { items: wishlistItems } = useWishlist();
   const [activeTab, setActiveTab] = useState('orders');
   const [coupons, setCoupons] = useState([]);
+  const [stockAlerts, setStockAlerts] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [loadingCoupons, setLoadingCoupons] = useState(false);
+  const [loadingStockAlerts, setLoadingStockAlerts] = useState(false);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
   useEffect(() => {
     const tab = searchParams.get('tab');
-    const validTabs = ['orders', 'wishlist', 'addresses', 'account', 'coupons'];
+    const validTabs = ['orders', 'wishlist', 'addresses', 'account', 'coupons', 'stock-alerts', 'notifications'];
     if (tab && validTabs.includes(tab)) {
       setActiveTab(tab);
     }
@@ -64,6 +69,10 @@ function ProfileContent() {
         loadAddresses();
       } else if (activeTab === 'coupons') {
         loadCoupons();
+      } else if (activeTab === 'stock-alerts') {
+        loadStockAlerts();
+      } else if (activeTab === 'notifications') {
+        loadNotifications();
       }
     }
   }, [activeTab, isAuthenticated, user]);
@@ -110,6 +119,74 @@ function ProfileContent() {
       console.error('Error loading addresses:', error);
     } finally {
       setLoadingAddresses(false);
+    }
+  };
+
+  const loadStockAlerts = async () => {
+    setLoadingStockAlerts(true);
+    try {
+      const response = await apiRequest('/api/users/stock-alerts');
+      if (response.ok) {
+        const data = await response.json();
+        setStockAlerts(data.items || []);
+      }
+    } catch (error) {
+      console.error('Error loading stock alerts:', error);
+    } finally {
+      setLoadingStockAlerts(false);
+    }
+  };
+
+  const removeStockAlert = async (productId) => {
+    try {
+      const response = await apiRequest(`/api/users/stock-alerts?productId=${productId}`, {
+        method: 'DELETE'
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        toast.error(data.error || 'No se pudo eliminar el recordatorio');
+        return;
+      }
+      setStockAlerts((prev) => prev.filter((item) => String(item.product_id) !== String(productId)));
+      toast.success('Recordatorio eliminado');
+    } catch (error) {
+      console.error('Error removing stock alert:', error);
+      toast.error('No se pudo eliminar el recordatorio');
+    }
+  };
+
+  const loadNotifications = async () => {
+    setLoadingNotifications(true);
+    try {
+      const response = await apiRequest('/api/users/notifications');
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data.notifications || []);
+      }
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  const markNotificationsRead = async (notificationIds = []) => {
+    try {
+      const response = await apiRequest('/api/users/notifications', {
+        method: 'PATCH',
+        body: JSON.stringify({ notificationIds })
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data?.error || 'No se pudieron actualizar notificaciones');
+      }
+      setNotifications((prev) => prev.map((item) => ({
+        ...item,
+        is_read: notificationIds.length === 0 || notificationIds.includes(item.id) ? true : item.is_read
+      })));
+    } catch (error) {
+      console.error('Error marking notifications as read:', error);
+      toast.error(error.message || 'No se pudieron actualizar notificaciones');
     }
   };
 
@@ -286,6 +363,18 @@ function ProfileContent() {
             >
               Mis Cupones ({coupons.length})
             </button>
+            <button
+              className={`${styles.tab} ${activeTab === 'stock-alerts' ? styles.tabActive : ''}`}
+              onClick={() => setActiveTab('stock-alerts')}
+            >
+              Recordatorios ({stockAlerts.length})
+            </button>
+            <button
+              className={`${styles.tab} ${activeTab === 'notifications' ? styles.tabActive : ''}`}
+              onClick={() => setActiveTab('notifications')}
+            >
+              Notificaciones ({notifications.filter((item) => item.is_read !== true).length})
+            </button>
           </div>
 
           <div className={styles.content}>
@@ -449,6 +538,104 @@ function ProfileContent() {
                   <div className={styles.emptyState}>
                     <p>No tienes cupones.</p>
                     <p>¡Deja una reseña creando cuenta para obtener un 5% de descuento!</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Stock Alerts Tab */}
+            {activeTab === 'stock-alerts' && (
+              <div className={styles.stockAlertsSection}>
+                <h2 className={styles.sectionTitle}>Mis Recordatorios de Stock</h2>
+                {loadingStockAlerts ? (
+                  <div className={styles.loading}>Cargando recordatorios...</div>
+                ) : stockAlerts.length > 0 ? (
+                  <div className={styles.stockAlertsList}>
+                    {stockAlerts.map((alert) => (
+                      <div key={alert.id} className={styles.stockAlertCard}>
+                        <div className={styles.stockAlertInfo}>
+                          <Link href={`/catalog/${alert.product?.slug || ''}`} className={styles.stockAlertName}>
+                            {alert.product?.name || 'Producto'}
+                          </Link>
+                          <p className={styles.stockAlertMeta}>
+                            Creado: {alert.created_at ? formatDate(alert.created_at) : 'Sin fecha'}
+                          </p>
+                          <p className={styles.stockAlertMeta}>
+                            Stock actual: {Number(alert.product?.stock_quantity || 0)}
+                          </p>
+                        </div>
+                        <button
+                          className={styles.deleteButton}
+                          onClick={() => removeStockAlert(alert.product_id)}
+                        >
+                          Eliminar recordatorio
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className={styles.emptyState}>
+                    <p>No tienes recordatorios activos.</p>
+                    <p>Cuando un producto esté sin stock podrás activar recordatorios desde su página.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Notifications Tab */}
+            {activeTab === 'notifications' && (
+              <div className={styles.notificationsSection}>
+                <div className={styles.sectionHeader}>
+                  <h2 className={styles.sectionTitle}>Mis Notificaciones</h2>
+                  <button
+                    className={styles.editButton}
+                    onClick={() => markNotificationsRead([])}
+                    type="button"
+                  >
+                    Marcar todas como leídas
+                  </button>
+                </div>
+                {loadingNotifications ? (
+                  <div className={styles.loading}>Cargando notificaciones...</div>
+                ) : notifications.length > 0 ? (
+                  <div className={styles.notificationsList}>
+                    {notifications.map((notification) => (
+                      <div
+                        key={notification.id}
+                        className={`${styles.notificationCard} ${
+                          notification.is_read ? styles.notificationRead : styles.notificationUnread
+                        }`}
+                      >
+                        <div className={styles.notificationHeader}>
+                          <h3 className={styles.notificationTitle}>{notification.title}</h3>
+                          <span className={styles.notificationDate}>
+                            {formatDate(notification.created_at)}
+                          </span>
+                        </div>
+                        <p className={styles.notificationMessage}>{notification.message}</p>
+                        <div className={styles.notificationActions}>
+                          {notification.link && (
+                            <Link href={notification.link} className={styles.editButton}>
+                              Ver detalle
+                            </Link>
+                          )}
+                          {!notification.is_read && (
+                            <button
+                              className={styles.deleteButton}
+                              onClick={() => markNotificationsRead([notification.id])}
+                              type="button"
+                            >
+                              Marcar leída
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className={styles.emptyState}>
+                    <p>No tienes notificaciones.</p>
+                    <p>Aquí verás avisos sobre tus preguntas y actividad de tu cuenta.</p>
                   </div>
                 )}
               </div>

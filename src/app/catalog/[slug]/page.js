@@ -8,6 +8,7 @@ import ImageCarousel from '../../../components/ImageCarousel/ImageCarousel';
 import ProductInfo from '../../../components/ProductInfo/ProductInfo';
 import ProductReviews from '../../../components/ProductReviews/ProductReviews';
 import ProductSummary from '../../../components/ProductSummary/ProductSummary';
+import ProductQuestions from '../../../components/ProductQuestions/ProductQuestions';
 import styles from './product.module.css';
 
 // Client Component para obtener datos del producto
@@ -124,6 +125,8 @@ function ProductData({ slug }) {
               <ProductInfo product={product} marketPriceMxn={marketPriceMxn} isTcgProduct={!!product.tcg_product_id} />
               
               <ProductReviews productId={product.id} />
+
+              <ProductQuestions productId={product.id} productSlug={product.slug} />
             </div>
 
             {/* Columna derecha - Resumen y acciones */}

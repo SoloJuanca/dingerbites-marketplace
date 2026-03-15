@@ -83,6 +83,12 @@ export default function AdminSidebar({ isOpen, onToggle, collapsed = false, onCo
       ]
     },
     {
+      id: 'questions',
+      label: 'Preguntas',
+      icon: '❓',
+      href: '/admin/questions'
+    },
+    {
       id: 'analytics',
       label: 'Analíticas',
       icon: '📈',

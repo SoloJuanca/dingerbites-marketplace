@@ -526,3 +526,167 @@ export async function sendOrderNotifications(orderData) {
     return results;
   }
 }
+
+export function generateBackInStockEmailContent({ customerName, product }) {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const productUrl = product?.slug ? `${baseUrl}/catalog/${product.slug}` : baseUrl;
+  const productImage = product?.image || '';
+  const productPrice =
+    product?.price != null
+      ? new Intl.NumberFormat('es-MX', {
+          style: 'currency',
+          currency: 'MXN'
+        }).format(Number(product.price))
+      : null;
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Producto de vuelta en stock</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 32px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="color: #2d3748; margin: 0; font-size: 28px;">Tu producto ya tiene stock</h1>
+          <p style="color: #718096; margin-top: 8px;">Dingerbites</p>
+        </div>
+
+        <p style="margin-bottom: 24px; color: #4a5568;">
+          Hola ${customerName || 'Cliente'}, el producto que estabas esperando vuelve a estar disponible.
+        </p>
+
+        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+          <div style="display: flex; gap: 16px; align-items: center;">
+            ${productImage ? `<img src="${productImage}" alt="${product?.name || 'Producto'}" style="width: 96px; height: 96px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0;">` : ''}
+            <div>
+              <h2 style="margin: 0 0 8px 0; font-size: 20px; color: #2d3748;">${product?.name || 'Producto'}</h2>
+              ${productPrice ? `<p style="margin: 0; color: #4a5568; font-size: 16px;"><strong>Precio:</strong> ${productPrice}</p>` : ''}
+            </div>
+          </div>
+        </div>
+
+        <div style="text-align: center;">
+          <a href="${productUrl}" style="display: inline-block; background-color: #6b21a8; color: #ffffff; text-decoration: none; font-weight: 600; padding: 12px 24px; border-radius: 8px;">
+            Ver producto
+          </a>
+        </div>
+
+        <p style="color: #718096; margin-top: 24px; font-size: 14px; text-align: center;">
+          Recibes este correo porque activaste un recordatorio de stock.
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+export async function sendBackInStockNotification({ email, name, product }) {
+  if (!email) {
+    return { success: false, error: 'Recipient email is required' };
+  }
+
+  return sendEmail({
+    to: [{ email, name: name || 'Cliente' }],
+    subject: `Producto disponible nuevamente: ${product?.name || 'Producto'}`,
+    htmlContent: generateBackInStockEmailContent({
+      customerName: name,
+      product
+    })
+  });
+}
+
+export function generateAdminQuestionEmailContent({ productName, productSlug, question, customerName, adminUrl }) {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const productUrl = productSlug ? `${baseUrl}/catalog/${productSlug}` : baseUrl;
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Nueva pregunta de producto</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 32px; border-radius: 8px;">
+        <h1 style="margin-top: 0; color: #2d3748;">Nueva pregunta de cliente</h1>
+        <p style="color: #4a5568;">${customerName || 'Un usuario'} hizo una nueva pregunta sobre un producto.</p>
+        <div style="background-color: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+          <p style="margin: 0 0 8px 0;"><strong>Producto:</strong> <a href="${productUrl}" style="color: #2563eb; text-decoration: none;">${productName || 'Producto'}</a></p>
+          <p style="margin: 0;"><strong>Pregunta:</strong> ${question}</p>
+        </div>
+        <a href="${adminUrl}" style="display: inline-block; background: #6b21a8; color: #ffffff; text-decoration: none; padding: 12px 20px; border-radius: 8px; font-weight: 600;">
+          Responder en admin
+        </a>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+export function generateUserQuestionAnsweredEmailContent({ customerName, productName, productSlug, question, answer }) {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const productUrl = productSlug ? `${baseUrl}/catalog/${productSlug}` : baseUrl;
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Tu pregunta fue respondida</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 32px; border-radius: 8px;">
+        <h1 style="margin-top: 0; color: #2d3748;">Tu pregunta ya tiene respuesta</h1>
+        <p style="color: #4a5568;">Hola ${customerName || 'cliente'}, el equipo respondió tu pregunta.</p>
+        <div style="background-color: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+          <p style="margin: 0 0 8px 0;"><strong>Producto:</strong> ${productName || 'Producto'}</p>
+          <p style="margin: 0 0 8px 0;"><strong>Pregunta:</strong> ${question}</p>
+          <p style="margin: 0;"><strong>Respuesta:</strong> ${answer}</p>
+        </div>
+        <a href="${productUrl}" style="display: inline-block; background: #6b21a8; color: #ffffff; text-decoration: none; padding: 12px 20px; border-radius: 8px; font-weight: 600;">
+          Ver producto
+        </a>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+export async function sendNewQuestionAdminNotificationEmail({ productName, productSlug, question, customerName, questionId }) {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const adminUrl = `${baseUrl}/admin/questions?questionId=${encodeURIComponent(String(questionId || ''))}`;
+  return sendEmail({
+    to: [{ email: ADMIN_EMAIL, name: 'Administrador' }],
+    subject: `Nueva pregunta sobre ${productName || 'producto'}`,
+    htmlContent: generateAdminQuestionEmailContent({
+      productName,
+      productSlug,
+      question,
+      customerName,
+      adminUrl
+    })
+  });
+}
+
+export async function sendQuestionAnsweredUserEmail({ email, customerName, productName, productSlug, question, answer }) {
+  if (!email) {
+    return { success: false, error: 'Recipient email is required' };
+  }
+
+  return sendEmail({
+    to: [{ email, name: customerName || 'Cliente' }],
+    subject: `Respondimos tu pregunta sobre ${productName || 'un producto'}`,
+    htmlContent: generateUserQuestionAnsweredEmailContent({
+      customerName,
+      productName,
+      productSlug,
+      question,
+      answer
+    })
+  });
+}

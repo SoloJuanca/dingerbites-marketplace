@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import Icon from '../Icon/Icon';
 import { useCart } from '../../lib/CartContext';
 import { useAuth } from '../../lib/AuthContext';
@@ -10,9 +12,13 @@ import styles from './ProductSummary.module.css';
 export default function ProductSummary({ product, marketPriceMxn = null, isTcgProduct = false }) {
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [isReminderLoading, setIsReminderLoading] = useState(false);
+  const [hasReminder, setHasReminder] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const { addToCartWithSync } = useCart();
-  const { user, apiRequest } = useAuth();
+  const { user, apiRequest, isAuthenticated } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
   const [ratingStats, setRatingStats] = useState({
     averageRating: 0,
     totalReviews: 0,
@@ -50,7 +56,33 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
   };
 
   const hasPrice = displayPrice != null && displayPrice > 0;
-  const canAddToCart = !(isTcgProduct && !hasPrice);
+  const stockQuantity = Number(product.stock_quantity || 0);
+  const isOutOfStock = stockQuantity <= 0 && !Boolean(product.allow_backorders);
+  const canAddToCart = !(isTcgProduct && !hasPrice) && !isOutOfStock;
+
+  useEffect(() => {
+    let active = true;
+    async function loadReminderStatus() {
+      if (!isAuthenticated || !isOutOfStock || !product.id) {
+        if (active) setHasReminder(false);
+        return;
+      }
+      try {
+        const response = await apiRequest('/api/users/stock-alerts');
+        if (!response.ok) return;
+        const data = await response.json();
+        const subscribed = (data.items || []).some((item) => String(item.product_id) === String(product.id));
+        if (active) setHasReminder(subscribed);
+      } catch (error) {
+        console.error('Error loading stock reminders:', error);
+      }
+    }
+
+    loadReminderStatus();
+    return () => {
+      active = false;
+    };
+  }, [apiRequest, isAuthenticated, isOutOfStock, product.id]);
 
   const handleAddToCart = async () => {
     if (!canAddToCart) return;
@@ -84,6 +116,47 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
     
     // Aquí iría la navegación al checkout
     window.location.href = '/cart';
+  };
+
+  const handleReminderToggle = async () => {
+    if (!product.id) return;
+
+    if (!isAuthenticated) {
+      const redirect = pathname || `/catalog/${product.slug}`;
+      router.push(`/auth/login?redirect=${encodeURIComponent(redirect)}`);
+      return;
+    }
+
+    setIsReminderLoading(true);
+    try {
+      if (hasReminder) {
+        const response = await apiRequest(`/api/users/stock-alerts?productId=${product.id}`, {
+          method: 'DELETE'
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'No se pudo eliminar el recordatorio');
+        }
+        setHasReminder(false);
+        toast.success('Recordatorio eliminado');
+      } else {
+        const response = await apiRequest('/api/users/stock-alerts', {
+          method: 'POST',
+          body: JSON.stringify({ productId: product.id })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'No se pudo crear el recordatorio');
+        }
+        setHasReminder(true);
+        toast.success('Te avisaremos cuando vuelva a haber stock');
+      }
+    } catch (error) {
+      console.error('Error updating stock reminder:', error);
+      toast.error(error.message || 'No se pudo actualizar el recordatorio');
+    } finally {
+      setIsReminderLoading(false);
+    }
   };
 
   const renderStars = (rating) => {
@@ -124,76 +197,104 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
         </div>
       )}
 
-      <div className={styles.stock}>
-        <Icon name="check_circle" size={16} className={styles.stockIcon} />
-        <span>En stock - Envío inmediato</span>
-      </div>
-
-      <div className={styles.quantity}>
-        <label className={styles.quantityLabel}>Cantidad:</label>
-        <div className={styles.quantityControls}>
-          <button
-            className={styles.quantityBtn}
-            onClick={() => handleQuantityChange(quantity - 1)}
-            disabled={quantity <= 1}
-            aria-label="Disminuir cantidad"
-          >
-            <Icon name="remove" size={16} />
-          </button>
-          <input
-            type="number"
-            value={quantity}
-            onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
-            className={styles.quantityInput}
-            min="1"
-            max="10"
-          />
-          <button
-            className={styles.quantityBtn}
-            onClick={() => handleQuantityChange(quantity + 1)}
-            disabled={quantity >= 10}
-            aria-label="Aumentar cantidad"
-          >
-            <Icon name="add" size={16} />
-          </button>
-        </div>
-      </div>
-
-      <div className={styles.totalPrice}>
-        <span className={styles.totalLabel}>Total:</span>
-        <span className={styles.totalAmount}>
-          {hasPrice ? formatPrice(displayPrice * quantity) : 'Consultar'}
+      <div className={`${styles.stock} ${isOutOfStock ? styles.stockOut : ''}`}>
+        <Icon
+          name={isOutOfStock ? 'error' : 'check_circle'}
+          size={16}
+          className={styles.stockIcon}
+        />
+        <span>
+          {isOutOfStock ? 'Sin stock por ahora' : 'En stock - Envío inmediato'}
         </span>
       </div>
 
-      <div className={styles.actions}>
+      {isOutOfStock && (
         <button
-          className={styles.addToCartBtn}
-          onClick={handleAddToCart}
-          disabled={isAddingToCart || !canAddToCart}
+          className={`${styles.reminderBtn} ${hasReminder ? styles.reminderBtnActive : ''}`}
+          onClick={handleReminderToggle}
+          disabled={isReminderLoading}
         >
-          {isAddingToCart ? (
-            <>
-              <Icon name="check" size={20} />
-              Agregado
-            </>
-          ) : (
-            <>
-              <Icon name="shopping_cart" size={20} />
-              Agregar al carrito
-            </>
-          )}
+          <Icon name={hasReminder ? 'notifications_active' : 'notifications'} size={20} />
+          {isReminderLoading
+            ? 'Actualizando...'
+            : hasReminder
+              ? 'Quitar recordatorio'
+              : 'Avísame cuando haya stock'}
         </button>
-        
-        <button
-          className={styles.buyNowBtn}
-          onClick={handleBuyNow}
-          disabled={!canAddToCart}
-        >
-          <Icon name="flash_on" size={20} />
-          Comprar ahora
-        </button>
-      </div>
+      )}
+
+      {!isOutOfStock && (
+        <>
+          <div className={styles.quantity}>
+            <label className={styles.quantityLabel}>Cantidad:</label>
+            <div className={styles.quantityControls}>
+              <button
+                className={styles.quantityBtn}
+                onClick={() => handleQuantityChange(quantity - 1)}
+                disabled={quantity <= 1 || !canAddToCart}
+                aria-label="Disminuir cantidad"
+              >
+                <Icon name="remove" size={16} />
+              </button>
+              <input
+                type="number"
+                value={quantity}
+                onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
+                className={styles.quantityInput}
+                min="1"
+                max="10"
+                disabled={!canAddToCart}
+              />
+              <button
+                className={styles.quantityBtn}
+                onClick={() => handleQuantityChange(quantity + 1)}
+                disabled={quantity >= 10 || !canAddToCart}
+                aria-label="Aumentar cantidad"
+              >
+                <Icon name="add" size={16} />
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.totalPrice}>
+            <span className={styles.totalLabel}>Total:</span>
+            <span className={styles.totalAmount}>
+              {hasPrice ? formatPrice(displayPrice * quantity) : 'Consultar'}
+            </span>
+          </div>
+        </>
+      )}
+
+      {!isOutOfStock && (
+        <div className={styles.actions}>
+          <button
+            className={styles.addToCartBtn}
+            onClick={handleAddToCart}
+            disabled={isAddingToCart || !canAddToCart}
+          >
+            {isAddingToCart ? (
+              <>
+                <Icon name="check" size={20} />
+                Agregado
+              </>
+            ) : (
+              <>
+                <Icon name="shopping_cart" size={20} />
+                Agregar al carrito
+              </>
+            )}
+          </button>
+
+          <button
+            className={styles.buyNowBtn}
+            onClick={handleBuyNow}
+            disabled={!canAddToCart}
+          >
+            <Icon name="flash_on" size={20} />
+            Comprar ahora
+          </button>
+        </div>
+      )}
 
       <div className={styles.features}>
         <div className={styles.feature}>

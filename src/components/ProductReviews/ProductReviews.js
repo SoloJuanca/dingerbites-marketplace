@@ -2,26 +2,68 @@
 
 import { useState, useEffect } from 'react';
 import Icon from '../Icon/Icon';
-import { getProductReviews } from '../../lib/reviews';
 import styles from './ProductReviews.module.css';
 
 export default function ProductReviews({ productId }) {
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [isClient, setIsClient] = useState(false);
-
+  const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState([]);
   const [averageRating, setAverageRating] = useState(0);
 
   useEffect(() => {
+    let active = true;
+
     setIsClient(true);
-    if (productId) {
-      const productReviews = getProductReviews(productId);
-      setReviews(productReviews);
-      if (productReviews.length > 0) {
-        const avg = productReviews.reduce((sum, review) => sum + review.rating, 0) / productReviews.length;
-        setAverageRating(avg);
+    async function loadReviews() {
+      if (!productId) {
+        if (active) {
+          setReviews([]);
+          setAverageRating(0);
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/reviews?productId=${encodeURIComponent(productId)}&limit=50`, {
+          cache: 'no-store'
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch product reviews');
+        }
+
+        const data = await response.json();
+        const productReviews = Array.isArray(data?.reviews) ? data.reviews : [];
+
+        if (active) {
+          setReviews(productReviews);
+          if (productReviews.length > 0) {
+            const avg = productReviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / productReviews.length;
+            setAverageRating(avg);
+          } else {
+            setAverageRating(0);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading product reviews:', error);
+        if (active) {
+          setReviews([]);
+          setAverageRating(0);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
       }
     }
+
+    loadReviews();
+
+    return () => {
+      active = false;
+    };
   }, [productId]);
   
   const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 3);
@@ -54,17 +96,8 @@ export default function ProductReviews({ productId }) {
     });
   };
 
-  if (reviews.length === 0) {
-    return (
-      <div className={styles.reviewsContainer}>
-        <h3 className={styles.sectionTitle}>Reseñas de clientes</h3>
-        <div className={styles.noReviews}>
-          <Icon name="rate_review" size={48} className={styles.noReviewsIcon} />
-          <p>Aún no hay reseñas para este producto.</p>
-          <p className={styles.noReviewsSubtext}>¡Sé el primero en compartir tu opinión!</p>
-        </div>
-      </div>
-    );
+  if (loading || reviews.length === 0) {
+    return null;
   }
 
   return (

@@ -140,10 +140,6 @@ export default function ProductCard({ product }) {
         <Link href={`/catalog/${product.slug}`} className={styles.nameLink}>
           <h3 className={styles.name}>{product.name}</h3>
         </Link>
-        <p
-          className={styles.description}
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.description || '') }}
-        />
         <div className={styles.footer}>
           <span className={styles.price}>
             {(product.tcg_product_id && (product.price == null || product.price === 0))
