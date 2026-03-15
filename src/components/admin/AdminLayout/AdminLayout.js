@@ -13,6 +13,7 @@ export default function AdminLayout({ children, title = 'Panel de Administració
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Check admin access
   useEffect(() => {
@@ -60,9 +61,11 @@ export default function AdminLayout({ children, title = 'Panel de Administració
       <Header />
       
       <div className={styles.adminWrapper}>
-        <AdminSidebar 
-          isOpen={sidebarOpen} 
-          onToggle={toggleSidebar} 
+        <AdminSidebar
+          isOpen={sidebarOpen}
+          onToggle={toggleSidebar}
+          collapsed={sidebarCollapsed}
+          onCollapseToggle={() => setSidebarCollapsed((s) => !s)}
         />
         
         <main className={styles.mainContent}>

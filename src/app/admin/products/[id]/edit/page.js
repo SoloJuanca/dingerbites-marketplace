@@ -7,7 +7,7 @@ import AdminLayout from '../../../../../components/admin/AdminLayout/AdminLayout
 import Tooltip from '../../../../../components/admin/Tooltip/Tooltip';
 import SmartComboBox from '../../../../../components/admin/SmartComboBox/SmartComboBox';
 import TagInput from '../../../../../components/admin/TagInput/TagInput';
-import FeatureInput from '../../../../../components/admin/FeatureInput/FeatureInput';
+import ProductDetailsInput from '../../../../../components/admin/ProductDetailsInput/ProductDetailsInput';
 import toast from 'react-hot-toast';
 import { loadingToast } from '../../../../../lib/toastHelpers';
 import styles from '../../create/create.module.css';
@@ -37,6 +37,7 @@ export default function EditProductPage() {
     price: '',
     cost_price: '',
     category_id: '',
+    parent_category_id: '',
     brand_id: '',
     stock_quantity: '0',
     low_stock_threshold: '5',
@@ -68,6 +69,17 @@ export default function EditProductPage() {
       loadBrands();
     }
   }, [productId, user]);
+
+  // Inicializar parent_category_id al cargar producto (cuando ya tenemos categorías y category_id)
+  useEffect(() => {
+    if (categories.length === 0 || !formData.category_id) return;
+    const cat = categories.find((c) => c.id === formData.category_id);
+    if (!cat) return;
+    const parentId = cat.parent_id || formData.category_id;
+    setFormData((prev) =>
+      prev.parent_category_id === parentId ? prev : { ...prev, parent_category_id: parentId }
+    );
+  }, [categories, formData.category_id]);
   
   const loadProduct = async () => {
     setLoadingProduct(true);
@@ -599,22 +611,50 @@ export default function EditProductPage() {
           
           <div className={styles.fieldRow}>
             <div className={styles.field}>
-              <label htmlFor="category_id">
+              <label htmlFor="parent_category_id">
                 Categoría del Producto
-                <Tooltip content="Ayuda a los clientes a encontrar tu producto. Puedes crear una nueva si no existe. Campo opcional">
+                <Tooltip content="Selecciona la categoría padre. Luego puedes elegir o crear una subcategoría.">
                   <span className={styles.helpIcon}>?</span>
                 </Tooltip>
               </label>
               <SmartComboBox
-                value={formData.category_id}
-                onChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}
-                options={categories}
+                value={formData.parent_category_id}
+                onChange={(value) => setFormData(prev => ({
+                  ...prev,
+                  parent_category_id: value,
+                  category_id: value
+                }))}
+                options={categories.filter((c) => !c.parent_id)}
                 placeholder="Buscar o crear categoría (opcional)..."
                 createEndpoint="/api/admin/categories"
                 createLabel="categoría"
                 onOptionsUpdate={handleCategoryUpdate}
               />
             </div>
+
+            {formData.parent_category_id && (
+              <div className={styles.field}>
+                <label htmlFor="category_id">
+                  Subcategoría
+                  <Tooltip content="Opcional. Elige una subcategoría existente o escribe para crear una nueva.">
+                    <span className={styles.helpIcon}>?</span>
+                  </Tooltip>
+                </label>
+                <SmartComboBox
+                  value={formData.category_id !== formData.parent_category_id ? formData.category_id : ''}
+                  onChange={(value) => setFormData(prev => ({
+                    ...prev,
+                    category_id: value || prev.parent_category_id
+                  }))}
+                  options={categories.filter((c) => c.parent_id === formData.parent_category_id)}
+                  placeholder="Ninguna o crear subcategoría..."
+                  createEndpoint="/api/admin/categories"
+                  createLabel="subcategoría"
+                  createPayload={{ parent_id: formData.parent_category_id }}
+                  onOptionsUpdate={handleCategoryUpdate}
+                />
+              </div>
+            )}
 
             <div className={styles.field}>
               <label htmlFor="brand_id">
@@ -652,16 +692,17 @@ export default function EditProductPage() {
 
           <div className={styles.field}>
             <label htmlFor="features">
-              Características del Producto
-              <Tooltip content="Detalles adicionales que describen las características del producto. Ej: Secado rápido, Color vibrante, Sin formaldehído">
+              Detalles del producto
+              <Tooltip content="Características con nombre y valor. Ej: Materiales → Algodón 100%, Dimensiones → 30x40 cm, Altura → 1.5 m">
                 <span className={styles.helpIcon}>?</span>
               </Tooltip>
             </label>
-            <FeatureInput
+            <ProductDetailsInput
               value={formData.features}
               onChange={(value) => setFormData(prev => ({ ...prev, features: value }))}
-              placeholder="Ej: Secado rápido, Color vibrante, Sin formaldehído..."
-              maxFeatures={50}
+              placeholderName="Ej: Materiales, Dimensiones, Altura"
+              placeholderValue="Ej: Algodón 100%, 30x40 cm, 1.5 m"
+              maxDetails={50}
             />
           </div>
         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../../lib/AuthContext';
 import AdminLayout from '../../../../components/admin/AdminLayout/AdminLayout';
@@ -8,12 +8,31 @@ import Tooltip from '../../../../components/admin/Tooltip/Tooltip';
 import SmartComboBox from '../../../../components/admin/SmartComboBox/SmartComboBox';
 import TcgProductSelector from '../../../../components/admin/TcgProductSelector/TcgProductSelector';
 import TagInput from '../../../../components/admin/TagInput/TagInput';
-import FeatureInput from '../../../../components/admin/FeatureInput/FeatureInput';
+import ProductDetailsInput from '../../../../components/admin/ProductDetailsInput/ProductDetailsInput';
+import ProductImageEditor from '../../../../components/admin/ProductImageEditor/ProductImageEditor';
 import toast from 'react-hot-toast';
 import { loadingToast } from '../../../../lib/toastHelpers';
 import styles from './create.module.css';
 
-// Formulario unificado - todas las secciones en una sola página
+const STEPS_NORMAL = [
+  { label: 'Tipo de producto' },
+  { label: 'Imágenes y descripción' },
+  { label: 'Título y categoría' },
+  { label: 'Precio' },
+  { label: 'Stock' },
+  { label: 'Detalles y envío' },
+  { label: 'Resumen' }
+];
+
+const STEPS_TCG = [
+  { label: 'Tipo de producto' },
+  { label: 'Categoría TCG' },
+  { label: 'Título y descripción' },
+  { label: 'Precio' },
+  { label: 'Stock' },
+  { label: 'Detalles y envío' },
+  { label: 'Resumen' }
+];
 
 export default function CreateProductPage() {
   const { user, apiRequest, isAuthenticated } = useAuth();
@@ -21,8 +40,9 @@ export default function CreateProductPage() {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
-  const [productStatus, setProductStatus] = useState('draft');
   const [draftId, setDraftId] = useState(null);
+  const [productType, setProductType] = useState(null); // 'normal' | 'tcg'
+  const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -31,7 +51,9 @@ export default function CreateProductPage() {
     barcode: '',
     price: '',
     cost_price: '',
+    compare_price: '',
     category_id: '',
+    parent_category_id: '',
     brand_id: '',
     stock_quantity: '0',
     low_stock_threshold: '5',
@@ -44,7 +66,11 @@ export default function CreateProductPage() {
     is_featured: false,
     is_active: false,
     images: [],
-    suggested_category_name: ''
+    suggested_category_name: '',
+    weight_grams: '',
+    length_cm: '',
+    width_cm: '',
+    height_cm: ''
   });
   const [uploadingImages, setUploadingImages] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
@@ -53,31 +79,57 @@ export default function CreateProductPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState(null);
 
-  // Log cuando cambia el código de barras en formData
-  useEffect(() => {
-    if (formData.barcode) {
+  const isTcgFlow = productType === 'tcg';
+  const steps = productType === 'tcg' ? STEPS_TCG : STEPS_NORMAL;
+
+  const getSteps = () => (productType === 'tcg' ? STEPS_TCG : STEPS_NORMAL);
+
+  const loadCategories = useCallback(async () => {
+    try {
+      const response = await apiRequest('/api/admin/categories');
+      if (response.ok) {
+        const data = await response.json();
+        const list = Array.isArray(data.categories) ? data.categories : (Array.isArray(data.categories?.rows) ? data.categories.rows : []);
+        setCategories(list);
+      } else {
+        if (response.status === 401) {
+          toast.error('Necesitas permisos de administrador.');
+        } else {
+          toast.error('Error al cargar categorías');
+        }
+      }
+    } catch (error) {
+      console.error('Error loading categories:', error);
+      toast.error('Error al conectar con categorías');
     }
-  }, [formData.barcode]);
+  }, [apiRequest]);
+
+  const loadBrands = useCallback(async () => {
+    try {
+      const response = await apiRequest('/api/admin/brands');
+      if (response.ok) {
+        const data = await response.json();
+        const list = Array.isArray(data.brands) ? data.brands : (Array.isArray(data.brands?.rows) ? data.brands.rows : []);
+        setBrands(list);
+      } else {
+        if (response.status === 401) {
+          toast.error('Necesitas permisos de administrador.');
+        } else {
+          toast.error('Error al cargar marcas');
+        }
+      }
+    } catch (error) {
+      console.error('Error loading brands:', error);
+      toast.error('Error al conectar con marcas');
+    }
+  }, [apiRequest]);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && apiRequest) {
       loadCategories();
       loadBrands();
-      
-      // Test upload endpoint accessibility
-      console.log('Testing upload endpoint accessibility...');
-      apiRequest('/api/admin/upload', { method: 'HEAD' })
-        .then(response => {
-          console.log('Upload endpoint test:', response.status);
-          if (response.status === 405) {
-            console.log('✅ Upload endpoint is accessible (405 = Method Not Allowed for HEAD is expected)');
-          }
-        })
-        .catch(error => {
-          console.error('❌ Upload endpoint test failed:', error);
-        });
     }
-  }, [user, isAuthenticated]);
+  }, [isAuthenticated, apiRequest, loadCategories, loadBrands]);
 
   // Barcode scanner functionality - solo activo en el campo de código de barras
   useEffect(() => {
@@ -149,53 +201,6 @@ export default function CreateProductPage() {
     };
   }, []); // Sin dependencias para evitar recrear el listener
 
-  const loadCategories = async () => {
-    try {
-      const response = await apiRequest('/api/admin/categories');
-      if (response.ok) {
-        const data = await response.json();
-        
-        const categories = Array.isArray(data.categories) ? data.categories : (Array.isArray(data.categories?.rows) ? data.categories.rows : []);
-        setCategories(categories);
-      } else {
-        console.error('Error response loading categories:', response.status);
-        const errorData = await response.text();
-        console.error('Categories error details:', errorData);
-        if (response.status === 401) {
-          toast.error('Necesitas permisos de administrador. Inicia sesión con: admin@patitomontenegro.com / admin123');
-        } else {
-          toast.error('Error al cargar categorías');
-        }
-      }
-    } catch (error) {
-      console.error('Error loading categories:', error);
-      toast.error('Error al conectar con categorías');
-    }
-  };
-
-  const loadBrands = async () => {
-    try {
-      const response = await apiRequest('/api/admin/brands');
-      if (response.ok) {
-        const data = await response.json();
-        
-        const brands = Array.isArray(data.brands) ? data.brands : (Array.isArray(data.brands?.rows) ? data.brands.rows : []);
-        setBrands(brands);
-      } else {
-        console.error('Error response loading brands:', response.status);
-        const errorData = await response.text();
-        console.error('Brands error details:', errorData);
-        if (response.status === 401) {
-          toast.error('Necesitas permisos de administrador. Inicia sesión con: admin@patitomontenegro.com / admin123');
-        } else {
-          toast.error('Error al cargar marcas');
-        }
-      }
-    } catch (error) {
-      console.error('Error loading brands:', error);
-      toast.error('Error al conectar con marcas');
-    }
-  };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -271,11 +276,6 @@ export default function CreateProductPage() {
   };
 
   const selectedCategory = categories.find((c) => c.id === formData.category_id);
-  const tcgParent = selectedCategory?.parent_id
-    ? categories.find((c) => c.id === selectedCategory.parent_id)
-    : null;
-  const isTcgFlow =
-    selectedCategory?.slug === 'tcg' || tcgParent?.slug === 'tcg';
   const tcgCategoryIdForSelector =
     selectedCategory?.slug === 'tcg'
       ? null
@@ -305,10 +305,158 @@ export default function CreateProductPage() {
         errors.price = 'El precio debe ser mayor a 0';
       }
     }
+    if (!formData.weight_grams || parseFloat(formData.weight_grams) <= 0) {
+      errors.weight_grams = 'El peso es obligatorio para envío';
+    }
+    if (!formData.length_cm || !formData.width_cm || !formData.height_cm) {
+      if (!formData.length_cm) errors.length_cm = 'Requerido';
+      if (!formData.width_cm) errors.width_cm = 'Requerido';
+      if (!formData.height_cm) errors.height_cm = 'Requerido';
+    }
 
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
+
+  const validateStep = (step) => {
+    const err = {};
+    if (step === 0) {
+      if (!productType) return false;
+      return true;
+    }
+    if (step === 1) {
+      if (isTcgFlow) {
+        if (!formData.parent_category_id || !formData.tcg_product_id) {
+          toast.error('Selecciona la categoría y el producto TCG');
+          return false;
+        }
+        return true;
+      } else {
+        if (!formData.images?.length && !aiContextText?.trim()) {
+          toast.error('Sube al menos una imagen o escribe contexto para la IA');
+          return false;
+        }
+      }
+      return true;
+    }
+    if (step === 2) {
+      if (!formData.name?.trim()) {
+        err.name = 'El nombre es requerido';
+        setValidationErrors((p) => ({ ...p, ...err }));
+        return false;
+      }
+      return true;
+    }
+    if (step === 3) {
+      if (!isTcgFlow && (!formData.price || parseFloat(formData.price) <= 0)) {
+        err.price = 'El precio debe ser mayor a 0';
+        setValidationErrors((p) => ({ ...p, ...err }));
+        return false;
+      }
+      return true;
+    }
+    if (step === 4) {
+      const q = parseInt(formData.stock_quantity, 10);
+      if (isNaN(q) || q < 0) {
+        err.stock_quantity = 'Indica la cantidad en stock';
+        setValidationErrors((p) => ({ ...p, ...err }));
+        return false;
+      }
+      return true;
+    }
+    if (step === 5) {
+      if (!formData.weight_grams || parseFloat(formData.weight_grams) <= 0) {
+        err.weight_grams = 'Peso obligatorio (gramos)';
+        setValidationErrors((p) => ({ ...p, ...err }));
+        return false;
+      }
+      if (!formData.length_cm || !formData.width_cm || !formData.height_cm) {
+        if (!formData.length_cm) err.length_cm = 'Requerido';
+        if (!formData.width_cm) err.width_cm = 'Requerido';
+        if (!formData.height_cm) err.height_cm = 'Requerido';
+        setValidationErrors((p) => ({ ...p, ...err }));
+        return false;
+      }
+      return true;
+    }
+    return true;
+  };
+
+  const goNext = () => {
+    if (!validateStep(currentStep)) return;
+    if (currentStep < steps.length - 1) setCurrentStep((s) => s + 1);
+  };
+
+  const goBack = () => {
+    if (currentStep > 0) setCurrentStep((s) => s - 1);
+  };
+
+  const buildProductData = () => {
+    const slug = generateSlug(formData.name);
+    const priceVal = formData.price && parseFloat(formData.price) > 0 ? parseFloat(formData.price) : 0;
+    return {
+      name: formData.name,
+      slug,
+      description: formData.description || null,
+      short_description: formData.short_description || null,
+      price: priceVal,
+      cost_price: formData.cost_price ? parseFloat(formData.cost_price) : null,
+      compare_price: formData.compare_price ? parseFloat(formData.compare_price) : null,
+      sku: formData.sku || null,
+      barcode: formData.barcode || null,
+      weight_grams: formData.weight_grams && formData.weight_grams.trim() ? parseFloat(formData.weight_grams) : null,
+      dimensions_cm:
+        formData.length_cm || formData.width_cm || formData.height_cm
+          ? {
+              length: formData.length_cm ? parseFloat(formData.length_cm) : null,
+              width: formData.width_cm ? parseFloat(formData.width_cm) : null,
+              height: formData.height_cm ? parseFloat(formData.height_cm) : null
+            }
+          : null,
+      category_id: formData.category_id || null,
+      brand_id: formData.brand_id || null,
+      stock_quantity: parseInt(formData.stock_quantity, 10) || 0,
+      low_stock_threshold: parseInt(formData.low_stock_threshold, 10) || 5,
+      is_featured: formData.is_featured || false,
+      meta_keywords:
+        formData.tags && formData.tags.trim()
+          ? formData.tags
+              .split(',')
+              .map((t) => t.trim())
+              .join(', ')
+          : null,
+      images: formData.images || [],
+      features:
+        formData.features && formData.features.trim()
+          ? formData.features
+              .split('\n')
+              .map((f) => f.trim())
+              .filter(Boolean)
+          : [],
+      tcg_product_id: formData.tcg_product_id ?? null,
+      tcg_group_id: formData.tcg_group_id ?? null,
+      tcg_category_id: formData.tcg_category_id ?? null,
+      tcg_sub_type_name: formData.tcg_sub_type_name ?? null,
+      suggested_category_name: formData.suggested_category_name?.trim() || null
+    };
+  };
+
+  const handleUploadCrop = useCallback(
+    async (blob) => {
+      const file = new File([blob], 'cropped.jpg', { type: 'image/jpeg' });
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folder', 'products');
+      const response = await apiRequest('/api/admin/upload', { method: 'POST', body: fd });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Error al subir');
+      }
+      const data = await response.json();
+      return { url: data.url };
+    },
+    [apiRequest]
+  );
 
   const generateSlug = (name) => {
     if (!name) return '';
@@ -519,68 +667,37 @@ export default function CreateProductPage() {
   };
 
   const handleSaveDraft = async () => {
+    const productData = { ...buildProductData(), is_active: false };
     const submitPromise = async () => {
       setLoading(true);
-      
-      const slug = generateSlug(formData.name);
-      const productData = {
-        name: formData.name,
-        slug,
-        description: formData.description || null,
-        short_description: formData.short_description || null,
-        price: formData.price && parseFloat(formData.price) > 0 ? parseFloat(formData.price) : 0,
-        cost_price: formData.cost_price ? parseFloat(formData.cost_price) : null,
-        sku: formData.sku || null,
-        barcode: formData.barcode || null,
-        category_id: formData.category_id || null,
-        brand_id: formData.brand_id || null,
-        stock_quantity: parseInt(formData.stock_quantity, 10) || 0,
-        low_stock_threshold: parseInt(formData.low_stock_threshold, 10) || 5,
-        is_active: false,
-        is_featured: formData.is_featured || false,
-        meta_keywords: formData.tags && formData.tags.trim() ? formData.tags.split(',').map(tag => tag.trim()).join(', ') : null,
-        images: formData.images || [],
-        features: formData.features && formData.features.trim() ? formData.features.split('\n').map(feature => feature.trim()).filter(Boolean) : [],
-        tcg_product_id: formData.tcg_product_id ?? null,
-        tcg_group_id: formData.tcg_group_id ?? null,
-        tcg_category_id: formData.tcg_category_id ?? null,
-        tcg_sub_type_name: formData.tcg_sub_type_name ?? null
-      };
-
       let response;
       if (draftId) {
         response = await apiRequest(`/api/admin/products/${draftId}`, {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(productData)
         });
       } else {
         response = await apiRequest('/api/admin/products', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(productData)
         });
       }
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Error al guardar borrador');
       }
-
       return response.json();
     };
-
     try {
-      await loadingToast(submitPromise(), {
+      const result = await loadingToast(submitPromise(), {
         loading: 'Guardando borrador...',
         success: 'Borrador guardado exitosamente',
         error: 'Error al guardar borrador'
       });
-
+      const id = result?.product?.id ?? result?.id;
+      if (id) setDraftId(id);
       router.push('/admin/products');
     } catch (error) {
       console.error('Error saving draft:', error);
@@ -590,75 +707,39 @@ export default function CreateProductPage() {
   };
 
   const handlePublish = async () => {
-    // Validate required fields before publishing
     if (!validateForm()) {
       toast.error('Por favor completa todos los campos requeridos antes de publicar');
       return;
     }
-
+    const productData = { ...buildProductData(), is_active: true };
     const submitPromise = async () => {
       setLoading(true);
-      
-      const slug = generateSlug(formData.name);
-      const priceVal = formData.price && parseFloat(formData.price) > 0 ? parseFloat(formData.price) : 0;
-      const productData = {
-        name: formData.name,
-        slug,
-        description: formData.description || null,
-        short_description: formData.short_description || null,
-        price: priceVal,
-        cost_price: formData.cost_price ? parseFloat(formData.cost_price) : null,
-        sku: formData.sku || null,
-        barcode: formData.barcode || null,
-        category_id: formData.category_id || null,
-        brand_id: formData.brand_id || null,
-        stock_quantity: parseInt(formData.stock_quantity, 10) || 0,
-        low_stock_threshold: parseInt(formData.low_stock_threshold, 10) || 5,
-        is_active: true,
-        is_featured: formData.is_featured || false,
-        meta_keywords: formData.tags && formData.tags.trim() ? formData.tags.split(',').map(tag => tag.trim()).join(', ') : null,
-        images: formData.images || [],
-        features: formData.features && formData.features.trim() ? formData.features.split('\n').map(feature => feature.trim()).filter(Boolean) : [],
-        tcg_product_id: formData.tcg_product_id ?? null,
-        tcg_group_id: formData.tcg_group_id ?? null,
-        tcg_category_id: formData.tcg_category_id ?? null,
-        tcg_sub_type_name: formData.tcg_sub_type_name ?? null
-      };
-
       let response;
       if (draftId) {
         response = await apiRequest(`/api/admin/products/${draftId}`, {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(productData)
         });
       } else {
         response = await apiRequest('/api/admin/products', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(productData)
         });
       }
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Error al publicar el producto');
       }
-
       return response.json();
     };
-
     try {
       await loadingToast(submitPromise(), {
         loading: 'Publicando producto...',
         success: 'Producto publicado exitosamente',
         error: 'Error al publicar el producto'
       });
-
       router.push('/admin/products');
     } catch (error) {
       console.error('Error publishing product:', error);
@@ -667,35 +748,110 @@ export default function CreateProductPage() {
     }
   };
 
-  const renderFormContent = () => {
-    return (
-      <div className={styles.formContent}>
-        <div className={styles.formIntro}>
-          <h2>📦 Crear Nuevo Producto</h2>
-          <p>
-            {isTcgFlow
-              ? 'Selecciona la categoría TCG y el producto del catálogo para agregar al inventario.'
-              : 'Completa la información de tu producto. Comienza subiendo las imágenes y continúa con los demás campos.'}
-          </p>
-        </div>
+  const handlePreviewDraft = async () => {
+    const productData = { ...buildProductData(), is_active: false };
+    try {
+      setLoading(true);
+      let response;
+      let id = draftId;
+      if (draftId) {
+        response = await apiRequest(`/api/admin/products/${draftId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(productData)
+        });
+      } else {
+        response = await apiRequest('/api/admin/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(productData)
+        });
+      }
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Error al guardar');
+      }
+      const result = await response.json();
+      const createdId = result?.product?.id ?? result?.id;
+      if (createdId) id = createdId;
+      if (id) {
+        setDraftId(id);
+        window.open(`/admin/products/preview/${id}`, '_blank', 'noopener,noreferrer');
+      }
+      toast.success('Borrador guardado. Abriendo previsualización.');
+    } catch (e) {
+      toast.error(e.message || 'Error al guardar borrador');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        {/* Categorización - solo primero en flujo TCG (elige categoría antes del producto) */}
-        {isTcgFlow && (
+  const renderStepContent = () => {
+    const step = currentStep;
+    const stepTitles = {
+      0: { title: 'Tipo de producto', desc: 'Elige si vas a subir un producto estándar o un producto del catálogo TCG.' },
+      1: {
+        title: isTcgFlow ? 'Categoría TCG' : 'Imágenes y descripción',
+        desc: isTcgFlow
+          ? 'Selecciona la categoría TCG y el producto del catálogo.'
+          : 'Sube imágenes y opcionalmente describe el producto para que la IA prellene el resto.'
+      },
+      2: { title: 'Título y categoría', desc: 'Nombre, descripción, categoría y marca del producto.' },
+      3: { title: 'Precio', desc: 'Precio de venta, costo y opcional precio de comparación.' },
+      4: { title: 'Stock', desc: 'Cantidad disponible y alerta de stock bajo.' },
+      5: { title: 'Detalles y envío', desc: 'Detalles del producto, peso y dimensiones (obligatorios para envío).' },
+      6: { title: 'Resumen', desc: 'Revisa la información, previsualiza el borrador y publica.' }
+    };
+    const titles = stepTitles[step] || { title: '', desc: '' };
+
+    if (step === 0) {
+      return (
+        <div className={styles.wizardContent}>
+          <h1 className={styles.wizardStepTitle}>{titles.title}</h1>
+          <p className={styles.wizardStepDescription}>{titles.desc}</p>
+          <div className={styles.typeCardGroup}>
+            <div
+              className={`${styles.typeCard} ${productType === 'normal' ? styles.typeCardSelected : ''}`}
+              onClick={() => setProductType('normal')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && setProductType('normal')}
+              aria-pressed={productType === 'normal'}
+            >
+              <h3>Producto normal</h3>
+              <p>Producto estándar con imágenes propias, título, descripción y categoría que tú defines.</p>
+            </div>
+            <div
+              className={`${styles.typeCard} ${productType === 'tcg' ? styles.typeCardSelected : ''}`}
+              onClick={() => setProductType('tcg')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && setProductType('tcg')}
+              aria-pressed={productType === 'tcg'}
+            >
+              <h3>Producto TCG</h3>
+              <p>Producto del catálogo TCG. Empiezas eligiendo la categoría (ej. Pokémon, Magic) y el producto.</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (step === 1 && isTcgFlow) {
+      return (
+        <div className={styles.wizardContent}>
+          <h1 className={styles.wizardStepTitle}>{titles.title}</h1>
+          <p className={styles.wizardStepDescription}>{titles.desc}</p>
           <div className={styles.subsection}>
-            <h3>📋 Categorización</h3>
             <div className={styles.field}>
-              <label htmlFor="category_id">
-                Categoría del Producto
-                <Tooltip content="Para productos TCG, selecciona TCG o una subcategoría (Pokemon, Magic, etc.)">
-                  <span className={styles.helpIcon}>?</span>
-                </Tooltip>
-              </label>
+              <label htmlFor="parent_category_id">Categoría del Producto</label>
               <SmartComboBox
-                value={formData.category_id}
+                value={formData.parent_category_id}
                 onChange={(value) => {
                   const cat = categories.find((c) => c.id === value);
                   setFormData((prev) => ({
                     ...prev,
+                    parent_category_id: value,
                     category_id: value,
                     tcg_product_id: null,
                     tcg_group_id: null,
@@ -707,221 +863,145 @@ export default function CreateProductPage() {
                     price: ''
                   }));
                 }}
-                options={categories}
-                placeholder="Buscar o crear categoría (opcional)..."
+                options={categories.filter((c) => !c.parent_id)}
+                placeholder="Buscar o crear categoría..."
                 createEndpoint="/api/admin/categories"
                 createLabel="categoría"
                 onOptionsUpdate={handleCategoryUpdate}
               />
             </div>
+            {formData.parent_category_id && (
+              <div className={styles.field}>
+                <label htmlFor="category_id">Subcategoría</label>
+                <SmartComboBox
+                  value={formData.category_id !== formData.parent_category_id ? formData.category_id : ''}
+                  onChange={(value) => {
+                    const cat = categories.find((c) => c.id === value);
+                    const parentCat = categories.find((c) => c.id === formData.parent_category_id);
+                    setFormData((prev) => ({
+                      ...prev,
+                      category_id: value || formData.parent_category_id,
+                      tcg_category_id: (cat || parentCat)?.tcg_category_id ?? null,
+                      tcg_sub_type_name: null
+                    }));
+                  }}
+                  options={categories.filter((c) => c.parent_id === formData.parent_category_id)}
+                  placeholder="Ninguna o crear subcategoría..."
+                  createEndpoint="/api/admin/categories"
+                  createLabel="subcategoría"
+                  createPayload={{ parent_id: formData.parent_category_id }}
+                  onOptionsUpdate={handleCategoryUpdate}
+                />
+              </div>
+            )}
             <TcgProductSelector
               tcgCategoryId={tcgCategoryIdForSelector}
               formData={formData}
               onSelect={handleTcgSelect}
             />
           </div>
-        )}
+        </div>
+      );
+    }
 
-        {!isTcgFlow && (
-          <>
-        {/* Imágenes del Producto - primero para flujo lineal */}
-        <div className={styles.subsection}>
-          <h3>🖼️ Imágenes del Producto</h3>
-          
-          <div className={styles.field}>
-            <label htmlFor="images">
-              Subir Imágenes
-              <Tooltip content="Las primeras imágenes que subas serán las principales. Recomendamos al menos 3-5 imágenes de buena calidad. Formatos: JPG, PNG, WebP. Máximo 5MB por imagen.">
-                <span className={styles.helpIcon}>?</span>
-              </Tooltip>
-            </label>
-            <div 
-              className={styles.uploadContainer}
-              onDragOver={handleDragOver}
-              onDragEnter={handleDragEnter}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              <input
-                type="file"
-                id="images"
-                multiple
-                accept="image/jpeg,image/jpg,image/png,image/webp"
-                onChange={handleFileInputChange}
-                disabled={uploadingImages}
-                className={styles.fileInput}
-              />
-              {uploadingImages && (
-                <div className={styles.uploadingIndicator}>
-                  <div className={styles.spinner}></div>
-                  <span>Subiendo imágenes...</span>
-                </div>
-              )}
-            </div>
-            <small className={styles.helpText}>
-              💡 Arrastra archivos aquí o haz clic para seleccionar. Máximo 5MB por imagen.
-            </small>
-          </div>
-
-          {formData.images.length > 0 && (
-            <div className={styles.imageSection}>
-              <h4>Imágenes Actuales ({formData.images.length})</h4>
-              <div className={styles.imagePreview}>
-                {formData.images.map((image, index) => (
-                  <div key={index} className={styles.imageItem}>
-                    {index === 0 && <div className={styles.primaryBadge}>Principal</div>}
-                    <img src={image.url} alt={image.alt} className={styles.productImage} />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(index)}
-                      className={styles.removeImageButton}
-                    >
-                      ✕
-                    </button>
+    if (step === 1 && !isTcgFlow) {
+      return (
+        <div className={styles.wizardContent}>
+          <h1 className={styles.wizardStepTitle}>{titles.title}</h1>
+          <p className={styles.wizardStepDescription}>{titles.desc}</p>
+          <div className={styles.subsection}>
+            <div className={styles.field}>
+              <label htmlFor="images">Subir Imágenes</label>
+              <div
+                className={styles.uploadContainer}
+                onDragOver={handleDragOver}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <input
+                  type="file"
+                  id="images"
+                  multiple
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  onChange={handleFileInputChange}
+                  disabled={uploadingImages}
+                  className={styles.fileInput}
+                />
+                {uploadingImages && (
+                  <div className={styles.uploadingIndicator}>
+                    <div className={styles.spinner}></div>
+                    <span>Subiendo imágenes...</span>
                   </div>
-                ))}
+                )}
+              </div>
+              <small className={styles.helpText}>Arrastra archivos aquí o haz clic. Máximo 5MB por imagen.</small>
+            </div>
+            {formData.images.length > 0 && (
+              <>
+                <ProductImageEditor
+                  images={formData.images}
+                  onImagesChange={(newImages) => setFormData((prev) => ({ ...prev, images: newImages }))}
+                  onUploadCrop={handleUploadCrop}
+                  disabled={uploadingImages}
+                />
+                <div className={styles.infoCard}>
+                  <h4>Tips para imágenes</h4>
+                  <ul>
+                    <li>La primera imagen es la principal en listados y ficha.</li>
+                    <li>Puedes reordenar (↑↓), recortar (✂) o eliminar.</li>
+                  </ul>
+                </div>
+              </>
+            )}
+            <div className={styles.field}>
+              <label htmlFor="ai_context">Contexto para IA (opcional)</label>
+              <textarea
+                id="ai_context"
+                value={aiContextText}
+                onChange={(e) => setAiContextText(e.target.value)}
+                rows={3}
+                className={styles.textarea}
+                placeholder="Ej: producto vegano, uso profesional..."
+              />
+              <div className={styles.aiActionsRow}>
+                <button
+                  type="button"
+                  onClick={handleAiGenerate}
+                  disabled={aiLoading}
+                  className={styles.aiButton}
+                >
+                  {aiLoading ? 'Generando...' : 'Rellenar con IA'}
+                </button>
+                {aiError && <p className={styles.aiError}>{aiError}</p>}
               </div>
             </div>
-          )}
-
-          <div className={styles.infoCard}>
-            <h4>📸 Tips para Mejores Imágenes</h4>
-            <ul>
-              <li>• La primera imagen será la principal que ven los clientes</li>
-              <li>• Usa fondo blanco o neutral para mejor presentación</li>
-              <li>• Incluye diferentes ángulos y detalles importantes</li>
-              <li>• Resolución mínima recomendada: 800x800 píxeles</li>
-              <li>• Formatos compatibles: JPG, PNG, WebP</li>
-            </ul>
           </div>
         </div>
+      );
+    }
 
-        {/* Asistente IA - después de subir imágenes para flujo lineal */}
-        <div className={styles.subsection}>
-          <h3>🧠 Asistente IA para este producto</h3>
-          <div className={styles.field}>
-            <label htmlFor="ai_context">
-              Contexto para IA
-              <Tooltip content="Escribe palabras clave, tipo de producto, público objetivo o detalles importantes para que la IA genere título, descripciones y etiquetas.">
-                <span className={styles.helpIcon}>?</span>
-              </Tooltip>
-            </label>
-            <textarea
-              id="ai_context"
-              name="ai_context"
-              value={aiContextText}
-              onChange={(e) => setAiContextText(e.target.value)}
-              rows={3}
-              className={styles.textarea}
-              placeholder="Ej: esmalte de uñas vegano, larga duración, acabado brillante, ideal para salones profesionales..."
-            />
-            <small className={styles.helpText}>
-              Cuanta más información agregues (beneficios, materiales, uso, público objetivo), mejores sugerencias obtendrás.
-            </small>
-          </div>
-
-          <div className={styles.aiActionsRow}>
-            <button
-              type="button"
-              onClick={handleAiGenerate}
-              disabled={aiLoading}
-              className={styles.aiButton}
-            >
-              {aiLoading ? 'Generando sugerencias...' : 'Rellenar con IA'}
-            </button>
-            <p className={styles.aiHint}>
-              La IA usará las imágenes que ya subiste y este contexto para prellenar nombre, descripciones y etiquetas. Siempre podrás editarlas antes de publicar.
-            </p>
-          </div>
-
-          {aiError && (
-            <p className={styles.aiError}>
-              {aiError}
-            </p>
-          )}
-        </div>
-
-        {/* Categorización - después de IA para revisar/editar categoría sugerida */}
-        <div className={styles.subsection}>
-          <h3>📋 Categorización</h3>
-          <div className={styles.field}>
-            <label htmlFor="suggested_category_name">
-              Categoría sugerida por IA
-              <Tooltip content="Campo sugerido por IA. Puedes editarlo libremente. Si no coincide con una categoría existente, se creará al publicar.">
-                <span className={styles.helpIcon}>?</span>
-              </Tooltip>
-            </label>
-            <input
-              type="text"
-              id="suggested_category_name"
-              name="suggested_category_name"
-              value={formData.suggested_category_name || ''}
-              onChange={handleInputChange}
-              className={styles.input}
-              placeholder="Ej: Esmaltes veganos profesionales"
-            />
-            <small className={styles.helpText}>
-              Si este nombre coincide con una categoría existente, se usará automáticamente. Si no, se creará una nueva cuando publiques.
-            </small>
-          </div>
-          <div className={styles.field}>
-            <label htmlFor="category_id">
-              Categoría del Producto (opcional)
-              <Tooltip content="También puedes elegir una categoría existente en lugar de la sugerida por IA.">
-                <span className={styles.helpIcon}>?</span>
-              </Tooltip>
-            </label>
-            <SmartComboBox
-              value={formData.category_id}
-              onChange={(value) => {
-                const cat = categories.find((c) => c.id === value);
-                setFormData((prev) => ({
-                  ...prev,
-                  category_id: value,
-                  tcg_category_id: cat?.tcg_category_id ?? null
-                }));
-              }}
-              options={categories}
-              placeholder="Buscar o crear categoría (opcional)..."
-              createEndpoint="/api/admin/categories"
-              createLabel="categoría"
-              onOptionsUpdate={handleCategoryUpdate}
-            />
-          </div>
-        </div>
-
-        {/* Información Básica */}
-        <div className={styles.subsection}>
-          <h3>📝 Información Básica</h3>
-          
-          <div className={styles.field}>
-            <label htmlFor="name">
-              Nombre del Producto *
-              <Tooltip content="El nombre comercial que verán los clientes">
-                <span className={styles.helpIcon}>?</span>
-              </Tooltip>
-            </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              required
-              className={`${styles.input} ${validationErrors.name ? styles.inputError : ''}`}
-              placeholder="Ej: iPhone 15 Pro Max"
-            />
-            {validationErrors.name && <span className={styles.errorText}>{validationErrors.name}</span>}
-          </div>
-
-          <div className={styles.fieldRow}>
+    if (step === 2) {
+      return (
+        <div className={styles.wizardContent}>
+          <h1 className={styles.wizardStepTitle}>{titles.title}</h1>
+          <p className={styles.wizardStepDescription}>{titles.desc}</p>
+          <div className={styles.subsection}>
             <div className={styles.field}>
-              <label htmlFor="short_description">
-                Descripción Corta
-                <Tooltip content="Resumen breve que aparece en listados de productos (máximo 160 caracteres)">
-                  <span className={styles.helpIcon}>?</span>
-                </Tooltip>
-              </label>
+              <label htmlFor="name">Nombre del Producto *</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                className={`${styles.input} ${validationErrors.name ? styles.inputError : ''}`}
+                placeholder="Ej: iPhone 15 Pro Max"
+              />
+              {validationErrors.name && <span className={styles.errorText}>{validationErrors.name}</span>}
+            </div>
+            <div className={styles.field}>
+              <label htmlFor="short_description">Descripción corta</label>
               <textarea
                 id="short_description"
                 name="short_description"
@@ -930,20 +1010,12 @@ export default function CreateProductPage() {
                 rows={2}
                 maxLength={160}
                 className={styles.textarea}
-                placeholder="Descripción breve para mostrar en listados..."
+                placeholder="Breve para listados (160 caracteres)"
               />
-              <small className={styles.charCount}>
-                {formData.short_description.length}/160 caracteres
-              </small>
+              <small className={styles.charCount}>{formData.short_description.length}/160</small>
             </div>
-
             <div className={styles.field}>
-              <label htmlFor="description">
-                Descripción Completa
-                <Tooltip content="Descripción detallada del producto que verán los clientes">
-                  <span className={styles.helpIcon}>?</span>
-                </Tooltip>
-              </label>
+              <label htmlFor="description">Descripción completa</label>
               <textarea
                 id="description"
                 name="description"
@@ -951,214 +1023,142 @@ export default function CreateProductPage() {
                 onChange={handleInputChange}
                 rows={4}
                 className={styles.textarea}
-                placeholder="Describe detalladamente las características, beneficios y especificaciones del producto..."
+                placeholder="Descripción detallada..."
               />
             </div>
-          </div>
-        </div>
-
-        {/* Categorización y Etiquetas */}
-        <div className={styles.subsection}>
-          <h3>📋 Etiquetas y Características</h3>
-          
-          <div className={styles.fieldRow}>
+            {!isTcgFlow && (
+              <>
+                <div className={styles.field}>
+                  <label htmlFor="suggested_category_name">Categoría sugerida por IA</label>
+                  <input
+                    type="text"
+                    id="suggested_category_name"
+                    name="suggested_category_name"
+                    value={formData.suggested_category_name || ''}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    placeholder="Ej: Esmaltes veganos"
+                  />
+                </div>
+                <div className={styles.field}>
+                  <label>Categoría del Producto</label>
+                  <SmartComboBox
+                    value={formData.parent_category_id}
+                    onChange={(value) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        parent_category_id: value,
+                        category_id: value,
+                        tcg_category_id: categories.find((c) => c.id === value)?.tcg_category_id ?? null
+                      }));
+                    }}
+                    options={categories.filter((c) => !c.parent_id)}
+                    placeholder="Buscar o crear categoría..."
+                    createEndpoint="/api/admin/categories"
+                    createLabel="categoría"
+                    onOptionsUpdate={handleCategoryUpdate}
+                  />
+                </div>
+                {formData.parent_category_id && (
+                  <div className={styles.field}>
+                    <label>Subcategoría</label>
+                    <SmartComboBox
+                      value={formData.category_id !== formData.parent_category_id ? formData.category_id : ''}
+                      onChange={(value) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          category_id: value || formData.parent_category_id
+                        }))
+                      }
+                      options={categories.filter((c) => c.parent_id === formData.parent_category_id)}
+                      placeholder="Ninguna o crear subcategoría..."
+                      createEndpoint="/api/admin/categories"
+                      createLabel="subcategoría"
+                      createPayload={{ parent_id: formData.parent_category_id }}
+                      onOptionsUpdate={handleCategoryUpdate}
+                    />
+                  </div>
+                )}
+              </>
+            )}
             <div className={styles.field}>
-              <label htmlFor="brand_id">
-                Marca del Producto
-                <Tooltip content="La marca o fabricante del producto. Opcional pero recomendado para productos con marca conocida">
-                  <span className={styles.helpIcon}>?</span>
-                </Tooltip>
-              </label>
+              <label>Marca</label>
               <SmartComboBox
                 value={formData.brand_id}
-                onChange={(value) => setFormData(prev => ({ ...prev, brand_id: value }))}
+                onChange={(value) => setFormData((prev) => ({ ...prev, brand_id: value }))}
                 options={brands}
-                placeholder="Buscar o crear marca (opcional)..."
+                placeholder="Buscar o crear marca..."
                 createEndpoint="/api/admin/brands"
                 createLabel="marca"
                 onOptionsUpdate={handleBrandUpdate}
               />
             </div>
-          </div>
-
-          <div className={styles.field}>
-            <label htmlFor="tags">
-              Etiquetas del Producto
-              <Tooltip content="Palabras clave que describen tu producto. Ayudan en las búsquedas y mejoran el SEO. Ej: nuevo, oferta, popular, tendencia">
-                <span className={styles.helpIcon}>?</span>
-              </Tooltip>
-            </label>
-            <TagInput
-              value={formData.tags}
-              onChange={(value) => setFormData(prev => ({ ...prev, tags: value }))}
-              placeholder="Ej: nuevo, oferta, popular, tendencia..."
-              maxTags={15}
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label htmlFor="features">
-              Características del Producto
-              <Tooltip content="Detalles adicionales que describen las características del producto. Ej: Secado rápido, Color vibrante, Sin formaldehído">
-                <span className={styles.helpIcon}>?</span>
-              </Tooltip>
-            </label>
-            <FeatureInput
-              value={formData.features}
-              onChange={(value) => setFormData(prev => ({ ...prev, features: value }))}
-              placeholder="Ej: Secado rápido, Color vibrante, Sin formaldehído..."
-              maxFeatures={50}
-            />
-          </div>
-        </div>
-
-        {/* Código y SKU */}
-        <div className={styles.subsection}>
-          <h3>🏷️ Código y SKU del Producto</h3>
-          
-          <div className={styles.skuGenerator}>
-            <div className={styles.skuPreview}>
-              <h4>SKU Generado Automáticamente</h4>
-              <div className={styles.skuDisplay}>
-                <span className={styles.skuCode}>{formData.sku || 'Completa el nombre para generar SKU'}</span>
-                <div className={styles.autoIndicator}>
-                  ⚡ Generación automática
-                </div>
-              </div>
-              
-              {formData.sku && (
-                <div className={styles.skuBreakdown}>
-                  <p><strong>Componentes del SKU:</strong></p>
-                  <div className={styles.skuParts}>
-                    <div className={styles.skuPart}>
-                      <span className={styles.partLabel}>Categoría</span>
-                      <span className={styles.partValue}>
-                        {categories.find(cat => cat.id === formData.category_id)?.name.substring(0, 3).toUpperCase() || 'GEN'}
-                      </span>
-                    </div>
-                    {formData.brand_id && (
-                      <div className={styles.skuPart}>
-                        <span className={styles.partLabel}>Marca</span>
-                        <span className={styles.partValue}>
-                          {brands.find(brand => brand.id === formData.brand_id)?.name.substring(0, 3).toUpperCase()}
-                        </span>
-                      </div>
-                    )}
-                    <div className={styles.skuPart}>
-                      <span className={styles.partLabel}>Producto</span>
-                      <span className={styles.partValue}>
-                        {formData.name.substring(0, 3).toUpperCase()}
-                      </span>
-                    </div>
-                    <div className={styles.skuPart}>
-                      <span className={styles.partLabel}>Número</span>
-                      <span className={styles.partValue}>
-                        {formData.sku ? formData.sku.split('-').pop() : 'XXX'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className={styles.fieldRow}>
             <div className={styles.field}>
-              <label htmlFor="sku">
-                SKU (Código de Producto)
-                <Tooltip content="SKU significa 'Stock Keeping Unit'. Se genera automáticamente cuando completas el nombre y categoría.">
-                  <span className={styles.helpIcon}>?</span>
-                </Tooltip>
-              </label>
-              <input
-                type="text"
-                id="sku"
-                name="sku"
-                value={formData.sku}
-                onChange={handleInputChange}
-                readOnly
-                className={`${styles.input} ${styles.inputReadonly}`}
-                placeholder="Se generará automáticamente..."
+              <label>Etiquetas</label>
+              <TagInput
+                value={formData.tags}
+                onChange={(value) => setFormData((prev) => ({ ...prev, tags: value }))}
+                placeholder="Ej: nuevo, oferta..."
+                maxTags={15}
               />
-              <small className={styles.helpText}>
-                El SKU se genera automáticamente basado en el nombre del producto, categoría (opcional) y marca (opcional).
-              </small>
-            </div>
-
-            <div className={styles.field}>
-              <label htmlFor="barcode">
-                Código de Barras (Opcional)
-                <Tooltip content="Escanea el código de barras del producto o escríbelo manualmente. Compatible con escáneres automáticos.">
-                  <span className={styles.helpIcon}>?</span>
-                </Tooltip>
-              </label>
-              <div className={styles.barcodeInputContainer}>
-                <input
-                  type="text"
-                  id="barcode"
-                  name="barcode"
-                  value={formData.barcode}
-                  onChange={handleInputChange}
-                  className={`${styles.input} ${scanningBarcode ? styles.inputScanning : ''}`}
-                  placeholder="Escanea con tu lector o escribe manualmente..."
-                />
-                {scanningBarcode && (
-                  <div className={styles.scanningIndicator}>
-                    📱 Escaneando...
-                  </div>
-                )}
-              </div>
-              <small className={styles.helpText}>
-                📱 Usa tu escáner de códigos de barras para llenar automáticamente este campo.
-              </small>
             </div>
           </div>
         </div>
+      );
+    }
 
-        {/* Precios y Stock */}
-        <div className={styles.subsection}>
-          <h3>💰 Precios y Control de Inventario</h3>
-          
-          <div className={styles.fieldRow}>
-            <div className={styles.field}>
-              <label htmlFor="price">
-                Precio de Venta al Público *
-                <Tooltip content="Precio en pesos mexicanos que pagarán los clientes">
-                  <span className={styles.helpIcon}>?</span>
-                </Tooltip>
-              </label>
-              <div className={styles.inputWithPrefix}>
-                <span className={styles.prefix}>$</span>
-                <input
-                  type="number"
-                  id="price"
-                  name="price"
-                  value={formData.price}
-                  onChange={handleInputChange}
-                  step="0.01"
-                  min="0"
-                  required
-                  className={`${styles.input} ${styles.inputWithPrefixField} ${validationErrors.price ? styles.inputError : ''}`}
-                  placeholder="0.00"
-                />
+    if (step === 3) {
+      return (
+        <div className={styles.wizardContent}>
+          <h1 className={styles.wizardStepTitle}>{titles.title}</h1>
+          <p className={styles.wizardStepDescription}>{titles.desc}</p>
+          <div className={styles.subsection}>
+            <div className={styles.fieldRow}>
+              <div className={styles.field}>
+                <label htmlFor="price">Precio de venta *</label>
+                <div className={styles.inputWithPrefix}>
+                  <span className={styles.prefix}>$</span>
+                  <input
+                    type="number"
+                    id="price"
+                    name="price"
+                    value={formData.price}
+                    onChange={handleInputChange}
+                    step="0.01"
+                    min="0"
+                    className={`${styles.input} ${styles.inputWithPrefixField} ${validationErrors.price ? styles.inputError : ''}`}
+                    placeholder="0.00"
+                  />
+                </div>
+                {validationErrors.price && <span className={styles.errorText}>{validationErrors.price}</span>}
               </div>
-              {validationErrors.price && <span className={styles.errorText}>{validationErrors.price}</span>}
+              <div className={styles.field}>
+                <label htmlFor="cost_price">Precio de costo</label>
+                <div className={styles.inputWithPrefix}>
+                  <span className={styles.prefix}>$</span>
+                  <input
+                    type="number"
+                    id="cost_price"
+                    name="cost_price"
+                    value={formData.cost_price}
+                    onChange={handleInputChange}
+                    step="0.01"
+                    min="0"
+                    className={`${styles.input} ${styles.inputWithPrefixField}`}
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
             </div>
-
             <div className={styles.field}>
-              <label htmlFor="cost_price">
-                Precio de Costo
-                <Tooltip content="Lo que te cuesta a ti adquirir este producto. Te ayuda a calcular tus ganancias (opcional pero recomendado)">
-                  <span className={styles.helpIcon}>?</span>
-                </Tooltip>
-              </label>
+              <label htmlFor="compare_price">Precio de comparación (opcional)</label>
               <div className={styles.inputWithPrefix}>
                 <span className={styles.prefix}>$</span>
                 <input
                   type="number"
-                  id="cost_price"
-                  name="cost_price"
-                  value={formData.cost_price}
+                  id="compare_price"
+                  name="compare_price"
+                  value={formData.compare_price}
                   onChange={handleInputChange}
                   step="0.01"
                   min="0"
@@ -1167,156 +1167,317 @@ export default function CreateProductPage() {
                 />
               </div>
             </div>
-          </div>
-
-          {formData.price && formData.cost_price && (
-            <div className={styles.profitIndicator}>
-              <div className={styles.profitCard}>
-                <h4>💰 Análisis de Rentabilidad</h4>
-                <div className={styles.profitDetails}>
-                  <div className={styles.profitItem}>
-                    <span>Ganancia por unidad:</span>
-                    <strong>${(parseFloat(formData.price) - parseFloat(formData.cost_price)).toFixed(2)}</strong>
-                  </div>
-                  <div className={styles.profitItem}>
-                    <span>Margen de ganancia:</span>
-                    <strong>{(((parseFloat(formData.price) - parseFloat(formData.cost_price)) / parseFloat(formData.price)) * 100).toFixed(1)}%</strong>
+            {formData.price && formData.cost_price && (
+              <div className={styles.profitIndicator}>
+                <div className={styles.profitCard}>
+                  <h4>Análisis de rentabilidad</h4>
+                  <div className={styles.profitDetails}>
+                    <div className={styles.profitItem}>
+                      <span>Ganancia neta por unidad:</span>
+                      <strong>
+                        ${(parseFloat(formData.price) - parseFloat(formData.cost_price)).toFixed(2)}
+                      </strong>
+                    </div>
+                    <div className={styles.profitItem}>
+                      <span>Margen:</span>
+                      <strong>
+                        {(
+                          ((parseFloat(formData.price) - parseFloat(formData.cost_price)) /
+                            parseFloat(formData.price)) *
+                          100
+                        ).toFixed(1)}
+                        %
+                      </strong>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-
-          <div className={styles.fieldRow}>
-            <div className={styles.field}>
-              <label htmlFor="stock_quantity">
-                Cantidad en Stock
-                <Tooltip content="¿Cuántas unidades de este producto tienes disponibles para vender?">
-                  <span className={styles.helpIcon}>?</span>
-                </Tooltip>
-              </label>
-              <input
-                type="number"
-                id="stock_quantity"
-                name="stock_quantity"
-                value={formData.stock_quantity}
-                onChange={handleInputChange}
-                min="0"
-                className={styles.input}
-                placeholder="0"
-              />
-            </div>
-
-            <div className={styles.field}>
-              <label htmlFor="low_stock_threshold">
-                Alerta de Stock Bajo
-                <Tooltip content="Te avisaremos cuando queden pocas unidades para que puedas reabastecerte a tiempo. Recomendamos entre 5-10 unidades">
-                  <span className={styles.helpIcon}>?</span>
-                </Tooltip>
-              </label>
-              <input
-                type="number"
-                id="low_stock_threshold"
-                name="low_stock_threshold"
-                value={formData.low_stock_threshold}
-                onChange={handleInputChange}
-                min="0"
-                className={styles.input}
-                placeholder="5"
-              />
-            </div>
+            )}
           </div>
         </div>
-        </>
-        )}
+      );
+    }
 
-        {/* Configuración del Producto */}
-        <div className={styles.subsection}>
-          <h3>⚙️ Configuración del Producto</h3>
-          
-          <div className={styles.checkboxGroup}>
-            <label className={styles.checkboxLabel}>
-              <input
-                type="checkbox"
-                name="is_featured"
-                checked={formData.is_featured}
-                onChange={handleInputChange}
-                className={styles.checkbox}
-              />
-              <div className={styles.checkboxContent}>
-                <strong>⭐ Producto Destacado</strong>
-                <span>Aparecerá en la sección de productos destacados de tu tienda</span>
+    if (step === 4) {
+      return (
+        <div className={styles.wizardContent}>
+          <h1 className={styles.wizardStepTitle}>{titles.title}</h1>
+          <p className={styles.wizardStepDescription}>{titles.desc}</p>
+          <div className={styles.subsection}>
+            <div className={styles.fieldRow}>
+              <div className={styles.field}>
+                <label htmlFor="stock_quantity">Cantidad en stock</label>
+                <input
+                  type="number"
+                  id="stock_quantity"
+                  name="stock_quantity"
+                  value={formData.stock_quantity}
+                  onChange={handleInputChange}
+                  min="0"
+                  className={`${styles.input} ${validationErrors.stock_quantity ? styles.inputError : ''}`}
+                  placeholder="0"
+                />
+                {validationErrors.stock_quantity && (
+                  <span className={styles.errorText}>{validationErrors.stock_quantity}</span>
+                )}
               </div>
-            </label>
-          </div>
-        </div>
-
-        {/* Acciones Finales */}
-        <div className={styles.statusSection}>
-          <h3>🚀 ¿Qué quieres hacer con este producto?</h3>
-          <div className={styles.statusOptions}>
-            <div className={styles.statusOption}>
-              <h4>💾 Guardar como Borrador</h4>
-              <p>Guarda tu trabajo para continuar después. El producto no será visible para los clientes.</p>
-              <button
-                type="button"
-                onClick={handleSaveDraft}
-                disabled={loading}
-                className={styles.draftButton}
-              >
-                {loading ? 'Guardando...' : 'Guardar Borrador'}
-              </button>
-            </div>
-            
-            <div className={styles.statusOption}>
-              <h4>✅ Publicar Producto</h4>
-              <p>Hace el producto visible y disponible para compra inmediatamente.</p>
-              <button
-                type="button"
-                onClick={handlePublish}
-                disabled={loading}
-                className={styles.publishButton}
-              >
-                {loading ? 'Publicando...' : 'Publicar Producto'}
-              </button>
+              <div className={styles.field}>
+                <label htmlFor="low_stock_threshold">Alerta de stock bajo</label>
+                <input
+                  type="number"
+                  id="low_stock_threshold"
+                  name="low_stock_threshold"
+                  value={formData.low_stock_threshold}
+                  onChange={handleInputChange}
+                  min="0"
+                  className={styles.input}
+                  placeholder="5"
+                />
+              </div>
             </div>
           </div>
         </div>
+      );
+    }
 
-        <div className={styles.infoCard}>
-          <h4>💡 Proceso Simplificado de Creación</h4>
-          <ul>
-            <li>• <strong>1️⃣ Imágenes:</strong> Comienza subiendo las fotos de tu producto - son lo más importante</li>
-            <li>• <strong>2️⃣ Información básica:</strong> Nombre y descripción del producto</li>
-            <li>• <strong>3️⃣ Categorización:</strong> Organiza tu producto con categorías y etiquetas</li>
-            <li>• <strong>4️⃣ Códigos:</strong> El SKU se genera automáticamente</li>
-            <li>• <strong>5️⃣ Precios:</strong> Establece precios de venta y costo</li>
-            <li>• <strong>6️⃣ Configuración:</strong> Ajustes finales y publicación</li>
-          </ul>
+    if (step === 5) {
+      return (
+        <div className={styles.wizardContent}>
+          <h1 className={styles.wizardStepTitle}>{titles.title}</h1>
+          <p className={styles.wizardStepDescription}>{titles.desc}</p>
+          <div className={styles.subsection}>
+            <div className={styles.field}>
+              <label>Detalles del producto (materiales, etc.)</label>
+              <ProductDetailsInput
+                value={formData.features}
+                onChange={(value) => setFormData((prev) => ({ ...prev, features: value }))}
+                placeholderName="Ej: Materiales, Color"
+                placeholderValue="Ej: Algodón 100%"
+                maxDetails={50}
+              />
+            </div>
+            <h4 className={styles.subsectionTitle}>Peso y dimensiones (obligatorios para envío)</h4>
+            <div className={styles.fieldRow}>
+              <div className={styles.field}>
+                <label htmlFor="weight_grams">Peso (gramos) *</label>
+                <input
+                  type="number"
+                  id="weight_grams"
+                  name="weight_grams"
+                  value={formData.weight_grams}
+                  onChange={handleInputChange}
+                  min="0"
+                  step="1"
+                  className={`${styles.input} ${validationErrors.weight_grams ? styles.inputError : ''}`}
+                  placeholder="Ej: 500"
+                />
+                {validationErrors.weight_grams && (
+                  <span className={styles.errorText}>{validationErrors.weight_grams}</span>
+                )}
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="length_cm">Largo (cm) *</label>
+                <input
+                  type="number"
+                  id="length_cm"
+                  name="length_cm"
+                  value={formData.length_cm}
+                  onChange={handleInputChange}
+                  min="0"
+                  step="0.1"
+                  className={`${styles.input} ${validationErrors.length_cm ? styles.inputError : ''}`}
+                  placeholder="Ej: 20"
+                />
+                {validationErrors.length_cm && <span className={styles.errorText}>{validationErrors.length_cm}</span>}
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="width_cm">Ancho (cm) *</label>
+                <input
+                  type="number"
+                  id="width_cm"
+                  name="width_cm"
+                  value={formData.width_cm}
+                  onChange={handleInputChange}
+                  min="0"
+                  step="0.1"
+                  className={`${styles.input} ${validationErrors.width_cm ? styles.inputError : ''}`}
+                  placeholder="Ej: 15"
+                />
+                {validationErrors.width_cm && <span className={styles.errorText}>{validationErrors.width_cm}</span>}
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="height_cm">Alto (cm) *</label>
+                <input
+                  type="number"
+                  id="height_cm"
+                  name="height_cm"
+                  value={formData.height_cm}
+                  onChange={handleInputChange}
+                  min="0"
+                  step="0.1"
+                  className={`${styles.input} ${validationErrors.height_cm ? styles.inputError : ''}`}
+                  placeholder="Ej: 10"
+                />
+                {validationErrors.height_cm && <span className={styles.errorText}>{validationErrors.height_cm}</span>}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
+
+    if (step === 6) {
+      const catName = categories.find((c) => c.id === formData.category_id)?.name || formData.suggested_category_name || '—';
+      const brandName = brands.find((b) => b.id === formData.brand_id)?.name || '—';
+      return (
+        <div className={styles.wizardContent}>
+          <h1 className={styles.wizardStepTitle}>{titles.title}</h1>
+          <p className={styles.wizardStepDescription}>{titles.desc}</p>
+          <div className={styles.subsection}>
+            <h4>Resumen</h4>
+            <dl className={styles.summaryList}>
+              <dt>Tipo</dt>
+              <dd>{isTcgFlow ? 'TCG' : 'Normal'}</dd>
+              <dt>Nombre</dt>
+              <dd>{formData.name || '—'}</dd>
+              <dt>Categoría</dt>
+              <dd>{catName}</dd>
+              <dt>Marca</dt>
+              <dd>{brandName}</dd>
+              <dt>Precio</dt>
+              <dd>{formData.price ? `$${formData.price}` : '—'}</dd>
+              <dt>Stock</dt>
+              <dd>{formData.stock_quantity}</dd>
+              <dt>Peso</dt>
+              <dd>{formData.weight_grams ? `${formData.weight_grams} g` : '—'}</dd>
+              <dt>Dimensiones</dt>
+              <dd>
+                {formData.length_cm && formData.width_cm && formData.height_cm
+                  ? `${formData.length_cm} × ${formData.width_cm} × ${formData.height_cm} cm`
+                  : '—'}
+              </dd>
+            </dl>
+            {formData.images.length > 0 && (
+              <div className={styles.summaryImages}>
+                <span>Imágenes: {formData.images.length}</span>
+              </div>
+            )}
+            <div className={styles.checkboxGroup}>
+              <label className={styles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  name="is_featured"
+                  checked={formData.is_featured}
+                  onChange={handleInputChange}
+                  className={styles.checkbox}
+                />
+                <span>Producto destacado</span>
+              </label>
+            </div>
+          </div>
+          <div className={styles.wizardActions}>
+            <button type="button" onClick={handlePreviewDraft} disabled={loading} className={styles.wizardBackButton}>
+              {loading ? 'Guardando...' : 'Previsualizar borrador'}
+            </button>
+            <button type="button" onClick={handleSaveDraft} disabled={loading} className={styles.wizardBackButton}>
+              Guardar borrador
+            </button>
+            <button type="button" onClick={handlePublish} disabled={loading} className={styles.wizardNextButton}>
+              {loading ? 'Publicando...' : 'Publicar'}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
   };
+
+  if (productType === null && currentStep === 0) {
+    return (
+      <AdminLayout title="Crear Producto">
+        <div className={styles.container}>
+          <div className={styles.header}>
+            <h1>Crear Nuevo Producto</h1>
+            <button type="button" onClick={() => router.back()} className={styles.backButton}>
+              ← Volver a Productos
+            </button>
+          </div>
+          <div className={styles.wizardLayout}>
+            <aside className={styles.wizardSidebar} aria-label="Pasos del formulario">
+              <ul className={styles.wizardStepNav}>
+                {STEPS_NORMAL.map((s, i) => (
+                  <li key={i}>
+                    <button
+                      type="button"
+                      className={`${styles.wizardStepNavItem} ${i === currentStep ? styles.wizardStepNavItemActive : ''}`}
+                      onClick={() => setCurrentStep(i)}
+                      aria-current={i === currentStep ? 'step' : undefined}
+                    >
+                      {s.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </aside>
+            <div className={styles.wizardContent}>{renderStepContent()}</div>
+          </div>
+          <div className={styles.wizardActions} style={{ marginTop: 24 }}>
+            <button
+              type="button"
+              onClick={goNext}
+              disabled={!productType}
+              className={styles.wizardNextButton}
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout title="Crear Producto">
       <div className={styles.container}>
         <div className={styles.header}>
           <h1>Crear Nuevo Producto</h1>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className={styles.backButton}
-          >
+          <button type="button" onClick={() => router.back()} className={styles.backButton}>
             ← Volver a Productos
           </button>
         </div>
-
-        {/* Formulario Unificado */}
-        <div className={styles.formContainer}>
-          {renderFormContent()}
+        <div className={styles.wizardLayout}>
+          <aside className={styles.wizardSidebar} aria-label="Pasos del formulario">
+            <ul className={styles.wizardStepNav}>
+              {getSteps().map((s, i) => (
+                <li key={i}>
+                  <button
+                    type="button"
+                    className={`${styles.wizardStepNavItem} ${i === currentStep ? styles.wizardStepNavItemActive : ''}`}
+                    onClick={() => setCurrentStep(i)}
+                    aria-current={i === currentStep ? 'step' : undefined}
+                  >
+                    {s.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </aside>
+          <div className={styles.wizardContent}>
+            {renderStepContent()}
+            {currentStep !== 6 && (
+              <div className={styles.wizardActions}>
+                <button type="button" onClick={goBack} className={styles.wizardBackButton}>
+                  Anterior
+                </button>
+                <button type="button" onClick={goNext} className={styles.wizardNextButton}>
+                  Siguiente
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </AdminLayout>
   );
-}
+};

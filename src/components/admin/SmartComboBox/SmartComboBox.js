@@ -12,6 +12,7 @@ export default function SmartComboBox({
   placeholder = "Seleccionar...",
   createEndpoint,
   createLabel = "crear",
+  createPayload,
   onOptionsUpdate,
   disabled = false 
 }) {
@@ -98,16 +99,21 @@ export default function SmartComboBox({
       const name = searchTerm.trim();
       const slug = generateSlug(name);
       
+      const baseBody = {
+        name: name,
+        slug: slug,
+        description: `${createLabel} creada desde el formulario de producto`
+      };
+      const body = typeof createPayload === 'object' && createPayload !== null
+        ? { ...baseBody, ...createPayload }
+        : baseBody;
+
       const response = await apiRequest(createEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          name: name,
-          slug: slug,
-          description: `${createLabel} creada desde el formulario de producto`
-        })
+        body: JSON.stringify(body)
       });
 
       if (response.ok) {

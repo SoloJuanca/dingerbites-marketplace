@@ -1,0 +1,157 @@
+.container {
+  width: 100%;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.inputName {
+  flex: 0 1 180px;
+  min-width: 120px;
+  padding: 10px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #2d3748;
+  background: #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.inputName:hover:not(:disabled) {
+  border-color: #cbd5e0;
+}
+
+.inputName:focus {
+  border-color: #38a169;
+  box-shadow: 0 0 0 3px rgba(56, 161, 105, 0.1);
+  outline: none;
+}
+
+.inputName::placeholder {
+  color: #a0aec0;
+}
+
+.inputValue {
+  flex: 1 1 200px;
+  min-width: 140px;
+  padding: 10px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #2d3748;
+  background: #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.inputValue:hover:not(:disabled) {
+  border-color: #cbd5e0;
+}
+
+.inputValue:focus {
+  border-color: #38a169;
+  box-shadow: 0 0 0 3px rgba(56, 161, 105, 0.1);
+  outline: none;
+}
+
+.inputValue::placeholder {
+  color: #a0aec0;
+}
+
+.removeBtn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #718096;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.removeBtn:hover {
+  border-color: #e53e3e;
+  background: #fed7d7;
+  color: #c53030;
+}
+
+.removeBtn:focus {
+  outline: 2px solid #e53e3e;
+  outline-offset: 2px;
+}
+
+.addBtn {
+  margin-top: 12px;
+  padding: 10px 16px;
+  border: 2px dashed #38a169;
+  border-radius: 8px;
+  background: rgba(56, 161, 105, 0.08);
+  color: #2f855a;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.addBtn:hover {
+  background: rgba(56, 161, 105, 0.14);
+  border-color: #2f855a;
+}
+
+.addBtn:focus {
+  outline: 2px solid #38a169;
+  outline-offset: 2px;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.count {
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.maxReached {
+  color: #e53e3e;
+  font-weight: 600;
+  background: #fed7d7;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+@media (max-width: 768px) {
+  .row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .inputName,
+  .inputValue {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .removeBtn {
+    align-self: flex-end;
+  }
+}

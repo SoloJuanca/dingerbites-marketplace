@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from './AdminSidebar.module.css';
 
-export default function AdminSidebar({ isOpen, onToggle }) {
+export default function AdminSidebar({ isOpen, onToggle, collapsed = false, onCollapseToggle }) {
   const pathname = usePathname();
+  const [flyoutOpen, setFlyoutOpen] = useState(null);
 
   const menuItems = [
     {
@@ -111,32 +112,51 @@ export default function AdminSidebar({ isOpen, onToggle }) {
   };
 
   const toggleSubmenu = (menuId) => {
+    if (collapsed) {
+      setFlyoutOpen(flyoutOpen === menuId ? null : menuId);
+      return;
+    }
     setExpandedMenu(expandedMenu === menuId ? null : menuId);
   };
+
+  const closeFlyout = () => setFlyoutOpen(null);
 
   return (
     <>
       {/* Mobile Overlay */}
       {isOpen && (
-        <div 
+        <div
           className={styles.overlay}
           onClick={onToggle}
         />
       )}
 
       {/* Sidebar */}
-      <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
+      <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''} ${collapsed ? styles.collapsed : ''}`}>
         <div className={styles.sidebarHeader}>
           <div className={styles.logo}>
             <span className={styles.logoIcon}></span>
             <span className={styles.logoText}>Admin</span>
           </div>
-          <button 
+          <button
+            type="button"
             className={styles.closeButton}
             onClick={onToggle}
+            aria-label="Cerrar menú"
           >
             ✕
           </button>
+          {onCollapseToggle && (
+            <button
+              type="button"
+              className={styles.collapseToggle}
+              onClick={onCollapseToggle}
+              aria-label={collapsed ? 'Expandir menú' : 'Contraer menú'}
+              title={collapsed ? 'Expandir menú' : 'Contraer menú'}
+            >
+              {collapsed ? '»' : '«'}
+            </button>
+          )}
         </div>
 
         <nav className={styles.navigation}>
@@ -146,36 +166,57 @@ export default function AdminSidebar({ isOpen, onToggle }) {
                 {item.submenu ? (
                   <>
                     <button
+                      type="button"
                       className={`${styles.menuButton} ${
                         isActiveLink(item.href) ? styles.active : ''
-                      }`}
+                      } ${flyoutOpen === item.id ? styles.flyoutActive : ''}`}
                       onClick={() => toggleSubmenu(item.id)}
                     >
                       <span className={styles.menuIcon}>{item.icon}</span>
                       <span className={styles.menuLabel}>{item.label}</span>
                       <span className={`${styles.expandIcon} ${
-                        expandedMenu === item.id ? styles.expanded : ''
+                        (expandedMenu === item.id || flyoutOpen === item.id) ? styles.expanded : ''
                       }`}>
                         ▼
                       </span>
                     </button>
-                    
-                    <ul className={`${styles.submenu} ${
-                      expandedMenu === item.id ? styles.submenuOpen : ''
-                    }`}>
-                      {item.submenu.map((subItem, index) => (
-                        <li key={index} className={styles.submenuItem}>
-                          <Link
-                            href={subItem.href}
-                            className={`${styles.submenuLink} ${
-                              isActiveLink(subItem.href) ? styles.active : ''
-                            }`}
-                          >
-                            {subItem.label}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
+                    {collapsed && flyoutOpen === item.id && (
+                      <div className={styles.flyout} onMouseLeave={closeFlyout}>
+                        <ul className={styles.flyoutList}>
+                          {item.submenu.map((subItem, index) => (
+                            <li key={index}>
+                              <Link
+                                href={subItem.href}
+                                className={`${styles.flyoutLink} ${
+                                  isActiveLink(subItem.href) ? styles.active : ''
+                                }`}
+                                onClick={closeFlyout}
+                              >
+                                {subItem.label}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {!collapsed && (
+                      <ul className={`${styles.submenu} ${
+                        expandedMenu === item.id ? styles.submenuOpen : ''
+                      }`}>
+                        {item.submenu.map((subItem, index) => (
+                          <li key={index} className={styles.submenuItem}>
+                            <Link
+                              href={subItem.href}
+                              className={`${styles.submenuLink} ${
+                                isActiveLink(subItem.href) ? styles.active : ''
+                              }`}
+                            >
+                              {subItem.label}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </>
                 ) : (
                   <Link
