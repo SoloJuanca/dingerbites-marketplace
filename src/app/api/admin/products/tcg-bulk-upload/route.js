@@ -302,7 +302,8 @@ function ensureUniqueSlug(baseSlug, usedSlugs) {
 }
 
 function buildProductName(baseName, variant) {
-  if (variant === 'foil') return `${baseName} (Foil)`;
+  if (normalizeSubTypeName(variant) === 'normal') return baseName;
+  if (variant) return `${baseName} (${variant})`;
   return baseName;
 }
 
@@ -352,28 +353,77 @@ function parseCsvInput(fileText) {
 
   const header = parseCsvRow(lines[0]);
   const headerMap = getHeaderIndexMap(header);
-  const requiredAliases = {
-    name: ['nombre', 'name'],
-    normal: ['stocknormal', 'stock'],
-    foil: ['stockfoil']
-  };
+  const hasName = ['nombre', 'name'].some((alias) => headerMap[alias] !== undefined);
+  const hasNormal = ['stocknormal'].some((alias) => headerMap[alias] !== undefined);
+  const hasFoil = ['stockfoil'].some((alias) => headerMap[alias] !== undefined);
+  const hasVariant = ['variante', 'variant', 'subtipo', 'subtypename'].some(
+    (alias) => headerMap[alias] !== undefined
+  );
+  const hasStock = ['stock', 'cantidad', 'stockquantity'].some(
+    (alias) => headerMap[alias] !== undefined
+  );
 
-  for (const [key, aliases] of Object.entries(requiredAliases)) {
-    const hasColumn = aliases.some((alias) => headerMap[alias] !== undefined);
-    if (!hasColumn) {
-      throw new Error(`Missing required column for ${key}`);
-    }
+  if (!hasName) {
+    throw new Error('Missing required column for name');
   }
 
-  return lines.slice(1).map((line, idx) => {
-    const row = parseCsvRow(line);
+  const useLegacyFormat = hasNormal && hasFoil;
+  const useVariantFormat = hasVariant && hasStock;
+
+  if (!useLegacyFormat && !useVariantFormat) {
+    throw new Error(
+      'CSV format not recognized. Use columns Nombre,Stock Normal,Stock Foil OR Nombre,Variante,Stock'
+    );
+  }
+
+  if (useVariantFormat) {
     return {
-      rowNumber: idx + 2,
-      name: getCell(row, headerMap, 'nombre', 'name'),
-      normalStock: getCell(row, headerMap, 'stocknormal', 'stock'),
-      foilStock: getCell(row, headerMap, 'stockfoil')
+      format: 'variantRows',
+      rows: lines.slice(1).map((line, idx) => {
+        const row = parseCsvRow(line);
+        return {
+          rowNumber: idx + 2,
+          name: getCell(row, headerMap, 'nombre', 'name'),
+          variant: getCell(row, headerMap, 'variante', 'variant', 'subtipo', 'subtypename'),
+          stock: getCell(row, headerMap, 'stock', 'cantidad', 'stockquantity'),
+          tcgProductId: getCell(row, headerMap, 'tcgproductid', 'productid', 'idproducto', 'tcgid')
+        };
+      })
     };
-  });
+  }
+
+  return {
+    format: 'nameRows',
+    rows: lines.slice(1).map((line, idx) => {
+      const row = parseCsvRow(line);
+      return {
+        rowNumber: idx + 2,
+        name: getCell(row, headerMap, 'nombre', 'name'),
+        normalStock: getCell(row, headerMap, 'stocknormal'),
+        foilStock: getCell(row, headerMap, 'stockfoil')
+      };
+    })
+  };
+}
+
+function resolveSubTypeFromLabel(productPrices, variantLabel) {
+  if (!Array.isArray(productPrices) || productPrices.length === 0) return null;
+  const normalizedVariant = normalizeSubTypeName(variantLabel || 'normal');
+
+  const exact = productPrices.find(
+    (price) => normalizeSubTypeName(price.subTypeName) === normalizedVariant
+  );
+  if (exact) return exact;
+
+  if (normalizedVariant === 'normal') {
+    return resolveSubType(productPrices, 'normal');
+  }
+
+  if (/(foil|holo|holographic)/i.test(normalizedVariant)) {
+    return resolveSubType(productPrices, 'foil');
+  }
+
+  return null;
 }
 
 export async function GET(request) {
@@ -392,7 +442,10 @@ export async function GET(request) {
       groupId: DEFAULT_GROUP_ID,
       dryRun: true
     },
-    csvColumns: ['Nombre', 'Stock Normal', 'Stock Foil'],
+    csvColumns: {
+      legacy: ['Nombre', 'Stock Normal', 'Stock Foil'],
+      variantRows: ['Nombre', 'Variante', 'Stock', 'TCG Product ID (optional)']
+    },
     exampleCurl:
       "curl -X POST -H 'Authorization: Bearer <token>' -F \"file=@cards.csv\" -F \"dryRun=true\" -F \"categoryId=89\" -F \"groupId=24344\" http://localhost:3000/api/admin/products/tcg-bulk-upload"
   });
@@ -423,8 +476,10 @@ export async function POST(request) {
     }
 
     const csvText = await file.text();
-    const parsedRows = parseCsvInput(csvText);
-    const mergedRows = mergeStocks(parsedRows);
+    const parsedInput = parseCsvInput(csvText);
+    const parsedRows = parsedInput.rows;
+    const mergedRows =
+      parsedInput.format === 'nameRows' ? mergeStocks(parsedRows) : parsedRows;
 
     const [{ products: tcgProducts, prices: tcgPrices }, productsSnap] =
       await Promise.all([
@@ -433,6 +488,9 @@ export async function POST(request) {
       ]);
 
     const tcgIndex = buildTcgIndex(tcgProducts);
+    const tcgProductById = new Map(
+      tcgProducts.map((product) => [String(product.productId), product])
+    );
     const pricesByProductId = new Map();
     tcgPrices.forEach((priceRow) => {
       const key = String(priceRow.productId);
@@ -467,7 +525,8 @@ export async function POST(request) {
     const summary = {
       totalRows: parsedRows.length,
       groupedCards: mergedRows.length,
-      variantsAttempted: mergedRows.length * 2,
+      variantsAttempted:
+        parsedInput.format === 'nameRows' ? mergedRows.length * 2 : mergedRows.length,
       created: 0,
       updated: 0,
       skipped: 0,
@@ -487,11 +546,19 @@ export async function POST(request) {
     };
 
     for (const row of mergedRows) {
-      const resolved = resolveProductByName(row.name, tcgIndex, tcgProducts);
+      const directById =
+        parsedInput.format === 'variantRows' && row.tcgProductId
+          ? tcgProductById.get(String(toNumber(row.tcgProductId, 0)))
+          : null;
+      const resolved = directById
+        ? { product: directById, confidence: 'product-id' }
+        : resolveProductByName(row.name, tcgIndex, tcgProducts);
+
       if (!resolved.product) {
         summary.unmatched += 1;
         report.unmatched.push({
-          sourceNames: row.sourceNames,
+          sourceNames: row.sourceNames || [row.name],
+          rowNumber: row.rowNumber,
           reason: 'Unable to match card name against TCG products',
           candidates: (resolved.candidates || []).map((p) => p.name)
         });
@@ -502,16 +569,28 @@ export async function POST(request) {
       const productPriceRows =
         pricesByProductId.get(String(tcgProduct.productId)) || [];
 
-      for (const variant of ['normal', 'foil']) {
-        const variantStock = variant === 'normal' ? row.normalStock : row.foilStock;
-        const variantSubType = resolveSubType(productPriceRows, variant);
+      const rowVariants =
+        parsedInput.format === 'nameRows'
+          ? [
+              { variant: 'normal', stock: row.normalStock },
+              { variant: 'foil', stock: row.foilStock }
+            ]
+          : [{ variant: row.variant || 'Normal', stock: row.stock }];
+
+      for (const rowVariant of rowVariants) {
+        const variantStock = rowVariant.stock;
+        const variantSubType =
+          parsedInput.format === 'nameRows'
+            ? resolveSubType(productPriceRows, rowVariant.variant)
+            : resolveSubTypeFromLabel(productPriceRows, rowVariant.variant);
+
         if (!variantSubType) {
           summary.skipped += 1;
           summary.warnings += 1;
           report.warnings.push({
             card: row.name,
-            variant,
-            reason: `Variant ${variant} is not available in TCG prices`
+            variant: rowVariant.variant,
+            reason: `Variant ${rowVariant.variant} is not available in TCG prices`
           });
           continue;
         }
@@ -523,9 +602,11 @@ export async function POST(request) {
         const computedPrice = getPriceFromTcgRow(variantSubType);
         const fallbackImage = tcgProduct.imageUrl || existing?.image || '';
         const baseName = tcgProduct.name || row.name;
-        const productName = buildProductName(baseName, variant);
+        const productName = buildProductName(baseName, subTypeName);
         const baseSlug = slugify(
-          variant === 'foil' ? `${tcgProduct.cleanName || baseName} foil` : tcgProduct.cleanName || baseName
+          normalizeSubTypeName(subTypeName) === 'normal'
+            ? tcgProduct.cleanName || baseName
+            : `${tcgProduct.cleanName || baseName} ${subTypeName}`
         );
 
         if (existing) {

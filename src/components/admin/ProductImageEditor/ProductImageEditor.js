@@ -97,7 +97,6 @@ export default function ProductImageEditor({ images = [], onImagesChange, onUplo
         {images.map((image, index) => (
           <div key={`${image.url}-${index}`} className={styles.item}>
             {index === 0 && <span className={styles.primaryBadge}>Principal</span>}
-            {/* eslint-disable-next-line @next/next/no-img-element -- thumbnails use dynamic user URLs */}
             <img src={image.url} alt={image.alt || ''} className={styles.thumb} />
             <div className={styles.actions}>
               <button
@@ -153,7 +152,6 @@ export default function ProductImageEditor({ images = [], onImagesChange, onUplo
             <h3 id="crop-title" className={styles.modalTitle}>Recortar imagen (centro, 1:1)</h3>
             <div className={styles.cropArea}>
               <div className={styles.cropPreview}>
-                {/* eslint-disable-next-line @next/next/no-img-element -- crop source for canvas, ref required */}
                 <img
                   ref={imgRef}
                   src={cropModal.url}

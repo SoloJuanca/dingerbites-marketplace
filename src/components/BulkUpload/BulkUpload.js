@@ -169,16 +169,79 @@ export default function BulkUpload() {
       return;
     }
 
-    const template = 'Nombre,Stock Normal,Stock Foil\nBlazing Scorcher,15,1\nFury Rune,9,0';
-    const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `template_tcg_${selectedCategoryId}_${selectedGroupId}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    setError(null);
+
+    try {
+      const [productsResponse, pricesResponse] = await Promise.all([
+        fetch(`/api/tcg/${selectedCategoryId}/${selectedGroupId}/products`, {
+          cache: 'no-store'
+        }),
+        fetch(`/api/tcg/${selectedCategoryId}/${selectedGroupId}/prices`, {
+          cache: 'no-store'
+        })
+      ]);
+
+      const productsData = await productsResponse.json();
+      const pricesData = await pricesResponse.json();
+
+      if (!productsResponse.ok) {
+        throw new Error(productsData?.error || 'No se pudieron cargar los productos del grupo');
+      }
+      if (!pricesResponse.ok) {
+        throw new Error(pricesData?.error || 'No se pudieron cargar las variantes del grupo');
+      }
+
+      const products = Array.isArray(productsData.results) ? productsData.results : [];
+      const prices = Array.isArray(pricesData.results) ? pricesData.results : [];
+
+      const subTypesByProductId = new Map();
+      prices.forEach((price) => {
+        const productId = String(price.productId);
+        if (!subTypesByProductId.has(productId)) subTypesByProductId.set(productId, new Set());
+        subTypesByProductId.get(productId).add(price.subTypeName || 'Normal');
+      });
+
+      const escapeCell = (value) => {
+        const text = String(value ?? '');
+        if (!/[",\n]/.test(text)) return text;
+        return `"${text.replace(/"/g, '""')}"`;
+      };
+
+      const header = ['Nombre', 'Variante', 'Stock', 'TCG Product ID'];
+      const rows = [header.join(',')];
+
+      products.forEach((product) => {
+        const productId = String(product.productId);
+        const subTypesSet = subTypesByProductId.get(productId);
+        const subTypes = subTypesSet && subTypesSet.size > 0
+          ? [...subTypesSet]
+          : ['Normal'];
+
+        subTypes.forEach((subType) => {
+          rows.push(
+            [
+              escapeCell(product.name || product.cleanName || ''),
+              escapeCell(subType || 'Normal'),
+              '0',
+              escapeCell(productId)
+            ].join(',')
+          );
+        });
+      });
+
+      const csv = rows.join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `template_tcg_${selectedCategoryId}_${selectedGroupId}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.message || 'Error al generar template dinámico');
+    }
   };
 
   return (
@@ -402,8 +465,9 @@ export default function BulkUpload() {
       <div className={styles.instructions}>
         <h3>📋 Instrucciones</h3>
         <ul>
-          <li>Usa columnas: Nombre, Stock Normal, Stock Foil</li>
+          <li>Usa el template dinámico (Nombre, Variante, Stock, TCG Product ID)</li>
           <li>Primero selecciona categoría y grupo TCG para habilitar template/importación</li>
+          <li>El template incluye todas las cartas del grupo y sus variantes disponibles</li>
           <li>Primero ejecuta dry run para revisar no encontrados y warnings</li>
           <li>Normal y Foil se guardan como productos separados</li>
           <li>El endpoint usa los IDs seleccionados para categoría y grupo</li>
