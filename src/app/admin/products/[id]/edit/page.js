@@ -1250,6 +1250,9 @@ export default function EditProductPage() {
                 <button type="button" onClick={goNext} className={styles.wizardNextButton}>
                   Siguiente
                 </button>
+                <button type="button" onClick={handleSave} disabled={loading} className={styles.wizardBackButton}>
+                  {loading ? 'Guardando...' : 'Guardar cambios'}
+                </button>
               </div>
             )}
           </div>
