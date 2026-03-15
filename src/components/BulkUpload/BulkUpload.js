@@ -1,8 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../lib/AuthContext';
 import styles from './BulkUpload.module.css';
+
+const DEFAULT_CATEGORY_ID = 89;
+const DEFAULT_GROUP_ID = 24344;
 
 export default function BulkUpload() {
   const { apiRequest } = useAuth();
@@ -11,6 +14,103 @@ export default function BulkUpload() {
   const [uploading, setUploading] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
+  const [tcgCategories, setTcgCategories] = useState([]);
+  const [tcgGroups, setTcgGroups] = useState([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [selectedGroupId, setSelectedGroupId] = useState('');
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  const [selectorError, setSelectorError] = useState(null);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      setLoadingCategories(true);
+      setSelectorError(null);
+      try {
+        const response = await fetch('/api/tcg/categories', { cache: 'no-store' });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data?.error || 'No se pudieron cargar las categorías TCG');
+        }
+
+        const categories = Array.isArray(data.results) ? data.results : [];
+        setTcgCategories(categories);
+
+        const defaultCategory = categories.find(
+          (category) => Number(category.categoryId) === DEFAULT_CATEGORY_ID
+        );
+        if (defaultCategory) {
+          setSelectedCategoryId(String(defaultCategory.categoryId));
+          return;
+        }
+
+        if (categories[0]?.categoryId != null) {
+          setSelectedCategoryId(String(categories[0].categoryId));
+        }
+      } catch (err) {
+        setSelectorError(err.message || 'Error al cargar categorías TCG');
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
+    loadCategories();
+  }, []);
+
+  useEffect(() => {
+    const loadGroups = async () => {
+      if (!selectedCategoryId) {
+        setTcgGroups([]);
+        setSelectedGroupId('');
+        return;
+      }
+
+      setLoadingGroups(true);
+      setSelectorError(null);
+      try {
+        const response = await fetch(`/api/tcg/${selectedCategoryId}/groups`, {
+          cache: 'no-store'
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data?.error || 'No se pudieron cargar los grupos TCG');
+        }
+
+        const groups = Array.isArray(data.results) ? data.results : [];
+        setTcgGroups(groups);
+
+        const defaultGroup = groups.find(
+          (group) => Number(group.groupId) === DEFAULT_GROUP_ID
+        );
+        if (defaultGroup) {
+          setSelectedGroupId(String(defaultGroup.groupId));
+          return;
+        }
+
+        if (groups[0]?.groupId != null) {
+          setSelectedGroupId(String(groups[0].groupId));
+          return;
+        }
+
+        setSelectedGroupId('');
+      } catch (err) {
+        setTcgGroups([]);
+        setSelectedGroupId('');
+        setSelectorError(err.message || 'Error al cargar grupos TCG');
+      } finally {
+        setLoadingGroups(false);
+      }
+    };
+
+    loadGroups();
+  }, [selectedCategoryId]);
+
+  const canSubmit = useMemo(
+    () => Boolean(file && selectedCategoryId && selectedGroupId && !loadingCategories && !loadingGroups),
+    [file, selectedCategoryId, selectedGroupId, loadingCategories, loadingGroups]
+  );
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -28,6 +128,10 @@ export default function BulkUpload() {
       setError('Por favor selecciona un archivo CSV');
       return;
     }
+    if (!selectedCategoryId || !selectedGroupId) {
+      setError('Selecciona categoría y grupo TCG antes de importar');
+      return;
+    }
 
     setUploading(true);
     setError(null);
@@ -37,8 +141,8 @@ export default function BulkUpload() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('dryRun', String(dryRun));
-      formData.append('categoryId', '89');
-      formData.append('groupId', '24344');
+      formData.append('categoryId', String(selectedCategoryId));
+      formData.append('groupId', String(selectedGroupId));
 
       const response = await apiRequest('/api/admin/products/tcg-bulk-upload', {
         method: 'POST',
@@ -60,12 +164,17 @@ export default function BulkUpload() {
   };
 
   const downloadTemplate = async () => {
+    if (!selectedCategoryId || !selectedGroupId) {
+      setError('Selecciona categoría y grupo para descargar el template');
+      return;
+    }
+
     const template = 'Nombre,Stock Normal,Stock Foil\nBlazing Scorcher,15,1\nFury Rune,9,0';
     const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'template_tcg_bulk_upload.csv';
+    link.download = `template_tcg_${selectedCategoryId}_${selectedGroupId}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -76,10 +185,62 @@ export default function BulkUpload() {
     <div className={styles.container}>
       <div className={styles.header}>
         <h2>📦 Carga Masiva TCG (Riftbound)</h2>
-        <p>Importa stock por carta para Normal/Foil con integración TCG (89/24344)</p>
+        <p>Selecciona categoría y grupo TCG para importar stock Normal/Foil</p>
       </div>
 
       <div className={styles.uploadSection}>
+        <div className={styles.selectorSection}>
+          <div className={styles.selectorGrid}>
+            <div className={styles.selectorField}>
+              <label htmlFor="tcg-category-select">Categoría TCG</label>
+              <select
+                id="tcg-category-select"
+                value={selectedCategoryId}
+                onChange={(e) => setSelectedCategoryId(e.target.value)}
+                disabled={loadingCategories}
+                className={styles.selectorInput}
+              >
+                <option value="">
+                  {loadingCategories ? 'Cargando categorías...' : 'Selecciona una categoría'}
+                </option>
+                {tcgCategories.map((category) => (
+                  <option key={category.categoryId} value={category.categoryId}>
+                    {category.displayName || category.name} ({category.categoryId})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.selectorField}>
+              <label htmlFor="tcg-group-select">Grupo / Set TCG</label>
+              <select
+                id="tcg-group-select"
+                value={selectedGroupId}
+                onChange={(e) => setSelectedGroupId(e.target.value)}
+                disabled={!selectedCategoryId || loadingGroups}
+                className={styles.selectorInput}
+              >
+                <option value="">
+                  {loadingGroups
+                    ? 'Cargando grupos...'
+                    : !selectedCategoryId
+                      ? 'Primero selecciona categoría'
+                      : 'Selecciona un grupo'}
+                </option>
+                {tcgGroups.map((group) => (
+                  <option key={group.groupId} value={group.groupId}>
+                    {group.name} ({group.groupId})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <p className={styles.selectionHint}>
+            Integración seleccionada: categoría {selectedCategoryId || '-'} / grupo {selectedGroupId || '-'}
+          </p>
+        </div>
+
         <div className={styles.fileInput}>
           <label htmlFor="csv-file" className={styles.fileLabel}>
             <span className={styles.fileIcon}>📁</span>
@@ -115,7 +276,7 @@ export default function BulkUpload() {
 
           <button
             onClick={handleUpload}
-            disabled={!file || uploading}
+            disabled={!canSubmit || uploading}
             className={styles.uploadButton}
           >
             {uploading
@@ -127,12 +288,20 @@ export default function BulkUpload() {
 
           <button
             onClick={downloadTemplate}
+            disabled={!selectedCategoryId || !selectedGroupId}
             className={styles.templateButton}
           >
             📥 Descargar Template
           </button>
         </div>
       </div>
+
+      {selectorError && (
+        <div className={styles.error}>
+          <h3>❌ Error de integración TCG</h3>
+          <p>{selectorError}</p>
+        </div>
+      )}
 
       {error && (
         <div className={styles.error}>
@@ -234,9 +403,10 @@ export default function BulkUpload() {
         <h3>📋 Instrucciones</h3>
         <ul>
           <li>Usa columnas: Nombre, Stock Normal, Stock Foil</li>
+          <li>Primero selecciona categoría y grupo TCG para habilitar template/importación</li>
           <li>Primero ejecuta dry run para revisar no encontrados y warnings</li>
           <li>Normal y Foil se guardan como productos separados</li>
-          <li>La importación usa integración TCG: categoría 89 y grupo 24344</li>
+          <li>El endpoint usa los IDs seleccionados para categoría y grupo</li>
           <li>El upsert se hace por tcg_product_id + tcg_sub_type_name</li>
         </ul>
       </div>

@@ -29,6 +29,53 @@
   margin-bottom: 40px;
 }
 
+.selectorSection {
+  margin-bottom: 24px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #f9fafb;
+}
+
+.selectorGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.selectorField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.selectorField label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.selectorInput {
+  height: 40px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 14px;
+  color: #111827;
+  background: #fff;
+}
+
+.selectorInput:focus {
+  outline: 2px solid #bfdbfe;
+  border-color: #2563eb;
+}
+
+.selectionHint {
+  margin: 12px 0 0 0;
+  font-size: 13px;
+  color: #4b5563;
+}
+
 .fileInput {
   margin-bottom: 24px;
 }
@@ -139,6 +186,13 @@
   background: #218838;
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+}
+
+.templateButton:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .error {
@@ -314,6 +368,10 @@
 
   .actions {
     flex-direction: column;
+  }
+
+  .selectorGrid {
+    grid-template-columns: 1fr;
   }
 
   .uploadButton,
