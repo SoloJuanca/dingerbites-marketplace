@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "backfill:tcg:dry": "node scripts/backfill-tcg-riftbound.mjs",
+    "backfill:tcg:apply": "node scripts/backfill-tcg-riftbound.mjs --apply"
   },
   "dependencies": {
     "@vercel/blob": "^1.1.1",

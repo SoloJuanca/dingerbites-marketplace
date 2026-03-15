@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Icon from '../Icon/Icon';
 import styles from './ImageCarousel.module.css';
 
-export default function ImageCarousel({ images, productName }) {
+export default function ImageCarousel({ images, productName, isTcgProduct = false }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const imageList = Array.isArray(images) ? images : [images];
 
@@ -44,7 +44,7 @@ export default function ImageCarousel({ images, productName }) {
           alt={`${productName} - Imagen ${currentIndex + 1}`}
           width={600}
           height={400}
-          className={styles.mainImage}
+          className={`${styles.mainImage} ${isTcgProduct ? styles.mainImageContain : ''}`}
           priority={currentIndex === 0}
         />
         
@@ -97,7 +97,7 @@ export default function ImageCarousel({ images, productName }) {
                 alt={`${productName} - Miniatura ${index + 1}`}
                 width={80}
                 height={80}
-                className={styles.thumbnailImage}
+                className={`${styles.thumbnailImage} ${isTcgProduct ? styles.thumbnailContain : ''}`}
               />
             </button>
           ))}

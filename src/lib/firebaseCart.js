@@ -67,7 +67,9 @@ export async function addCartItem({ userId, sessionId, productId, variantId, qua
   const product = productSnap.data();
   if (product.is_active === false) return null;
   const stock = toNum(product.stock_quantity, 0);
-  if (stock < quantity) return null;
+  if (stock < quantity) {
+    return { error: 'INSUFFICIENT_STOCK', availableStock: stock };
+  }
 
   const variantIdStr = variantId ? String(variantId) : null;
   let existingQuery = db.collection(CART_ITEMS_COLLECTION).where('product_id', '==', String(productId));
@@ -88,6 +90,9 @@ export async function addCartItem({ userId, sessionId, productId, variantId, qua
     const docRef = matchingDoc.ref;
     const current = matchingDoc.data();
     const newQty = (current.quantity || 0) + quantity;
+    if (newQty > stock) {
+      return { error: 'INSUFFICIENT_STOCK', availableStock: stock };
+    }
     await docRef.update({ quantity: newQty, updated_at: now });
     return { id: docRef.id, quantity: newQty };
   }
@@ -117,6 +122,16 @@ export async function updateCartItemQuantity(cartItemId, quantity, userId, sessi
   if (quantity <= 0) {
     await docRef.delete();
     return { id: cartItemId, quantity: 0, removed: true };
+  }
+  if (data.product_id) {
+    const productSnap = await db.collection(PRODUCTS_COLLECTION).doc(String(data.product_id)).get();
+    if (!productSnap.exists) {
+      return { error: 'PRODUCT_NOT_FOUND' };
+    }
+    const stock = toNum(productSnap.data().stock_quantity, 0);
+    if (quantity > stock) {
+      return { error: 'INSUFFICIENT_STOCK', availableStock: stock };
+    }
   }
   await docRef.update({ quantity, updated_at: new Date().toISOString() });
   const updated = await docRef.get();

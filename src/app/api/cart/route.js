@@ -63,6 +63,15 @@ export async function POST(request) {
         { status: 404 }
       );
     }
+    if (result.error === 'INSUFFICIENT_STOCK') {
+      return NextResponse.json(
+        {
+          error: 'Stock insuficiente para la cantidad solicitada',
+          availableStock: result.availableStock ?? 0
+        },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -106,6 +115,15 @@ export async function PUT(request) {
     }
 
     const result = await updateCartItemQuantity(cartItemId, quantity, userId, sessionId);
+    if (result?.error === 'INSUFFICIENT_STOCK') {
+      return NextResponse.json(
+        {
+          error: 'Stock insuficiente para la cantidad solicitada',
+          availableStock: result.availableStock ?? 0
+        },
+        { status: 400 }
+      );
+    }
     if (!result) {
       return NextResponse.json(
         { error: 'Cart item not found' },

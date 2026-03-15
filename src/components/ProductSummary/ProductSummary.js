@@ -49,16 +49,20 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
         ? Math.max(TCG_MIN_MXN, product.price)
         : product.price ?? 0;
 
-  const handleQuantityChange = (newQuantity) => {
-    if (newQuantity >= 1 && newQuantity <= 10) {
-      setQuantity(newQuantity);
-    }
-  };
-
   const hasPrice = displayPrice != null && displayPrice > 0;
   const stockQuantity = Number(product.stock_quantity || 0);
-  const isOutOfStock = stockQuantity <= 0 && !Boolean(product.allow_backorders);
+  const isOutOfStock = stockQuantity <= 0;
+  const maxSelectableQuantity = Math.max(1, Math.min(10, stockQuantity || 1));
   const canAddToCart = !(isTcgProduct && !hasPrice) && !isOutOfStock;
+
+  const handleQuantityChange = (newQuantity) => {
+    const bounded = Math.max(1, Math.min(maxSelectableQuantity, Number(newQuantity) || 1));
+    setQuantity(bounded);
+  };
+
+  useEffect(() => {
+    setQuantity((prev) => Math.max(1, Math.min(prev, maxSelectableQuantity)));
+  }, [maxSelectableQuantity]);
 
   useEffect(() => {
     let active = true;
@@ -86,6 +90,11 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
 
   const handleAddToCart = async () => {
     if (!canAddToCart) return;
+    if (quantity > stockQuantity) {
+      toast.error(`Solo hay ${stockQuantity} unidad(es) disponibles`);
+      handleQuantityChange(stockQuantity);
+      return;
+    }
     setIsAddingToCart(true);
     const cartPrice = isTcgProduct && marketPriceMxn != null ? Math.max(15, marketPriceMxn) : (isTcgProduct ? Math.max(15, product.price ?? 0) : (product.price ?? 0));
 
@@ -105,6 +114,11 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
 
   const handleBuyNow = async () => {
     if (!canAddToCart) return;
+    if (quantity > stockQuantity) {
+      toast.error(`Solo hay ${stockQuantity} unidad(es) disponibles`);
+      handleQuantityChange(stockQuantity);
+      return;
+    }
     const cartPrice = isTcgProduct && marketPriceMxn != null ? Math.max(15, marketPriceMxn) : (isTcgProduct ? Math.max(15, product.price ?? 0) : (product.price ?? 0));
     await addToCartWithSync({
       id: product.id,
@@ -248,12 +262,15 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
               <button
                 className={styles.quantityBtn}
                 onClick={() => handleQuantityChange(quantity + 1)}
-                disabled={quantity >= 10 || !canAddToCart}
+                disabled={quantity >= maxSelectableQuantity || !canAddToCart}
                 aria-label="Aumentar cantidad"
               >
                 <Icon name="add" size={16} />
               </button>
             </div>
+            <small className={styles.stockLimitHint}>
+              Máximo disponible: {stockQuantity}
+            </small>
           </div>
 
           <div className={styles.totalPrice}>

@@ -101,6 +101,11 @@
   gap: 12px;
 }
 
+.stockLimitHint {
+  font-size: 12px;
+  color: #6c757d;
+}
+
 .quantityLabel {
   font-size: 14px;
   font-weight: 600;

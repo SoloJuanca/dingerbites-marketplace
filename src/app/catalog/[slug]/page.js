@@ -120,6 +120,7 @@ function ProductData({ slug }) {
               <ImageCarousel 
                 images={product.images || [product.image]}
                 productName={product.name}
+                isTcgProduct={!!product.tcg_product_id}
               />
               
               <ProductInfo product={product} marketPriceMxn={marketPriceMxn} isTcgProduct={!!product.tcg_product_id} />

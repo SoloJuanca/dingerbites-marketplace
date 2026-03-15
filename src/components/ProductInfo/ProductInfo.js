@@ -55,12 +55,14 @@ export default function ProductInfo({ product, marketPriceMxn = null, isTcgProdu
         </div>
       </div>
 
-      <div className={styles.description}>
-        <h3 className={styles.sectionTitle}>Descripción</h3>
-        <p className={styles.descriptionText}>
-          {product.description}
-        </p>
-      </div>
+      {!isTcgProduct && product.description && (
+        <div className={styles.description}>
+          <h3 className={styles.sectionTitle}>Descripción</h3>
+          <p className={styles.descriptionText}>
+            {product.description}
+          </p>
+        </div>
+      )}
 
       {features.length > 0 && <div className={styles.features}>
         <h3 className={styles.sectionTitle}>Características</h3>

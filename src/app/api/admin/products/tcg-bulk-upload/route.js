@@ -5,9 +5,12 @@ import { convertUsdToMxnWithMin } from '../../../../../lib/currency';
 
 const PRODUCTS_COLLECTION = 'products';
 const CATEGORIES_COLLECTION = 'product_categories';
+const BRANDS_COLLECTION = 'product_brands';
 const TCG_BASE = 'https://tcgcsv.com/tcgplayer';
 const DEFAULT_CATEGORY_ID = 89;
 const DEFAULT_GROUP_ID = 24344;
+const DEFAULT_TCG_CATEGORY_SLUG = 'tcg';
+const DEFAULT_TCG_BRAND_SLUG = 'riftbound';
 
 const NAME_ALIASES = {
   'captian farron': 'captain farron',
@@ -286,6 +289,56 @@ async function getCategoryIdForTcg(categoryId) {
   return snap.docs[0].id;
 }
 
+async function getOrCreateDefaultTcgCategoryId() {
+  const bySlug = await db
+    .collection(CATEGORIES_COLLECTION)
+    .where('slug', '==', DEFAULT_TCG_CATEGORY_SLUG)
+    .limit(1)
+    .get();
+
+  if (!bySlug.empty) return bySlug.docs[0].id;
+
+  const now = new Date().toISOString();
+  const docRef = db.collection(CATEGORIES_COLLECTION).doc();
+  await docRef.set({
+    name: 'TCG',
+    slug: DEFAULT_TCG_CATEGORY_SLUG,
+    description: 'Trading Card Game products',
+    image_url: null,
+    is_active: true,
+    sort_order: 0,
+    parent_id: null,
+    tcg_category_id: null,
+    created_at: now,
+    updated_at: now
+  });
+  return docRef.id;
+}
+
+async function getOrCreateDefaultBrandId() {
+  const bySlug = await db
+    .collection(BRANDS_COLLECTION)
+    .where('slug', '==', DEFAULT_TCG_BRAND_SLUG)
+    .limit(1)
+    .get();
+
+  if (!bySlug.empty) return bySlug.docs[0].id;
+
+  const now = new Date().toISOString();
+  const docRef = db.collection(BRANDS_COLLECTION).doc();
+  await docRef.set({
+    name: 'Riftbound',
+    slug: DEFAULT_TCG_BRAND_SLUG,
+    description: 'Riftbound TCG',
+    logo_url: null,
+    website_url: null,
+    is_active: true,
+    created_at: now,
+    updated_at: now
+  });
+  return docRef.id;
+}
+
 function getProductUpsertKey(tcgProductId, subTypeName) {
   return `${Number(tcgProductId)}::${normalizeSubTypeName(subTypeName)}`;
 }
@@ -311,6 +364,46 @@ function getPriceFromTcgRow(priceRow) {
   const usd =
     priceRow?.marketPrice ?? priceRow?.midPrice ?? priceRow?.lowPrice ?? null;
   return convertUsdToMxnWithMin(usd);
+}
+
+function getExtendedDataMap(tcgProduct) {
+  const map = new Map();
+  const extendedData = Array.isArray(tcgProduct?.extendedData) ? tcgProduct.extendedData : [];
+  extendedData.forEach((entry) => {
+    const key = String(entry?.displayName || entry?.name || '').trim();
+    const value = String(entry?.value || '').trim();
+    if (!key || !value) return;
+    map.set(key, value.replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim());
+  });
+  return map;
+}
+
+function buildTcgDescriptionAndFeatures(tcgProduct, subTypeName) {
+  const dataMap = getExtendedDataMap(tcgProduct);
+  const lines = [];
+
+  const preferred = ['Rarity', 'Card Number', 'Number', 'Card Type', 'Set Name'];
+  preferred.forEach((key) => {
+    if (dataMap.has(key)) {
+      lines.push(`${key}: ${dataMap.get(key)}`);
+      dataMap.delete(key);
+    }
+  });
+
+  if (subTypeName) {
+    lines.push(`Variant: ${subTypeName}`);
+  }
+
+  const extraLines = [...dataMap.entries()].map(([key, value]) => `${key}: ${value}`);
+  const features = [...lines, ...extraLines];
+  const description = features.join('\n');
+  const shortDescription = features.slice(0, 3).join(' · ');
+
+  return {
+    description,
+    shortDescription,
+    features
+  };
 }
 
 async function fetchTcgData(categoryId, groupId) {
@@ -519,7 +612,10 @@ export async function POST(request) {
       existingByVariantKey.set(key, product);
     });
 
-    const categoryDocId = await getCategoryIdForTcg(categoryId);
+    const categoryDocIdByTcg = await getCategoryIdForTcg(categoryId);
+    const fallbackTcgCategoryId = await getOrCreateDefaultTcgCategoryId();
+    const defaultBrandId = await getOrCreateDefaultBrandId();
+    const categoryDocId = categoryDocIdByTcg || fallbackTcgCategoryId;
     const now = new Date().toISOString();
 
     const summary = {
@@ -603,6 +699,7 @@ export async function POST(request) {
         const fallbackImage = tcgProduct.imageUrl || existing?.image || '';
         const baseName = tcgProduct.name || row.name;
         const productName = buildProductName(baseName, subTypeName);
+        const generatedCopy = buildTcgDescriptionAndFeatures(tcgProduct, subTypeName);
         const baseSlug = slugify(
           normalizeSubTypeName(subTypeName) === 'normal'
             ? tcgProduct.cleanName || baseName
@@ -612,13 +709,24 @@ export async function POST(request) {
         if (existing) {
           const updateData = {
             name: productName,
-            description: existing.description || '',
+            description: existing.description || generatedCopy.description || '',
+            short_description: existing.short_description || generatedCopy.shortDescription || '',
             stock_quantity: toNumber(variantStock, 0),
             category_id: existing.category_id || categoryDocId,
+            brand_id: existing.brand_id || defaultBrandId,
             tcg_product_id: Number(tcgProduct.productId),
             tcg_group_id: Number(groupId),
             tcg_category_id: Number(categoryId),
             tcg_sub_type_name: subTypeName,
+            features:
+              Array.isArray(existing.features) && existing.features.length > 0
+                ? existing.features
+                : generatedCopy.features,
+            meta_description: existing.meta_description || generatedCopy.shortDescription || null,
+            meta_keywords:
+              existing.meta_keywords ||
+              generatedCopy.features.slice(0, 8).join(', ') ||
+              null,
             image: fallbackImage,
             images:
               Array.isArray(existing.images) && existing.images.length > 0
@@ -654,8 +762,8 @@ export async function POST(request) {
           id: docRef.id,
           name: productName,
           slug,
-          description: '',
-          short_description: '',
+          description: generatedCopy.description || '',
+          short_description: generatedCopy.shortDescription || '',
           price: computedPrice ?? 0,
           compare_price: null,
           cost_price: null,
@@ -665,16 +773,16 @@ export async function POST(request) {
           low_stock_threshold: 5,
           allow_backorders: false,
           category_id: categoryDocId,
-          brand_id: null,
+          brand_id: defaultBrandId,
           is_active: true,
           is_featured: false,
           is_bestseller: false,
           weight_grams: null,
           dimensions_cm: null,
           meta_title: null,
-          meta_description: null,
-          meta_keywords: null,
-          features: [],
+          meta_description: generatedCopy.shortDescription || null,
+          meta_keywords: generatedCopy.features.slice(0, 8).join(', ') || null,
+          features: generatedCopy.features,
           image: fallbackImage,
           images: fallbackImage
             ? [{ url: fallbackImage, alt: productName, is_primary: true, sort_order: 0 }]
