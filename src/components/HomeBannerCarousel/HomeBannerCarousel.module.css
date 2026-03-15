@@ -1,0 +1,153 @@
+.section {
+  padding: 24px 0 16px;
+}
+
+.carousel {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  max-height: 420px;
+}
+
+.imageWrap {
+  position: relative;
+  width: 100%;
+  min-height: 320px;
+  max-height: 420px;
+}
+
+.image {
+  width: 100%;
+  height: auto;
+  min-height: 320px;
+  object-fit: cover;
+  object-position: center;
+  max-height: 420px;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.2) 60%, rgba(0, 0, 0, 0) 100%);
+  display: flex;
+  align-items: center;
+  padding: 24px;
+}
+
+.content {
+  max-width: 480px;
+  color: #ffffff;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(24px, 3vw, 40px);
+  line-height: 1.2;
+}
+
+.subtitle {
+  margin: 16px 0 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.ctaButton {
+  margin-top: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  background: #7c3aed;
+  color: #ffffff;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.ctaButton:hover {
+  background: #6d28d9;
+  transform: translateY(-1px);
+}
+
+.navButton {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.6);
+  color: #ffffff;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.prev {
+  left: 16px;
+}
+
+.next {
+  right: 16px;
+}
+
+.dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+}
+
+.dotActive {
+  background: #ffffff;
+}
+
+.stateBox {
+  min-height: 220px;
+  border-radius: 16px;
+  border: 1px dashed #cbd5e1;
+  display: grid;
+  place-items: center;
+  color: #64748b;
+}
+
+.ctaButton:focus-visible,
+.navButton:focus-visible,
+.dot:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding-top: 16px;
+  }
+
+  .overlay {
+    padding: 16px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+  }
+
+  .navButton {
+    width: 32px;
+    height: 32px;
+    font-size: 22px;
+  }
+}

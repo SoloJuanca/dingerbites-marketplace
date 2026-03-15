@@ -1,24 +1,29 @@
 import Header from '../components/Header/Header';
-import Hero from '../components/Hero/Hero';
-import FreshProducts from '../components/FreshProducts/FreshProducts';
-import HowItWorks from '../components/HowItWorks/HowItWorks';
-import BrowseMenu from '../components/BrowseMenu/BrowseMenu';
-import MobileApp from '../components/MobileApp/MobileApp';
+import HomeBannerCarousel from '../components/HomeBannerCarousel/HomeBannerCarousel';
+import HomeCategories from '../components/HomeCategories/HomeCategories';
+import HomeProductSection from '../components/HomeProductSection/HomeProductSection';
 import HomeReviews from '../components/HomeReviews/HomeReviews';
-import ContactInfo from '../components/ContactInfo/ContactInfo';
 import Footer from '../components/Footer/Footer';
 
 export default function Home() {
   return (
     <>
       <Header />
-      <Hero />
-      <FreshProducts />
-      <HowItWorks />
-      <BrowseMenu />
-      <MobileApp />
+      <HomeBannerCarousel />
+      <HomeCategories />
+      <HomeProductSection
+        title="Productos más nuevos"
+        subtitle="Las últimas novedades recién agregadas."
+        section="newest"
+        emptyMessage="No hay productos nuevos disponibles."
+      />
+      <HomeProductSection
+        title="Productos más populares"
+        subtitle="Top vendidos de los últimos 30 días con stock disponible."
+        section="popular"
+        emptyMessage="Aún no hay productos populares disponibles."
+      />
       <HomeReviews />
-      <ContactInfo />
       <Footer />
     </>
   );

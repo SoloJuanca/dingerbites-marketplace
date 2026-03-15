@@ -3,6 +3,7 @@ import { db } from './firebaseAdmin';
 const PRODUCTS_COLLECTION = 'products';
 const CATEGORIES_COLLECTION = 'product_categories';
 const BRANDS_COLLECTION = 'product_brands';
+const ORDERS_COLLECTION = 'orders';
 
 const DEFAULT_IMAGE =
   'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=300&fit=crop&crop=center';
@@ -132,6 +133,54 @@ async function loadCategoryAndBrandMaps() {
   return { categoriesById, brandsById };
 }
 
+function getProductImage(p) {
+  const images = Array.isArray(p.images)
+    ? p.images.map((img) => (typeof img === 'string' ? img : img?.url)).filter(Boolean)
+    : [];
+  return {
+    images,
+    image: p.image || (images[0] || DEFAULT_IMAGE)
+  };
+}
+
+function mapProductToCatalogItem(p, categoriesById, brandsById) {
+  const { images, image } = getProductImage(p);
+  const cat = p.category_id ? categoriesById.get(p.category_id) : null;
+  const brand = p.brand_id ? brandsById.get(p.brand_id) : null;
+  return {
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    description: p.description,
+    short_description: p.short_description,
+    price: toNum(p.price, 0),
+    compare_price: p.compare_price != null ? toNum(p.compare_price, 0) : null,
+    is_featured: Boolean(p.is_featured),
+    is_bestseller: Boolean(p.is_bestseller),
+    is_active: Boolean(p.is_active),
+    created_at: p.created_at,
+    category_name: cat?.name ?? null,
+    category_slug: cat?.slug ?? null,
+    brand_name: brand?.name ?? null,
+    brand_slug: brand?.slug ?? null,
+    image,
+    images,
+    tcg_product_id: p.tcg_product_id ?? null,
+    stock_quantity: toNum(p.stock_quantity, 0),
+    allow_backorders: Boolean(p.allow_backorders)
+  };
+}
+
+function hasStock(product) {
+  return toNum(product.stock_quantity, 0) > 0;
+}
+
+function toValidDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
+}
+
 /** Public catalog: list products with filters, pagination, sort (same shape as lib/products getProducts). */
 export async function getProducts(filters = {}) {
   try {
@@ -195,33 +244,7 @@ export async function getProducts(filters = {}) {
     const pageProducts = products.slice(start, start + limit);
     const { categoriesById, brandsById } = await loadCategoryAndBrandMaps();
 
-    const items = pageProducts.map((p) => {
-      const images = Array.isArray(p.images)
-        ? p.images.map((img) => (typeof img === 'string' ? img : img?.url)).filter(Boolean)
-        : [];
-      const image = p.image || (images[0] || DEFAULT_IMAGE);
-      const cat = p.category_id ? categoriesById.get(p.category_id) : null;
-      const brand = p.brand_id ? brandsById.get(p.brand_id) : null;
-      return {
-        id: p.id,
-        slug: p.slug,
-        name: p.name,
-        description: p.description,
-        short_description: p.short_description,
-        price: toNum(p.price, 0),
-        compare_price: p.compare_price != null ? toNum(p.compare_price, 0) : null,
-        is_featured: Boolean(p.is_featured),
-        is_active: Boolean(p.is_active),
-        created_at: p.created_at,
-        category_name: cat?.name ?? null,
-        category_slug: cat?.slug ?? null,
-        brand_name: brand?.name ?? null,
-        brand_slug: brand?.slug ?? null,
-        image,
-        images,
-        tcg_product_id: p.tcg_product_id ?? null
-      };
-    });
+    const items = pageProducts.map((p) => mapProductToCatalogItem(p, categoriesById, brandsById));
 
     return {
       products: items,
@@ -241,6 +264,172 @@ export async function getProducts(filters = {}) {
       hasNextPage: false,
       hasPrevPage: false
     };
+  }
+}
+
+export async function getNewestProducts({ limit = 8, inStockOnly = true } = {}) {
+  try {
+    const safeLimit = Math.max(1, Number(limit) || 8);
+    const snapshot = await db.collection(PRODUCTS_COLLECTION).get();
+    let products = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    products = products.filter((p) => p.is_active !== false);
+
+    if (inStockOnly) {
+      products = products.filter(hasStock);
+    }
+
+    products.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+
+    const { categoriesById, brandsById } = await loadCategoryAndBrandMaps();
+    return products.slice(0, safeLimit).map((product) => mapProductToCatalogItem(product, categoriesById, brandsById));
+  } catch (err) {
+    console.error('Error getting newest products (Firestore):', err);
+    return [];
+  }
+}
+
+export async function getPopularProducts({ limit = 8, inStockOnly = true, windowDays = 30 } = {}) {
+  try {
+    const safeLimit = Math.max(1, Number(limit) || 8);
+    const safeWindowDays = Math.max(1, Number(windowDays) || 30);
+    const cutoffMs = Date.now() - (safeWindowDays * 24 * 60 * 60 * 1000);
+
+    const [productsSnap, ordersSnap] = await Promise.all([
+      db.collection(PRODUCTS_COLLECTION).get(),
+      db.collection(ORDERS_COLLECTION).get()
+    ]);
+
+    let products = productsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    products = products.filter((p) => p.is_active !== false);
+    if (inStockOnly) {
+      products = products.filter(hasStock);
+    }
+
+    const productsById = new Map(products.map((p) => [String(p.id), p]));
+    const scoreByProductId = new Map();
+
+    for (const orderDoc of ordersSnap.docs) {
+      const order = orderDoc.data();
+      const createdAt = toValidDate(order.created_at);
+      if (!createdAt || createdAt.getTime() < cutoffMs) {
+        continue;
+      }
+
+      const items = Array.isArray(order.items) ? order.items : [];
+      for (const item of items) {
+        const productId = String(item.product_id || item.id || '');
+        if (!productId || !productsById.has(productId)) {
+          continue;
+        }
+
+        const quantity = Math.max(1, toNum(item.quantity, 1));
+        const unitPrice = toNum(item.unit_price, toNum(productsById.get(productId)?.price, 0));
+        const current = scoreByProductId.get(productId) || { sold: 0, revenue: 0 };
+        current.sold += quantity;
+        current.revenue += quantity * unitPrice;
+        scoreByProductId.set(productId, current);
+      }
+    }
+
+    const rankedBySales = [...scoreByProductId.entries()]
+      .sort((a, b) => {
+        if (b[1].sold !== a[1].sold) return b[1].sold - a[1].sold;
+        return b[1].revenue - a[1].revenue;
+      })
+      .map(([productId]) => productsById.get(productId))
+      .filter(Boolean);
+
+    const selected = [];
+    const seen = new Set();
+
+    const pushUnique = (list) => {
+      for (const product of list) {
+        if (!product || seen.has(product.id)) continue;
+        selected.push(product);
+        seen.add(product.id);
+        if (selected.length >= safeLimit) break;
+      }
+    };
+
+    pushUnique(rankedBySales);
+
+    if (selected.length < safeLimit) {
+      const bestsellers = products
+        .filter((p) => Boolean(p.is_bestseller))
+        .sort((a, b) => String(b.updated_at || b.created_at || '').localeCompare(String(a.updated_at || a.created_at || '')));
+      pushUnique(bestsellers);
+    }
+
+    if (selected.length < safeLimit) {
+      const newest = [...products]
+        .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+      pushUnique(newest);
+    }
+
+    const { categoriesById, brandsById } = await loadCategoryAndBrandMaps();
+    return selected.slice(0, safeLimit).map((product) => mapProductToCatalogItem(product, categoriesById, brandsById));
+  } catch (err) {
+    console.error('Error getting popular products (Firestore):', err);
+    return [];
+  }
+}
+
+export async function getFeaturedCategoryProducts(categorySlugs = [], { perCategory = 4, inStockOnly = true } = {}) {
+  try {
+    const normalizedSlugs = Array.isArray(categorySlugs)
+      ? categorySlugs.map((slug) => String(slug || '').trim().toLowerCase()).filter(Boolean)
+      : [];
+
+    if (normalizedSlugs.length === 0) return [];
+
+    const [categoriesSnap, productsSnap] = await Promise.all([
+      db.collection(CATEGORIES_COLLECTION).get(),
+      db.collection(PRODUCTS_COLLECTION).get()
+    ]);
+
+    const categories = categoriesSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const categoriesBySlug = new Map(
+      categories.map((category) => [String(category.slug || '').toLowerCase(), category])
+    );
+
+    let products = productsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    products = products.filter((p) => p.is_active !== false);
+    if (inStockOnly) {
+      products = products.filter(hasStock);
+    }
+
+    const { categoriesById, brandsById } = await loadCategoryAndBrandMaps();
+    const safePerCategory = Math.max(1, Number(perCategory) || 4);
+
+    return normalizedSlugs.map((slug) => {
+      const category = categoriesBySlug.get(slug);
+      if (!category) {
+        return {
+          id: slug,
+          slug,
+          name: slug,
+          image_url: '',
+          products: []
+        };
+      }
+
+      const categoryProducts = products
+        .filter((product) => product.category_id === category.id)
+        .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))
+        .slice(0, safePerCategory)
+        .map((product) => mapProductToCatalogItem(product, categoriesById, brandsById));
+
+      return {
+        id: category.id,
+        slug: category.slug,
+        name: category.name,
+        image_url: category.image_url || '',
+        products: categoryProducts
+      };
+    });
+  } catch (err) {
+    console.error('Error getting featured category products (Firestore):', err);
+    return [];
   }
 }
 
