@@ -12,6 +12,7 @@ import ProductDetailsInput from '../../../../components/admin/ProductDetailsInpu
 import ProductImageEditor from '../../../../components/admin/ProductImageEditor/ProductImageEditor';
 import toast from 'react-hot-toast';
 import { loadingToast } from '../../../../lib/toastHelpers';
+import { DEFAULT_PRODUCT_CONDITION, PRODUCT_CONDITIONS, PRODUCT_CONDITION_LABELS } from '../../../../lib/productCondition';
 import styles from './create.module.css';
 
 const STEPS_NORMAL = [
@@ -63,6 +64,7 @@ export default function CreateProductPage() {
     tcg_sub_type_name: null,
     tags: '',
     features: '',
+    condition: DEFAULT_PRODUCT_CONDITION,
     is_featured: false,
     is_active: false,
     images: [],
@@ -305,6 +307,9 @@ export default function CreateProductPage() {
         errors.price = 'El precio debe ser mayor a 0';
       }
     }
+    if (!formData.condition) {
+      errors.condition = 'Selecciona la condición del producto';
+    }
     if (!formData.weight_grams || parseFloat(formData.weight_grams) <= 0) {
       errors.weight_grams = 'El peso es obligatorio para envío';
     }
@@ -342,6 +347,11 @@ export default function CreateProductPage() {
     if (step === 2) {
       if (!formData.name?.trim()) {
         err.name = 'El nombre es requerido';
+        setValidationErrors((p) => ({ ...p, ...err }));
+        return false;
+      }
+      if (!formData.condition) {
+        err.condition = 'Selecciona la condición del producto';
         setValidationErrors((p) => ({ ...p, ...err }));
         return false;
       }
@@ -415,6 +425,7 @@ export default function CreateProductPage() {
           : null,
       category_id: formData.category_id || null,
       brand_id: formData.brand_id || null,
+      condition: formData.condition,
       stock_quantity: parseInt(formData.stock_quantity, 10) || 0,
       low_stock_threshold: parseInt(formData.low_stock_threshold, 10) || 5,
       is_featured: formData.is_featured || false,
@@ -1094,6 +1105,23 @@ export default function CreateProductPage() {
               />
             </div>
             <div className={styles.field}>
+              <label htmlFor="condition">Condición del producto *</label>
+              <select
+                id="condition"
+                name="condition"
+                value={formData.condition}
+                onChange={handleInputChange}
+                className={`${styles.input} ${validationErrors.condition ? styles.inputError : ''}`}
+              >
+                {PRODUCT_CONDITIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {PRODUCT_CONDITION_LABELS[option]}
+                  </option>
+                ))}
+              </select>
+              {validationErrors.condition && <span className={styles.errorText}>{validationErrors.condition}</span>}
+            </div>
+            <div className={styles.field}>
               <label>Etiquetas</label>
               <TagInput
                 value={formData.tags}
@@ -1344,6 +1372,8 @@ export default function CreateProductPage() {
               <dd>{catName}</dd>
               <dt>Marca</dt>
               <dd>{brandName}</dd>
+              <dt>Condición</dt>
+              <dd>{PRODUCT_CONDITION_LABELS[formData.condition] || '—'}</dd>
               <dt>Precio</dt>
               <dd>{formData.price ? `$${formData.price}` : '—'}</dd>
               <dt>Stock</dt>

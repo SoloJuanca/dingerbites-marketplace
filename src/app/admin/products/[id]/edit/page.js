@@ -11,6 +11,7 @@ import ProductDetailsInput from '../../../../../components/admin/ProductDetailsI
 import ProductImageEditor from '../../../../../components/admin/ProductImageEditor/ProductImageEditor';
 import toast from 'react-hot-toast';
 import { loadingToast } from '../../../../../lib/toastHelpers';
+import { DEFAULT_PRODUCT_CONDITION, PRODUCT_CONDITIONS, PRODUCT_CONDITION_LABELS, sanitizeProductCondition } from '../../../../../lib/productCondition';
 import styles from '../../create/create.module.css';
 
 const STEPS_NORMAL = [
@@ -70,6 +71,7 @@ export default function EditProductPage() {
     height_cm: '',
     tags: '',
     features: '',
+    condition: DEFAULT_PRODUCT_CONDITION,
     is_featured: false,
     is_active: false,
     meta_title: '',
@@ -137,6 +139,7 @@ export default function EditProductPage() {
           height_cm: height_cm,
           tags: Array.isArray(product.tags) ? product.tags.join(', ') : product.meta_keywords || '',
           features: Array.isArray(product.features) ? product.features.join('\n') : '',
+          condition: sanitizeProductCondition(product.condition),
           is_featured: product.is_featured || false,
           is_active: product.is_active || false,
           meta_title: product.meta_title || '',
@@ -275,6 +278,7 @@ export default function EditProductPage() {
     if (step === 2) {
       if (!formData.name?.trim()) { err.name = 'El título es requerido'; }
       if (!formData.slug?.trim()) { err.slug = 'El slug es requerido'; }
+      if (!formData.condition) { err.condition = 'Selecciona la condición del producto'; }
       if (!isTcgFlow && !formData.category_id) { err.category_id = 'Selecciona una categoría'; }
       if (Object.keys(err).length) {
         setValidationErrors((p) => ({ ...p, ...err }));
@@ -349,6 +353,7 @@ export default function EditProductPage() {
           : null,
       category_id: formData.category_id || null,
       brand_id: formData.brand_id || null,
+      condition: formData.condition,
       stock_quantity: parseInt(formData.stock_quantity, 10) || 0,
       low_stock_threshold: parseInt(formData.low_stock_threshold, 10) || 5,
       is_featured: formData.is_featured || false,
@@ -439,6 +444,9 @@ export default function EditProductPage() {
     if (!formData.slug.trim()) errors.slug = 'El slug es requerido';
     if (!isTcgProduct && (!formData.price || parseFloat(formData.price) <= 0)) {
       errors.price = 'El precio debe ser mayor a 0';
+    }
+    if (!formData.condition) {
+      errors.condition = 'Selecciona la condición del producto';
     }
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
@@ -923,6 +931,23 @@ export default function EditProductPage() {
               />
             </div>
             <div className={styles.field}>
+              <label htmlFor="condition">Condición del producto *</label>
+              <select
+                id="condition"
+                name="condition"
+                value={formData.condition}
+                onChange={handleInputChange}
+                className={`${styles.input} ${validationErrors.condition ? styles.inputError : ''}`}
+              >
+                {PRODUCT_CONDITIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {PRODUCT_CONDITION_LABELS[option]}
+                  </option>
+                ))}
+              </select>
+              {validationErrors.condition && <span className={styles.errorText}>{validationErrors.condition}</span>}
+            </div>
+            <div className={styles.field}>
               <label>Etiquetas</label>
               <TagInput
                 value={formData.tags}
@@ -1164,6 +1189,8 @@ export default function EditProductPage() {
               <dd>{catName}</dd>
               <dt>Marca</dt>
               <dd>{brandName}</dd>
+              <dt>Condición</dt>
+              <dd>{PRODUCT_CONDITION_LABELS[formData.condition] || '—'}</dd>
               <dt>Precio</dt>
               <dd>{formData.price ? `$${formData.price}` : '—'}</dd>
               <dt>Stock</dt>

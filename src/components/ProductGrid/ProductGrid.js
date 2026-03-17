@@ -11,6 +11,7 @@ export default function ProductGrid({
   currentPage,
   category,
   brand,
+  condition,
   minPrice,
   maxPrice,
   sortBy,
@@ -34,6 +35,7 @@ export default function ProductGrid({
 
         if (category) params.set('category', category);
         if (brand) params.set('brand', brand);
+        if (condition) params.set('condition', condition);
         if (minPrice) params.set('minPrice', minPrice);
         if (maxPrice) params.set('maxPrice', maxPrice);
         if (sortBy) params.set('sortBy', sortBy);
@@ -65,7 +67,7 @@ export default function ProductGrid({
     }
 
     loadProducts();
-  }, [currentPage, category, brand, minPrice, maxPrice, sortBy, search]);
+  }, [currentPage, category, brand, condition, minPrice, maxPrice, sortBy, search]);
 
   if (loading) {
     return (

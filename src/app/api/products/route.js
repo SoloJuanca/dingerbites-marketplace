@@ -9,6 +9,7 @@ export async function GET(request) {
       page: parseInt(searchParams.get('page')) || 1,
       category: searchParams.get('category') || '',
       brand: searchParams.get('brand') || '',
+      condition: searchParams.get('condition') || '',
       minPrice: searchParams.get('minPrice') || '',
       maxPrice: searchParams.get('maxPrice') || '',
       sortBy: searchParams.get('sortBy') || 'newest',

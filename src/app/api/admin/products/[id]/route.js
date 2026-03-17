@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../../lib/auth';
 import { db } from '../../../../../lib/firebaseAdmin';
 import { notifyBackInStockSubscribers } from '../../../../../lib/stockAlerts';
+import { isValidProductCondition, normalizeProductCondition } from '../../../../../lib/productCondition';
 
 const PRODUCTS_COLLECTION = 'products';
 const CATEGORIES_COLLECTION = 'product_categories';
@@ -131,6 +132,7 @@ export async function PUT(request, { params }) {
       meta_keywords,
       images,
       features,
+      condition,
       tcg_product_id,
       tcg_group_id,
       tcg_category_id,
@@ -148,6 +150,16 @@ export async function PUT(request, { params }) {
     if (is_active && !isTcgProduct && (!price || parseFloat(price) <= 0)) {
       return NextResponse.json(
         { error: 'Price is required for published products' },
+        { status: 400 }
+      );
+    }
+
+    const normalizedCondition = normalizeProductCondition(
+      condition !== undefined ? condition : existingProduct.condition
+    );
+    if (!isValidProductCondition(normalizedCondition)) {
+      return NextResponse.json(
+        { error: 'Condition must be one of: nuevo sellado, nuevo abierto, segunda mano' },
         { status: 400 }
       );
     }
@@ -188,6 +200,7 @@ export async function PUT(request, { params }) {
       dimensions_cm: dimensions_cm ?? existingProduct.dimensions_cm ?? null,
       category_id: category_id ?? existingProduct.category_id ?? null,
       brand_id: brand_id ?? existingProduct.brand_id ?? null,
+      condition: normalizedCondition,
       stock_quantity: stock_quantity !== undefined ? toNumber(stock_quantity, 0) : existingProduct.stock_quantity,
       low_stock_threshold: low_stock_threshold !== undefined ? toNumber(low_stock_threshold, 5) : existingProduct.low_stock_threshold,
       allow_backorders: allow_backorders !== undefined ? Boolean(allow_backorders) : existingProduct.allow_backorders,

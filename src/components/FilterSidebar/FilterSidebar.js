@@ -8,9 +8,11 @@ import styles from './FilterSidebar.module.css';
 export default function FilterSidebar({ 
   categories = [],
   brands = [],
+  conditions = [],
   priceRange = { min: 0, max: 1000 },
   currentCategory, 
   currentBrand, 
+  currentCondition,
   currentMinPrice, 
   currentMaxPrice 
 }) {
@@ -23,12 +25,41 @@ export default function FilterSidebar({
   const [collapsedSections, setCollapsedSections] = useState({
     categories: false,
     brands: false,
+    conditions: false,
     price: false
   });
   
   // Convertir strings de URL a arrays
   const selectedCategories = currentCategory ? currentCategory.split(',') : [];
   const selectedBrands = currentBrand ? currentBrand.split(',') : [];
+  const selectedConditions = currentCondition ? currentCondition.split(',') : [];
+
+  const categoriesByParent = categories.reduce((map, category) => {
+    const parentId = category.parent_id || null;
+    if (!map.has(parentId)) {
+      map.set(parentId, []);
+    }
+    map.get(parentId).push(category);
+    return map;
+  }, new Map());
+
+  const getDescendantSlugs = (categoryId) => {
+    const descendants = [];
+    const stack = [...(categoriesByParent.get(categoryId) || [])];
+    while (stack.length > 0) {
+      const current = stack.pop();
+      if (!current) continue;
+      descendants.push(current.slug);
+      const children = categoriesByParent.get(current.id) || [];
+      stack.push(...children);
+    }
+    return descendants;
+  };
+
+  const hasSelectedDescendant = (categoryId) => {
+    const descendants = getDescendantSlugs(categoryId);
+    return descendants.some((slug) => selectedCategories.includes(slug));
+  };
 
   const updateFilters = (newFilters) => {
     const params = new URLSearchParams(searchParams);
@@ -49,20 +80,22 @@ export default function FilterSidebar({
     router.push(`/catalog?${params.toString()}`);
   };
 
-  const handleCategoryChange = (categoryValue) => {
+  const handleCategoryChange = (categoryValue, categoryId) => {
     let newCategories = [...selectedCategories];
     
     if (newCategories.includes(categoryValue)) {
-      // Remover categoría si ya está seleccionada
-      newCategories = newCategories.filter(cat => cat !== categoryValue);
+      const descendantSlugs = getDescendantSlugs(categoryId);
+      newCategories = newCategories.filter(
+        (cat) => cat !== categoryValue && !descendantSlugs.includes(cat)
+      );
     } else {
-      // Agregar nueva categoría
       newCategories.push(categoryValue);
     }
     
     updateFilters({
       category: newCategories,
       brand: selectedBrands,
+      condition: selectedConditions,
       minPrice: currentMinPrice,
       maxPrice: currentMaxPrice
     });
@@ -82,6 +115,25 @@ export default function FilterSidebar({
     updateFilters({
       category: selectedCategories,
       brand: newBrands,
+      condition: selectedConditions,
+      minPrice: currentMinPrice,
+      maxPrice: currentMaxPrice
+    });
+  };
+
+  const handleConditionChange = (conditionValue) => {
+    let newConditions = [...selectedConditions];
+
+    if (newConditions.includes(conditionValue)) {
+      newConditions = newConditions.filter((value) => value !== conditionValue);
+    } else {
+      newConditions.push(conditionValue);
+    }
+
+    updateFilters({
+      category: selectedCategories,
+      brand: selectedBrands,
+      condition: newConditions,
       minPrice: currentMinPrice,
       maxPrice: currentMaxPrice
     });
@@ -92,6 +144,7 @@ export default function FilterSidebar({
     updateFilters({
       category: selectedCategories,
       brand: selectedBrands,
+      condition: selectedConditions,
       minPrice: minPrice,
       maxPrice: maxPrice
     });
@@ -124,23 +177,44 @@ export default function FilterSidebar({
           </button>
           <div className={`${styles.sectionContent} ${collapsedSections.categories ? styles.collapsed : ''}`}>
             <div className={styles.categoryList}>
-              {categories.map((category) => (
-                <label
-                  key={category.id}
-                  className={styles.checkboxItem}
-                  style={category.parent_id ? { paddingLeft: 16 } : undefined}
-                >
-                  <input
-                    type="checkbox"
-                    className={styles.checkbox}
-                    checked={selectedCategories.includes(category.slug)}
-                    onChange={() => handleCategoryChange(category.slug)}
-                  />
-                  <span className={styles.checkboxLabel}>
-                    {category.parent_id ? '↳ ' : ''}{category.name}
-                  </span>
-                </label>
-              ))}
+              {(categoriesByParent.get(null) || []).map((parentCategory) => {
+                const childCategories = categoriesByParent.get(parentCategory.id) || [];
+                const showChildren =
+                  selectedCategories.includes(parentCategory.slug) ||
+                  hasSelectedDescendant(parentCategory.id);
+
+                return (
+                  <div key={parentCategory.id}>
+                    <label className={styles.checkboxItem}>
+                      <input
+                        type="checkbox"
+                        className={styles.checkbox}
+                        checked={selectedCategories.includes(parentCategory.slug)}
+                        onChange={() => handleCategoryChange(parentCategory.slug, parentCategory.id)}
+                      />
+                      <span className={styles.checkboxLabel}>{parentCategory.name}</span>
+                    </label>
+                    {showChildren &&
+                      childCategories.map((childCategory) => (
+                        <label
+                          key={childCategory.id}
+                          className={styles.checkboxItem}
+                          style={{ paddingLeft: 16 }}
+                        >
+                          <input
+                            type="checkbox"
+                            className={styles.checkbox}
+                            checked={selectedCategories.includes(childCategory.slug)}
+                            onChange={() => handleCategoryChange(childCategory.slug, childCategory.id)}
+                          />
+                          <span className={styles.checkboxLabel}>
+                            ↳ {childCategory.name}
+                          </span>
+                        </label>
+                      ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -170,6 +244,38 @@ export default function FilterSidebar({
                   />
                   <span className={styles.checkboxLabel}>
                     {brand.name}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Condición */}
+        <div className={styles.filterSection}>
+          <button
+            className={styles.sectionHeader}
+            onClick={() => toggleSection('conditions')}
+          >
+            <h4 className={styles.sectionTitle}>Condición</h4>
+            <Icon
+              name="keyboard_arrow_down"
+              size={20}
+              className={`${styles.collapseIcon} ${!collapsedSections.conditions ? styles.expanded : ''}`}
+            />
+          </button>
+          <div className={`${styles.sectionContent} ${collapsedSections.conditions ? styles.collapsed : ''}`}>
+            <div className={styles.brandList}>
+              {conditions.map((conditionOption) => (
+                <label key={conditionOption.value} className={styles.checkboxItem}>
+                  <input
+                    type="checkbox"
+                    className={styles.checkbox}
+                    checked={selectedConditions.includes(conditionOption.value)}
+                    onChange={() => handleConditionChange(conditionOption.value)}
+                  />
+                  <span className={styles.checkboxLabel}>
+                    {conditionOption.label}
                   </span>
                 </label>
               ))}

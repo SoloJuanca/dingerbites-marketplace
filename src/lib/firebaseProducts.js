@@ -1,6 +1,7 @@
 import { FieldValue } from 'firebase-admin/firestore';
 import { db } from './firebaseAdmin';
 import { getTcgMinPriceForSubType } from './currency';
+import { PRODUCT_CONDITIONS, normalizeProductCondition, sanitizeProductCondition } from './productCondition';
 
 const PRODUCTS_COLLECTION = 'products';
 const CATEGORIES_COLLECTION = 'product_categories';
@@ -190,6 +191,7 @@ function mapProductToCatalogItem(p, categoriesById, brandsById) {
   const rawPrice = toNum(p.price, 0);
   const displayPrice =
     p.tcg_product_id != null ? Math.max(getTcgMinPriceForSubType(tcgSubTypeName), rawPrice) : rawPrice;
+  const condition = sanitizeProductCondition(p.condition);
 
   return {
     id: p.id,
@@ -211,6 +213,7 @@ function mapProductToCatalogItem(p, categoriesById, brandsById) {
     images,
     tcg_product_id: p.tcg_product_id ?? null,
     tcg_sub_type_name: tcgSubTypeName,
+    condition,
     stock_quantity: toNum(p.stock_quantity, 0),
     allow_backorders: Boolean(p.allow_backorders)
   };
@@ -235,6 +238,12 @@ export async function getProducts(filters = {}) {
     const brandSlugs = filters.brand ? String(filters.brand).split(',').map((s) => s.trim()).filter(Boolean) : [];
     const minPrice = filters.minPrice ? toNum(filters.minPrice, 0) : null;
     const maxPrice = filters.maxPrice ? toNum(filters.maxPrice, Infinity) : null;
+    const conditionFilters = filters.condition
+      ? String(filters.condition)
+          .split(',')
+          .map((value) => normalizeProductCondition(value))
+          .filter((value) => PRODUCT_CONDITIONS.includes(value))
+      : [];
     const search = (filters.search || '').trim().toLowerCase();
     const sortBy = filters.sortBy || 'newest';
 
@@ -248,6 +257,9 @@ export async function getProducts(filters = {}) {
     }
     if (brandIds.length > 0) {
       products = products.filter((p) => p.brand_id && brandIds.includes(p.brand_id));
+    }
+    if (conditionFilters.length > 0) {
+      products = products.filter((p) => conditionFilters.includes(sanitizeProductCondition(p.condition)));
     }
     if (minPrice != null) {
       products = products.filter((p) => toNum(p.price, 0) >= minPrice);
@@ -572,6 +584,7 @@ export async function getProductBySlug(slug) {
     const rawPrice = toNum(p.price, 0);
     const displayPrice =
       p.tcg_product_id != null ? Math.max(getTcgMinPriceForSubType(tcgSubTypeName), rawPrice) : rawPrice;
+    const condition = sanitizeProductCondition(p.condition);
 
     return {
       id: p.id,
@@ -595,6 +608,7 @@ export async function getProductBySlug(slug) {
       features,
       tcg_product_id: p.tcg_product_id ?? null,
       tcg_sub_type_name: tcgSubTypeName,
+      condition,
       stock_quantity: toNum(p.stock_quantity, 0),
       low_stock_threshold: toNum(p.low_stock_threshold, 0),
       allow_backorders: Boolean(p.allow_backorders)

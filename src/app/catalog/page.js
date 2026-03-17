@@ -18,6 +18,7 @@ function CatalogData() {
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
+  const [conditions, setConditions] = useState([]);
   const [priceRange, setPriceRange] = useState({ min: 0, max: 1000 });
   const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
@@ -25,6 +26,7 @@ function CatalogData() {
   const currentPage = parseInt(searchParams.get('page')) || 1;
   const category = searchParams.get('category') || '';
   const brand = searchParams.get('brand') || '';
+  const condition = searchParams.get('condition') || '';
   const minPrice = searchParams.get('minPrice') || '';
   const maxPrice = searchParams.get('maxPrice') || '';
   const sortBy = searchParams.get('sortBy') || 'newest';
@@ -44,6 +46,7 @@ function CatalogData() {
         const data = await response.json();
         setCategories(data.categories || []);
         setBrands(data.brands || []);
+        setConditions(data.conditions || []);
         setPriceRange(data.priceRange || { min: 0, max: 1000 });
       } catch (error) {
         console.error('Error loading filter data:', error);
@@ -57,6 +60,11 @@ function CatalogData() {
           { id: 1, name: 'Brand A', slug: 'brand-a' },
           { id: 2, name: 'Brand B', slug: 'brand-b' },
           { id: 3, name: 'Brand C', slug: 'brand-c' }
+        ]);
+        setConditions([
+          { value: 'nuevo sellado', label: 'Nuevo sellado' },
+          { value: 'nuevo abierto', label: 'Nuevo abierto' },
+          { value: 'segunda mano', label: 'Segunda mano' }
         ]);
         setPriceRange({ min: 0, max: 2000 });
       } finally {
@@ -95,9 +103,11 @@ function CatalogData() {
               <FilterSidebar 
                 categories={categories}
                 brands={brands}
+                conditions={conditions}
                 priceRange={priceRange}
                 currentCategory={category}
                 currentBrand={brand}
+                currentCondition={condition}
                 currentMinPrice={minPrice}
                 currentMaxPrice={maxPrice}
               />
@@ -121,6 +131,7 @@ function CatalogData() {
                 currentPage={currentPage}
                 category={category}
                 brand={brand}
+                condition={condition}
                 minPrice={minPrice}
                 maxPrice={maxPrice}
                 sortBy={sortBy}
@@ -135,9 +146,11 @@ function CatalogData() {
       <FilterModal
         categories={categories}
         brands={brands}
+        conditions={conditions}
         priceRange={priceRange}
         currentCategory={category}
         currentBrand={brand}
+        currentCondition={condition}
         currentMinPrice={minPrice}
         currentMaxPrice={maxPrice}
         isOpen={isFilterModalOpen}

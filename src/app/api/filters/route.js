@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCategories, getBrands, getPriceRange } from '../../../lib/firebaseProducts';
+import { PRODUCT_CONDITIONS, PRODUCT_CONDITION_LABELS } from '../../../lib/productCondition';
 
 export async function GET() {
   try {
@@ -12,7 +13,11 @@ export async function GET() {
     return NextResponse.json({
       categories,
       brands,
-      priceRange
+      priceRange,
+      conditions: PRODUCT_CONDITIONS.map((value) => ({
+        value,
+        label: PRODUCT_CONDITION_LABELS[value]
+      }))
     });
   } catch (error) {
     console.error('Error fetching filter data:', error);
@@ -29,7 +34,11 @@ export async function GET() {
         { id: 2, name: 'Brand B', slug: 'brand-b' },
         { id: 3, name: 'Brand C', slug: 'brand-c' }
       ],
-      priceRange: { min: 0, max: 2000 }
+      priceRange: { min: 0, max: 2000 },
+      conditions: PRODUCT_CONDITIONS.map((value) => ({
+        value,
+        label: PRODUCT_CONDITION_LABELS[value]
+      }))
     });
   }
 }
