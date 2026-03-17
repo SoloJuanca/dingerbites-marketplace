@@ -10,8 +10,8 @@ export default function SortOptions({ currentSort }) {
   const sortOptions = [
     { value: 'newest', label: 'Más nuevos' },
     { value: 'oldest', label: 'Más antiguos' },
-    { value: 'price-low', label: 'Precio: menor a mayor' },
-    { value: 'price-high', label: 'Precio: mayor a menor' }
+    { value: 'price_asc', label: 'Precio: menor a mayor' },
+    { value: 'price_desc', label: 'Precio: mayor a menor' }
   ];
 
   const handleSortChange = (e) => {

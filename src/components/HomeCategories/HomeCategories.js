@@ -22,25 +22,6 @@ export default function HomeCategories({ categories = [] }) {
       <div className="container">
         <header className={styles.header}>
           <h2 id="home-categories-title" className={styles.title}>Categorías</h2>
-          <div className={styles.headerActions}>
-            <button
-              type="button"
-              onClick={() => handleScroll('prev')}
-              className={styles.navButton}
-              aria-label="Desplazar categorías hacia la izquierda"
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              onClick={() => handleScroll('next')}
-              className={styles.navButton}
-              aria-label="Desplazar categorías hacia la derecha"
-            >
-              ›
-            </button>
-            <Link href="/catalog" className={styles.link}>Ver catálogo completo</Link>
-          </div>
         </header>
 
         {filteredCategories.length === 0 ? (

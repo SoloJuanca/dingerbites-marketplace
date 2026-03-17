@@ -137,6 +137,25 @@
     padding-top: 16px;
   }
 
+  .carousel {
+    min-height: 240px;
+    max-height: 240px;
+  }
+
+  .imageWrap {
+    min-height: 240px;
+    max-height: 240px;
+  }
+
+  .image {
+    min-height: 240px;
+    max-height: 240px;
+  }
+
+  .content {
+    max-width: 280px;
+  }
+
   .overlay {
     padding: 16px;
   }

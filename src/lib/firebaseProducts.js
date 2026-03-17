@@ -269,9 +269,11 @@ export async function getProducts(filters = {}) {
 
     switch (sortBy) {
       case 'price_asc':
+      case 'price-low':
         products.sort((a, b) => toNum(a.price, 0) - toNum(b.price, 0));
         break;
       case 'price_desc':
+      case 'price-high':
         products.sort((a, b) => toNum(b.price, 0) - toNum(a.price, 0));
         break;
       case 'name_asc':
@@ -279,6 +281,9 @@ export async function getProducts(filters = {}) {
         break;
       case 'name_desc':
         products.sort((a, b) => String(b.name || '').localeCompare(String(a.name || '')));
+        break;
+      case 'oldest':
+        products.sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')));
         break;
       case 'newest':
       default:

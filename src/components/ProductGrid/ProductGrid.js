@@ -84,9 +84,9 @@ export default function ProductGrid({
         <div className={styles.emptyIcon}>
           <Icon name="search_off" size={64} className={styles.searchIcon} />
         </div>
-        <h3 className={styles.emptyTitle}>No se encontraron productos</h3>
+        <h3 className={styles.emptyTitle}>Espera pronto nuevos productos.</h3>
         <p className={styles.emptyMessage}>
-          Intenta ajustar los filtros para ver más resultados
+          ¡En breve estarán disponibles nuevos productos para tu colección!
         </p>
         <div className={styles.emptyCta}>
           <p className={styles.emptyCtaText}>
