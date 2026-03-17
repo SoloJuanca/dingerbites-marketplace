@@ -19,7 +19,6 @@ function ProductData({ slug }) {
   const [marketPriceMxn, setMarketPriceMxn] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isPurchasePanelOpen, setIsPurchasePanelOpen] = useState(false);
 
   useEffect(() => {
     async function loadProduct() {
@@ -61,15 +60,6 @@ function ProductData({ slug }) {
       loadProduct();
     }
   }, [slug]);
-
-  useEffect(() => {
-    if (!isPurchasePanelOpen) return undefined;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [isPurchasePanelOpen]);
 
   if (loading) {
     return (
@@ -136,6 +126,32 @@ function ProductData({ slug }) {
               />
               
               <ProductInfo product={product} marketPriceMxn={marketPriceMxn} isTcgProduct={!!product.tcg_product_id} />
+
+              <section className={styles.mobileTrustFeatures} aria-label="Beneficios de compra">
+                <article className={styles.mobileTrustFeature}>
+                  <Icon name="local_shipping" size={20} className={styles.mobileTrustFeatureIcon} />
+                  <div className={styles.mobileTrustFeatureText}>
+                    <strong>Envío gratis</strong>
+                    <span>En pedidos mayores a $800</span>
+                  </div>
+                </article>
+
+                <article className={styles.mobileTrustFeature}>
+                  <Icon name="verified_user" size={20} className={styles.mobileTrustFeatureIcon} />
+                  <div className={styles.mobileTrustFeatureText}>
+                    <strong>Compra segura</strong>
+                    <span>Pago protegido y datos cifrados</span>
+                  </div>
+                </article>
+
+                <article className={styles.mobileTrustFeature}>
+                  <Icon name="autorenew" size={20} className={styles.mobileTrustFeatureIcon} />
+                  <div className={styles.mobileTrustFeatureText}>
+                    <strong>Cambios y devoluciones</strong>
+                    <span>Hasta 30 días</span>
+                  </div>
+                </article>
+              </section>
               
               <ProductReviews productId={product.id} />
 
@@ -154,34 +170,8 @@ function ProductData({ slug }) {
             product={product}
             marketPriceMxn={marketPriceMxn}
             isTcgProduct={!!product.tcg_product_id}
-            onOpenPanel={() => setIsPurchasePanelOpen(true)}
           />
         </div>
-
-        {isPurchasePanelOpen && (
-          <div
-            className={styles.purchaseModalOverlay}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Panel de compra"
-            onClick={() => setIsPurchasePanelOpen(false)}
-          >
-            <div
-              className={styles.purchaseModalContent}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <button
-                type="button"
-                className={styles.closeModalBtn}
-                onClick={() => setIsPurchasePanelOpen(false)}
-                aria-label="Cerrar panel de compra"
-              >
-                <Icon name="close" size={20} />
-              </button>
-              <ProductSummary product={product} marketPriceMxn={marketPriceMxn} isTcgProduct={!!product.tcg_product_id} />
-            </div>
-          </div>
-        )}
       </main>
       <Footer />
     </>

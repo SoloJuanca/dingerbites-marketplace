@@ -11,8 +11,7 @@ import styles from './ProductStickyPurchaseBar.module.css';
 export default function ProductStickyPurchaseBar({
   product,
   marketPriceMxn = null,
-  isTcgProduct = false,
-  onOpenPanel
+  isTcgProduct = false
 }) {
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
@@ -85,16 +84,6 @@ export default function ProductStickyPurchaseBar({
 
   return (
     <div className={styles.stickyBar} role="region" aria-label="Acciones rápidas de compra">
-      <button
-        className={styles.viewPanelBtn}
-        onClick={onOpenPanel}
-        type="button"
-        aria-label="Abrir panel completo de compra"
-      >
-        <Icon name="menu_open" size={20} />
-        Panel
-      </button>
-
       {!isOutOfStock && (
         <div className={styles.quantityControls}>
           <button

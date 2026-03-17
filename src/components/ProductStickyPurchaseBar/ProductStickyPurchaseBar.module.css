@@ -5,33 +5,13 @@
   bottom: 0;
   z-index: 70;
   display: grid;
-  grid-template-columns: auto auto 1fr;
+  grid-template-columns: auto 1fr;
   gap: 8px;
   align-items: center;
   padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
   background: rgba(255, 255, 255, 0.98);
   border-top: 1px solid #e9ecef;
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
-}
-
-.viewPanelBtn {
-  height: 48px;
-  border-radius: 8px;
-  border: 1px solid #dee2e6;
-  background: #f8f9fa;
-  color: #2c3e50;
-  font-size: 14px;
-  font-weight: 600;
-  padding: 0 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.viewPanelBtn:hover {
-  background-color: #eef1f4;
 }
 
 .quantityControls {
@@ -98,11 +78,5 @@
 @media (max-width: 480px) {
   .stickyBar {
     grid-template-columns: auto 1fr;
-  }
-
-  .quantityControls {
-    order: 3;
-    grid-column: 1 / -1;
-    width: fit-content;
   }
 }
