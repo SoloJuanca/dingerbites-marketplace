@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '../../../../../../lib/firebaseAdmin';
-import { convertUsdToMxn } from '../../../../../../lib/currency';
+import { convertUsdToMxnWithMin } from '../../../../../../lib/currency';
 
 const PRODUCTS_COLLECTION = 'products';
 const TCG_BASE = 'https://tcgcsv.com/tcgplayer';
@@ -68,7 +68,9 @@ export async function GET(request, { params }) {
     const marketPriceUsd =
       priceRow.marketPrice ?? priceRow.midPrice ?? priceRow.lowPrice ?? null;
     const marketPriceMxn =
-      marketPriceUsd != null ? convertUsdToMxn(marketPriceUsd) : null;
+      marketPriceUsd != null
+        ? convertUsdToMxnWithMin(marketPriceUsd, priceRow.subTypeName || tcgSubTypeName || 'Normal')
+        : null;
 
     return NextResponse.json({
       success: true,

@@ -1,4 +1,6 @@
+import { FieldValue } from 'firebase-admin/firestore';
 import { db } from './firebaseAdmin';
+import { getTcgMinPriceForSubType } from './currency';
 
 const PRODUCTS_COLLECTION = 'products';
 const CATEGORIES_COLLECTION = 'product_categories';
@@ -97,19 +99,56 @@ async function resolveCategoryAndBrandSlugs(categorySlugs, brandSlugs) {
     db.collection(CATEGORIES_COLLECTION).get(),
     db.collection(BRANDS_COLLECTION).get()
   ]);
+  const categories = catSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
   const slugToCategoryId = new Map();
-  catSnap.docs.forEach((d) => {
-    const data = d.data();
-    if (data.slug) slugToCategoryId.set(data.slug, d.id);
+  const childrenByParentId = new Map();
+
+  categories.forEach((category) => {
+    if (category.slug) {
+      slugToCategoryId.set(category.slug, category.id);
+    }
+    const parentId = category.parent_id || null;
+    if (!childrenByParentId.has(parentId)) {
+      childrenByParentId.set(parentId, []);
+    }
+    childrenByParentId.get(parentId).push(category.id);
   });
+
+  const collectDescendantCategoryIds = (rootCategoryId) => {
+    const result = new Set();
+    const queue = [rootCategoryId];
+
+    while (queue.length > 0) {
+      const currentId = queue.shift();
+      if (!currentId || result.has(currentId)) continue;
+      result.add(currentId);
+
+      const children = childrenByParentId.get(currentId) || [];
+      children.forEach((childId) => {
+        if (!result.has(childId)) {
+          queue.push(childId);
+        }
+      });
+    }
+
+    return [...result];
+  };
+
   const slugToBrandId = new Map();
   brandSnap.docs.forEach((d) => {
     const data = d.data();
     if (data.slug) slugToBrandId.set(data.slug, d.id);
   });
-  const categoryIds = (categorySlugs || [])
-    .map((s) => slugToCategoryId.get(s))
-    .filter(Boolean);
+
+  const categoryIds = [
+    ...new Set(
+      (categorySlugs || [])
+        .map((slug) => slugToCategoryId.get(slug))
+        .filter(Boolean)
+        .flatMap((categoryId) => collectDescendantCategoryIds(categoryId))
+    )
+  ];
+
   const brandIds = (brandSlugs || []).map((s) => slugToBrandId.get(s)).filter(Boolean);
   return { categoryIds, brandIds, categoriesById: slugToCategoryId, brandsById: slugToBrandId };
 }
@@ -147,13 +186,18 @@ function mapProductToCatalogItem(p, categoriesById, brandsById) {
   const { images, image } = getProductImage(p);
   const cat = p.category_id ? categoriesById.get(p.category_id) : null;
   const brand = p.brand_id ? brandsById.get(p.brand_id) : null;
+  const tcgSubTypeName = p.tcg_sub_type_name ?? null;
+  const rawPrice = toNum(p.price, 0);
+  const displayPrice =
+    p.tcg_product_id != null ? Math.max(getTcgMinPriceForSubType(tcgSubTypeName), rawPrice) : rawPrice;
+
   return {
     id: p.id,
     slug: p.slug,
     name: p.name,
     description: p.description,
     short_description: p.short_description,
-    price: toNum(p.price, 0),
+    price: displayPrice,
     compare_price: p.compare_price != null ? toNum(p.compare_price, 0) : null,
     is_featured: Boolean(p.is_featured),
     is_bestseller: Boolean(p.is_bestseller),
@@ -166,6 +210,7 @@ function mapProductToCatalogItem(p, categoriesById, brandsById) {
     image,
     images,
     tcg_product_id: p.tcg_product_id ?? null,
+    tcg_sub_type_name: tcgSubTypeName,
     stock_quantity: toNum(p.stock_quantity, 0),
     allow_backorders: Boolean(p.allow_backorders)
   };
@@ -293,6 +338,13 @@ export async function getPopularProducts({ limit = 8, inStockOnly = true, window
     const safeLimit = Math.max(1, Number(limit) || 8);
     const safeWindowDays = Math.max(1, Number(windowDays) || 30);
     const cutoffMs = Date.now() - (safeWindowDays * 24 * 60 * 60 * 1000);
+    const useObservability = true;
+    const weights = {
+      sold: 0.6,
+      revenue: 0.25,
+      views: 0.15
+    };
+    const tcgPriorityMultiplier = 0.72;
 
     const [productsSnap, ordersSnap] = await Promise.all([
       db.collection(PRODUCTS_COLLECTION).get(),
@@ -324,20 +376,46 @@ export async function getPopularProducts({ limit = 8, inStockOnly = true, window
 
         const quantity = Math.max(1, toNum(item.quantity, 1));
         const unitPrice = toNum(item.unit_price, toNum(productsById.get(productId)?.price, 0));
-        const current = scoreByProductId.get(productId) || { sold: 0, revenue: 0 };
+        const current = scoreByProductId.get(productId) || { sold: 0, revenue: 0, views: 0 };
         current.sold += quantity;
         current.revenue += quantity * unitPrice;
         scoreByProductId.set(productId, current);
       }
     }
 
-    const rankedBySales = [...scoreByProductId.entries()]
-      .sort((a, b) => {
-        if (b[1].sold !== a[1].sold) return b[1].sold - a[1].sold;
-        return b[1].revenue - a[1].revenue;
+    const maxSold = Math.max(
+      1,
+      ...[...scoreByProductId.values()].map((value) => toNum(value.sold, 0))
+    );
+    const maxRevenue = Math.max(
+      1,
+      ...[...scoreByProductId.values()].map((value) => toNum(value.revenue, 0))
+    );
+    const maxViews = Math.max(
+      1,
+      ...products.map((product) => toNum(product.view_count, 0))
+    );
+
+    const rankedByPopularity = [...products]
+      .map((product) => {
+        const productId = String(product.id);
+        const orderStats = scoreByProductId.get(productId) || { sold: 0, revenue: 0, views: 0 };
+        const soldSignal = toNum(orderStats.sold, 0) / maxSold;
+        const revenueSignal = toNum(orderStats.revenue, 0) / maxRevenue;
+        const viewsSignal = useObservability ? toNum(product.view_count, 0) / maxViews : 0;
+
+        const baseScore =
+          soldSignal * weights.sold +
+          revenueSignal * weights.revenue +
+          viewsSignal * weights.views;
+
+        const isTcgProduct = product.tcg_product_id != null;
+        const adjustedScore = isTcgProduct ? baseScore * tcgPriorityMultiplier : baseScore;
+
+        return { product, score: adjustedScore };
       })
-      .map(([productId]) => productsById.get(productId))
-      .filter(Boolean);
+      .sort((a, b) => b.score - a.score)
+      .map((entry) => entry.product);
 
     const selected = [];
     const seen = new Set();
@@ -351,7 +429,7 @@ export async function getPopularProducts({ limit = 8, inStockOnly = true, window
       }
     };
 
-    pushUnique(rankedBySales);
+    pushUnique(rankedByPopularity);
 
     if (selected.length < safeLimit) {
       const bestsellers = products
@@ -371,6 +449,19 @@ export async function getPopularProducts({ limit = 8, inStockOnly = true, window
   } catch (err) {
     console.error('Error getting popular products (Firestore):', err);
     return [];
+  }
+}
+
+export async function incrementProductViewCount(productId) {
+  try {
+    if (!productId) return;
+    await db.collection(PRODUCTS_COLLECTION).doc(String(productId)).update({
+      view_count: FieldValue.increment(1),
+      last_viewed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Error incrementing product view count:', err);
   }
 }
 
@@ -472,13 +563,18 @@ export async function getProductBySlug(slug) {
       }
     }
 
+    const tcgSubTypeName = p.tcg_sub_type_name ?? null;
+    const rawPrice = toNum(p.price, 0);
+    const displayPrice =
+      p.tcg_product_id != null ? Math.max(getTcgMinPriceForSubType(tcgSubTypeName), rawPrice) : rawPrice;
+
     return {
       id: p.id,
       slug: p.slug,
       name: p.name,
       description: p.description,
       short_description: p.short_description,
-      price: toNum(p.price, 0),
+      price: displayPrice,
       compare_price: p.compare_price != null ? toNum(p.compare_price, 0) : null,
       is_featured: Boolean(p.is_featured),
       is_active: Boolean(p.is_active),
@@ -493,6 +589,7 @@ export async function getProductBySlug(slug) {
       image: images[0] || null,
       features,
       tcg_product_id: p.tcg_product_id ?? null,
+      tcg_sub_type_name: tcgSubTypeName,
       stock_quantity: toNum(p.stock_quantity, 0),
       low_stock_threshold: toNum(p.low_stock_threshold, 0),
       allow_backorders: Boolean(p.allow_backorders)

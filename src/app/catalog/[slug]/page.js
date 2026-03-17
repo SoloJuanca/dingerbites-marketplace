@@ -9,6 +9,8 @@ import ProductInfo from '../../../components/ProductInfo/ProductInfo';
 import ProductReviews from '../../../components/ProductReviews/ProductReviews';
 import ProductSummary from '../../../components/ProductSummary/ProductSummary';
 import ProductQuestions from '../../../components/ProductQuestions/ProductQuestions';
+import ProductStickyPurchaseBar from '../../../components/ProductStickyPurchaseBar/ProductStickyPurchaseBar';
+import Icon from '../../../components/Icon/Icon';
 import styles from './product.module.css';
 
 // Client Component para obtener datos del producto
@@ -17,6 +19,7 @@ function ProductData({ slug }) {
   const [marketPriceMxn, setMarketPriceMxn] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isPurchasePanelOpen, setIsPurchasePanelOpen] = useState(false);
 
   useEffect(() => {
     async function loadProduct() {
@@ -58,6 +61,15 @@ function ProductData({ slug }) {
       loadProduct();
     }
   }, [slug]);
+
+  useEffect(() => {
+    if (!isPurchasePanelOpen) return undefined;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isPurchasePanelOpen]);
 
   if (loading) {
     return (
@@ -136,6 +148,40 @@ function ProductData({ slug }) {
             </div>
           </div>
         </div>
+
+        <div className={styles.mobileStickyBar}>
+          <ProductStickyPurchaseBar
+            product={product}
+            marketPriceMxn={marketPriceMxn}
+            isTcgProduct={!!product.tcg_product_id}
+            onOpenPanel={() => setIsPurchasePanelOpen(true)}
+          />
+        </div>
+
+        {isPurchasePanelOpen && (
+          <div
+            className={styles.purchaseModalOverlay}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Panel de compra"
+            onClick={() => setIsPurchasePanelOpen(false)}
+          >
+            <div
+              className={styles.purchaseModalContent}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                className={styles.closeModalBtn}
+                onClick={() => setIsPurchasePanelOpen(false)}
+                aria-label="Cerrar panel de compra"
+              >
+                <Icon name="close" size={20} />
+              </button>
+              <ProductSummary product={product} marketPriceMxn={marketPriceMxn} isTcgProduct={!!product.tcg_product_id} />
+            </div>
+          </div>
+        )}
       </main>
       <Footer />
     </>

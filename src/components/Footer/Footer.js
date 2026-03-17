@@ -13,7 +13,7 @@ export default function Footer() {
               <div className={styles.foodSection}>
                 <h3 className={styles.sectionTitle}>
                   <Icon name="sports_esports" size={32} className={styles.sectionIcon} />
-                  Descubre tu proximo juego favorito.
+                  Encuentra tus coleccionables favoritos!
                 </h3>
               </div>
             </div>

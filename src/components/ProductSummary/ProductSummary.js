@@ -7,6 +7,7 @@ import Icon from '../Icon/Icon';
 import { useCart } from '../../lib/CartContext';
 import { useAuth } from '../../lib/AuthContext';
 import { getProductRatingStats } from '../../lib/reviews';
+import { getTcgMinPriceForSubType } from '../../lib/currency';
 import styles from './ProductSummary.module.css';
 
 export default function ProductSummary({ product, marketPriceMxn = null, isTcgProduct = false }) {
@@ -41,12 +42,12 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
     }).format(price);
   };
 
-  const TCG_MIN_MXN = 15;
+  const tcgMinForProduct = getTcgMinPriceForSubType(product.tcg_sub_type_name || 'Normal');
   const displayPrice =
     isTcgProduct && marketPriceMxn != null
-      ? Math.max(TCG_MIN_MXN, marketPriceMxn)
+      ? Math.max(tcgMinForProduct, marketPriceMxn)
       : isTcgProduct && (product.price != null && product.price > 0)
-        ? Math.max(TCG_MIN_MXN, product.price)
+        ? Math.max(tcgMinForProduct, product.price)
         : product.price ?? 0;
 
   const hasPrice = displayPrice != null && displayPrice > 0;
@@ -96,7 +97,9 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
       return;
     }
     setIsAddingToCart(true);
-    const cartPrice = isTcgProduct && marketPriceMxn != null ? Math.max(15, marketPriceMxn) : (isTcgProduct ? Math.max(15, product.price ?? 0) : (product.price ?? 0));
+    const cartPrice = isTcgProduct && marketPriceMxn != null
+      ? Math.max(tcgMinForProduct, marketPriceMxn)
+      : (isTcgProduct ? Math.max(tcgMinForProduct, product.price ?? 0) : (product.price ?? 0));
 
     await addToCartWithSync({
       id: product.id,
@@ -119,7 +122,9 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
       handleQuantityChange(stockQuantity);
       return;
     }
-    const cartPrice = isTcgProduct && marketPriceMxn != null ? Math.max(15, marketPriceMxn) : (isTcgProduct ? Math.max(15, product.price ?? 0) : (product.price ?? 0));
+    const cartPrice = isTcgProduct && marketPriceMxn != null
+      ? Math.max(tcgMinForProduct, marketPriceMxn)
+      : (isTcgProduct ? Math.max(tcgMinForProduct, product.price ?? 0) : (product.price ?? 0));
     await addToCartWithSync({
       id: product.id,
       name: product.name,
@@ -256,7 +261,7 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
                 onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
                 className={styles.quantityInput}
                 min="1"
-                max="10"
+                max={maxSelectableQuantity}
                 disabled={!canAddToCart}
               />
               <button

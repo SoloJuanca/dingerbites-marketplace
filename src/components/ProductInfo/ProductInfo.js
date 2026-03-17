@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Icon from '../Icon/Icon';
+import { getTcgMinPriceForSubType } from '../../lib/currency';
 import styles from './ProductInfo.module.css';
 
 export default function ProductInfo({ product, marketPriceMxn = null, isTcgProduct = false }) {
@@ -39,10 +40,22 @@ export default function ProductInfo({ product, marketPriceMxn = null, isTcgProdu
           <h1 className={styles.title}>{product.name}</h1>
           <p className={styles.price}>
             {isTcgProduct && marketPriceMxn != null
-              ? formatPrice(Math.max(15, marketPriceMxn))
+              ? formatPrice(
+                Math.max(
+                  getTcgMinPriceForSubType(product.tcg_sub_type_name || 'Normal'),
+                  marketPriceMxn
+                )
+              )
               : isTcgProduct && (!product.price || product.price <= 0)
                 ? 'Precio según mercado - Consultar'
-                : formatPrice(isTcgProduct ? Math.max(15, product.price ?? 0) : (product.price ?? 0))}
+                : formatPrice(
+                  isTcgProduct
+                    ? Math.max(
+                      getTcgMinPriceForSubType(product.tcg_sub_type_name || 'Normal'),
+                      product.price ?? 0
+                    )
+                    : (product.price ?? 0)
+                )}
           </p>
         </div>
         <div className={styles.badgeSection}>

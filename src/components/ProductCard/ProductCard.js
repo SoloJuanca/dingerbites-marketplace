@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { useCart } from '../../lib/CartContext';
 import { useAuth } from '../../lib/AuthContext';
 import { useWishlist } from '../../lib/WishlistContext';
+import { getTcgMinPriceForSubType } from '../../lib/currency';
 import Icon from '../Icon/Icon';
 import styles from './ProductCard.module.css';
 
@@ -22,8 +23,6 @@ export default function ProductCard({ product }) {
     setIsClient(true);
   }, []);
 
-  const TCG_MIN_PRICE_MXN = 15;
-
   const formatPrice = (price) => {
     if (!isClient) return `$${Number(price).toFixed(2)}`;
     return new Intl.NumberFormat('es-MX', {
@@ -34,7 +33,10 @@ export default function ProductCard({ product }) {
   };
 
   const displayPrice = product.tcg_product_id
-    ? Math.max(TCG_MIN_PRICE_MXN, Number(product.price) || 0)
+    ? Math.max(
+      getTcgMinPriceForSubType(product.tcg_sub_type_name || 'Normal'),
+      Number(product.price) || 0
+    )
     : Number(product.price) || 0;
 
   const sanitizeHtml = (html) => {

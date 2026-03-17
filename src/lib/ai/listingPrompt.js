@@ -18,6 +18,10 @@ Reglas importantes:
 - No incluyas precios ni descuentos en los textos.
 - Usa un lenguaje claro, sin tecnicismos innecesarios.
 - Si el contexto es ambiguo, mantén las descripciones generales pero útiles.
+- Enfoca la descripción en el producto: qué es, para quién es, beneficios reales, materiales/características y usos recomendados.
+- Si hay datos en "campos_actuales" o imágenes, priorízalos para mantener coherencia con el producto real.
+- Incluye emojis en "shortDescription" y "description" para dar vida al texto, pero con moderación (2 a 4 en total), relevantes al producto y sin saturar.
+- No uses listas extensas ni formato markdown; la descripción debe ser fluida y fácil de leer.
 `;
 
   const structuredContext = {

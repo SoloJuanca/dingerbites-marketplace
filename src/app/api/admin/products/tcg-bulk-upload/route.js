@@ -363,7 +363,7 @@ function buildProductName(baseName, variant) {
 function getPriceFromTcgRow(priceRow) {
   const usd =
     priceRow?.marketPrice ?? priceRow?.midPrice ?? priceRow?.lowPrice ?? null;
-  return convertUsdToMxnWithMin(usd);
+  return convertUsdToMxnWithMin(usd, priceRow?.subTypeName || 'Normal');
 }
 
 function getExtendedDataMap(tcgProduct) {

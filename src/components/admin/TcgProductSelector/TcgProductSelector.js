@@ -112,10 +112,12 @@ export default function TcgProductSelector({
     });
   };
 
-  const convertUsdToMxnAndApplyMin = async (usd) => {
+  const convertUsdToMxnAndApplyMin = async (usd, subTypeName = 'Normal') => {
     if (usd == null || usd === '' || Number.isNaN(Number(usd))) return '';
     try {
-      const res = await fetch(`/api/tcg/convert-price?usd=${encodeURIComponent(usd)}`);
+      const res = await fetch(
+        `/api/tcg/convert-price?usd=${encodeURIComponent(usd)}&subTypeName=${encodeURIComponent(subTypeName || 'Normal')}`
+      );
       const data = await res.json();
       return data.mxn != null ? String(data.mxn) : '';
     } catch {
@@ -135,7 +137,7 @@ export default function TcgProductSelector({
         )
       : null;
     const usd = firstPriceRow?.marketPrice ?? firstPriceRow?.midPrice;
-    const priceMxn = await convertUsdToMxnAndApplyMin(usd);
+    const priceMxn = await convertUsdToMxnAndApplyMin(usd, firstSubType || 'Normal');
 
     onSelect({
       tcg_product_id: productId,
@@ -155,7 +157,7 @@ export default function TcgProductSelector({
       (p) => p.productId === formData.tcg_product_id && (p.subTypeName || 'Normal') === (v || 'Normal')
     );
     const usd = priceRow?.marketPrice ?? priceRow?.midPrice;
-    const priceMxn = await convertUsdToMxnAndApplyMin(usd);
+    const priceMxn = await convertUsdToMxnAndApplyMin(usd, v || 'Normal');
 
     onSelect({
       tcg_sub_type_name: v || null,
@@ -245,7 +247,7 @@ export default function TcgProductSelector({
           <div className={styles.priceDisplay}>
             ${Number(formData.price).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
           </div>
-          <small className={styles.helpText}>Precio de mercado convertido. Mínimo $15 MXN.</small>
+          <small className={styles.helpText}>Precio de mercado convertido con mínimo configurable por variante.</small>
         </div>
       )}
 

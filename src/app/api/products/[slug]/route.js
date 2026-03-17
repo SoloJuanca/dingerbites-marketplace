@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getProductBySlug } from '../../../../lib/firebaseProducts';
+import { getProductBySlug, incrementProductViewCount } from '../../../../lib/firebaseProducts';
 
 export async function GET(request, { params }) {
   try {
@@ -19,6 +19,12 @@ export async function GET(request, { params }) {
         { error: 'Product not found' },
         { status: 404 }
       );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const shouldTrackView = searchParams.get('trackView') !== 'false';
+    if (shouldTrackView) {
+      await incrementProductViewCount(product.id);
     }
 
     return NextResponse.json(product);
