@@ -303,21 +303,7 @@ export default function EditProductPage() {
       }
       return true;
     }
-    if (step === 5) {
-      if (!formData.weight_grams || parseFloat(formData.weight_grams) <= 0) {
-        err.weight_grams = 'Peso obligatorio (gramos)';
-        setValidationErrors((p) => ({ ...p, ...err }));
-        return false;
-      }
-      if (!formData.length_cm || !formData.width_cm || !formData.height_cm) {
-        if (!formData.length_cm) err.length_cm = 'Requerido';
-        if (!formData.width_cm) err.width_cm = 'Requerido';
-        if (!formData.height_cm) err.height_cm = 'Requerido';
-        setValidationErrors((p) => ({ ...p, ...err }));
-        return false;
-      }
-      return true;
-    }
+    if (step === 5) return true;
     return true;
   };
 
@@ -638,7 +624,7 @@ export default function EditProductPage() {
     2: { title: 'Título y categoría', desc: 'Nombre, slug, descripción, categoría y marca.' },
     3: { title: 'Precio', desc: 'Precio de venta, costo y comparación.' },
     4: { title: 'Stock', desc: 'Cantidad y alerta de stock bajo.' },
-    5: { title: 'Detalles y envío', desc: 'Detalles, peso y dimensiones.' },
+    5: { title: 'Detalles y envío', desc: 'Detalles, peso y dimensiones (opcionales).' },
     6: { title: 'Resumen', desc: 'Revisa y guarda los cambios.' }
   };
 
@@ -1101,10 +1087,10 @@ export default function EditProductPage() {
                 maxDetails={50}
               />
             </div>
-            <h4 className={styles.subsectionTitle}>Peso y dimensiones (obligatorios para envío)</h4>
+            <h4 className={styles.subsectionTitle}>Peso y dimensiones (opcionales)</h4>
             <div className={styles.fieldRow}>
               <div className={styles.field}>
-                <label htmlFor="weight_grams">Peso (gramos) *</label>
+                <label htmlFor="weight_grams">Peso (gramos)</label>
                 <input
                   type="number"
                   id="weight_grams"
@@ -1119,7 +1105,7 @@ export default function EditProductPage() {
                 {validationErrors.weight_grams && <span className={styles.errorText}>{validationErrors.weight_grams}</span>}
               </div>
               <div className={styles.field}>
-                <label htmlFor="length_cm">Largo (cm) *</label>
+                <label htmlFor="length_cm">Largo (cm)</label>
                 <input
                   type="number"
                   id="length_cm"
@@ -1134,7 +1120,7 @@ export default function EditProductPage() {
                 {validationErrors.length_cm && <span className={styles.errorText}>{validationErrors.length_cm}</span>}
               </div>
               <div className={styles.field}>
-                <label htmlFor="width_cm">Ancho (cm) *</label>
+                <label htmlFor="width_cm">Ancho (cm)</label>
                 <input
                   type="number"
                   id="width_cm"
@@ -1149,7 +1135,7 @@ export default function EditProductPage() {
                 {validationErrors.width_cm && <span className={styles.errorText}>{validationErrors.width_cm}</span>}
               </div>
               <div className={styles.field}>
-                <label htmlFor="height_cm">Alto (cm) *</label>
+                <label htmlFor="height_cm">Alto (cm)</label>
                 <input
                   type="number"
                   id="height_cm"
