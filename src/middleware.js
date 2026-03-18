@@ -9,56 +9,12 @@ const secret = new TextEncoder().encode(
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
-  // Public routes that don't require authentication
-  const publicRoutes = [
-    '/',
-    '/catalog',
-    '/services',
-    '/contact',
-    '/agregar-resena',
-    '/api/auth/login',
-    '/api/users',
-    '/api/products',
-    '/api/services',
-    '/api/categories',
-    '/api/brands'
-  ];
+  const isAdminRoute = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
+  const isProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/profile');
 
-  // Check if the current route is public
-  const isPublicRoute = publicRoutes.some(route => 
-    pathname.startsWith(route) || pathname.startsWith('/api/')
-  );
-
-  // If it's a public route, allow access
-  if (isPublicRoute) {
+  if (!isAdminRoute && !isProtectedRoute) {
     return NextResponse.next();
   }
-
-  // Admin routes that require admin authentication
-  const adminRoutes = [
-    '/admin',
-    '/api/admin'
-  ];
-
-  // Protected routes that require authentication
-  const protectedRoutes = [
-    '/api/cart',
-    '/api/orders',
-    '/api/wishlist',
-    '/api/reviews',
-    '/dashboard',
-    '/profile'
-  ];
-
-  // Check if the current route is admin-only
-  const isAdminRoute = adminRoutes.some(route => 
-    pathname.startsWith(route)
-  );
-
-  // Check if the current route is protected
-  const isProtectedRoute = protectedRoutes.some(route => 
-    pathname.startsWith(route)
-  );
 
   if (isAdminRoute || isProtectedRoute) {
     // Get the authorization header
@@ -90,8 +46,8 @@ export async function middleware(request) {
       
       // Add user info to request headers for use in API routes
       const requestHeaders = new Headers(request.headers);
-      requestHeaders.set('x-user-id', payload.userId);
-      requestHeaders.set('x-user-email', payload.email);
+      requestHeaders.set('x-user-id', String(payload.userId || ''));
+      requestHeaders.set('x-user-email', String(payload.email || ''));
       requestHeaders.set('x-user-role', payload.role || 'user');
 
       return NextResponse.next({

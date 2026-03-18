@@ -40,6 +40,9 @@ export default function SimpleCheckout() {
   const [showAddressManager, setShowAddressManager] = useState(false);
   const [useNewAddress, setUseNewAddress] = useState(false);
   const [userAddresses, setUserAddresses] = useState([]);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponData, setCouponData] = useState(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   const { items, clearCart, getTotalPrice } = useCart();
   const { user, isAuthenticated, apiRequest } = useAuth();
@@ -187,11 +190,70 @@ export default function SimpleCheckout() {
   };
 
   const getDiscount = () => {
-    return formData.paymentMethod === 'transfer' ? getSubtotal() * 0 : 0;
+    return couponData?.discount_amount || 0;
   };
 
   const getTotal = () => {
     return getSubtotal() + getShippingCost() - getDiscount();
+  };
+
+  const validateCoupon = async () => {
+    const code = couponCode.trim().toUpperCase();
+    if (!code) {
+      toast.error('Ingresa un código de cupón');
+      return;
+    }
+
+    if (!formData.email?.trim()) {
+      toast.error('Agrega un correo para validar el cupón');
+      return;
+    }
+
+    setValidatingCoupon(true);
+    try {
+      const payload = {
+        code,
+        customer_email: formData.email,
+        items: items.map((item) => ({
+          product_id: item.id,
+          quantity: item.quantity
+        }))
+      };
+
+      const response = isAuthenticated
+        ? await apiRequest('/api/orders/validate-coupon', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          })
+        : await fetch('/api/orders/validate-coupon', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+      const data = await response.json();
+      if (!response.ok || !data.valid) {
+        setCouponData(null);
+        toast.error(data.error || 'Cupón no válido');
+        return;
+      }
+
+      setCouponCode(code);
+      setCouponData(data.coupon);
+      toast.success(`Cupón aplicado: -${formatPrice(data.coupon.discount_amount)}`);
+    } catch (error) {
+      console.error('Error validating coupon:', error);
+      setCouponData(null);
+      toast.error('No se pudo validar el cupón');
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setCouponData(null);
+    setCouponCode('');
+    toast.success('Cupón removido');
   };
 
   const formatPrice = (price) => {
@@ -265,12 +327,13 @@ export default function SimpleCheckout() {
         customer_name: formData.name,
         payment_method: formData.paymentMethod === 'cash' ? 'Pago contra entrega' : 'Transferencia bancaria',
         shipping_method: formData.deliveryType === 'delivery' ? 'Envío a domicilio' : 'Recoger en punto',
-        subtotal: subtotal,
+        subtotal,
         shipping_amount: shippingAmount,
         total_amount: totalAmount,
         notes: formData.notes || '',
         address: formData.deliveryType === 'delivery' ? formatAddress() : formData.pickupPoint || null,
-        pickup_point: formData.deliveryType === 'pickup' ? formData.pickupPoint : null
+        pickup_point: formData.deliveryType === 'pickup' ? formData.pickupPoint : null,
+        coupon_code: couponData?.code || null
       };
 
       // Crear orden en la base de datos
@@ -682,6 +745,48 @@ export default function SimpleCheckout() {
 
             {/* Notas Adicionales */}
             <div className={styles.section}>
+              <h2>Cupón</h2>
+              {couponData ? (
+                <div className={styles.cashOnDeliveryRules}>
+                  <p>
+                    Cupón aplicado: <strong>{couponData.code}</strong> (-{formatPrice(couponData.discount_amount)})
+                  </p>
+                  <button
+                    type="button"
+                    className={styles.manageAddressButton}
+                    onClick={removeCoupon}
+                  >
+                    Quitar cupón
+                  </button>
+                </div>
+              ) : (
+                <div className={styles.row}>
+                  <div className={styles.inputGroup}>
+                    <label htmlFor="couponCode">Código de cupón</label>
+                    <input
+                      type="text"
+                      id="couponCode"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      placeholder="Ej: DINGER-AB12CD34"
+                    />
+                  </div>
+                  <div className={styles.inputGroup}>
+                    <label>&nbsp;</label>
+                    <button
+                      type="button"
+                      className={styles.manageAddressButton}
+                      onClick={validateCoupon}
+                      disabled={validatingCoupon || !couponCode.trim()}
+                    >
+                      {validatingCoupon ? 'Validando...' : 'Aplicar cupón'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.section}>
               <div className={styles.inputGroup}>
                 <label htmlFor="notes">Notas Adicionales (Opcional)</label>
                 <textarea
@@ -729,7 +834,7 @@ export default function SimpleCheckout() {
               </div>
               {getDiscount() > 0 && (
                 <div className={styles.totalRow}>
-                  <span>Descuento (5%):</span>
+                  <span>Descuento por cupón:</span>
                   <span className={styles.discount}>-{formatPrice(getDiscount())}</span>
                 </div>
               )}

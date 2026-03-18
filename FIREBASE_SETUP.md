@@ -56,3 +56,30 @@ The migrated routes use these collections:
 
 - The rest of the API routes still use PostgreSQL (`src/lib/database.js`) and should be migrated in a second phase.
 - Uploads now use Firebase Storage through `src/lib/blobStorage.js`.
+
+## 7) Cloud Storage Security Rules
+
+Because this project uploads files through server routes using `firebase-admin`, client SDK access to Firebase Storage can be fully blocked.
+
+Use `storage.rules`:
+
+```rules
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
+```
+
+Deploy rules from Firebase CLI:
+
+```bash
+firebase deploy --only storage
+```
+
+Important:
+- Your web domains (`dingerbites.com`, `www.dingerbites.com`, `localhost:3000`) are not configured inside Storage Rules.
+- Domain allowlists are configured in Firebase Authentication ("Authorized domains") and, if needed, via Cloud Storage CORS settings.

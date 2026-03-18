@@ -9,7 +9,7 @@ export async function GET(request) {
     if (!user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
-    const coupons = await getCouponsByUserId(user.id);
+    const coupons = await getCouponsByUserId(user.id, user.email);
     return NextResponse.json({ coupons });
   } catch (error) {
     console.error('Error fetching user coupons:', error);

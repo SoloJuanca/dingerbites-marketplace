@@ -55,6 +55,12 @@ export default function AdminSidebar({ isOpen, onToggle, collapsed = false, onCo
       href: '/admin/orders'
     },
     {
+      id: 'coupons',
+      label: 'Cupones',
+      icon: '🎟️',
+      href: '/admin/coupons'
+    },
+    {
       id: 'reports-payments',
       label: 'Reporte de pagos',
       icon: '💰',

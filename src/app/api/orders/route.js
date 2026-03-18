@@ -1,11 +1,21 @@
 import { NextResponse } from 'next/server';
 import { authenticateUser } from '../../../lib/auth';
-import { getOrdersByUserId, getOrderStatusIdByName, createOrder } from '../../../lib/firebaseOrders';
+import { getOrdersByUserId, getOrderStatusIdByName } from '../../../lib/firebaseOrders';
 import { getUserByEmail, createUser } from '../../../lib/firebaseUsers';
-import { markCouponUsed } from '../../../lib/firebaseCoupons';
+import { consumeCouponInTransaction } from '../../../lib/firebaseCoupons';
 import { hashPassword } from '../../../lib/auth';
 import { sendOrderNotifications } from '../../../lib/emailService';
 import { db } from '../../../lib/firebaseAdmin';
+import { randomUUID } from 'crypto';
+import {
+  buildPricedOrderItems,
+  buildPricedServiceItems,
+  computeSubtotal,
+  computeOrderTotals
+} from '../../../lib/orderPricing';
+import { getRequestMeta, jsonError, normalizeEmail } from '../../../lib/security';
+import { checkRateLimit } from '../../../lib/rateLimit';
+import { logSecurityEvent } from '../../../lib/auditLog';
 
 // GET /api/orders - Get orders (user-specific, requires authentication)
 export async function GET(request) {
@@ -38,21 +48,33 @@ export async function GET(request) {
 // POST /api/orders - Create new order
 export async function POST(request) {
   try {
+    const requestMeta = getRequestMeta(request);
+    const authUser = await authenticateUser(request);
+
+    const rateLimitResult = checkRateLimit({
+      routeKey: 'orders:create',
+      ip: requestMeta.ip,
+      userId: authUser?.id || null,
+      limit: 8,
+      windowMs: 60 * 1000
+    });
+
+    if (!rateLimitResult.allowed) {
+      return jsonError('Too many requests. Try again later.', 429, 'RATE_LIMITED', {
+        retry_after_ms: rateLimitResult.retryAfterMs
+      });
+    }
+
     let body;
     try {
       body = await request.json();
     } catch (parseError) {
-      return NextResponse.json(
-        { error: 'Invalid JSON body' },
-        { status: 400 }
-      );
+      return jsonError('Invalid JSON body', 400, 'INVALID_BODY');
     }
     if (!body || typeof body !== 'object') {
-      return NextResponse.json(
-        { error: 'Request body is required' },
-        { status: 400 }
-      );
+      return jsonError('Request body is required', 400, 'BODY_REQUIRED');
     }
+
     const {
       user_id,
       items,
@@ -66,21 +88,17 @@ export async function POST(request) {
       payment_method,
       shipping_method,
       skip_email,
-      subtotal,
-      tax_amount = 0,
-      shipping_amount = 0,
-      discount_amount = 0,
-      total_amount,
       address,
       pickup_point,
-      coupon_id
+      coupon_code
     } = body;
-    const normalizedCustomerEmail = customer_email?.toLowerCase().trim();
+    const normalizedCustomerEmail = normalizeEmail(customer_email || authUser?.email);
 
-    if (!normalizedCustomerEmail || !total_amount || (!items?.length && !service_items?.length)) {
-      return NextResponse.json(
-        { error: 'Customer email, total amount, and at least one item are required' },
-        { status: 400 }
+    if (!normalizedCustomerEmail || (!items?.length && !service_items?.length)) {
+      return jsonError(
+        'Customer email and at least one item are required',
+        400,
+        'REQUIRED_FIELDS_MISSING'
       );
     }
 
@@ -98,10 +116,10 @@ export async function POST(request) {
       pendingStatusId = statusRef.id;
     }
 
-    let finalUserId = user_id;
+    let finalUserId = authUser?.id || user_id || null;
     let finalShippingAddressId = shipping_address_id;
 
-    if (!user_id && normalizedCustomerEmail) {
+    if (!finalUserId && normalizedCustomerEmail) {
       let existingUser = await getUserByEmail(normalizedCustomerEmail);
       if (!existingUser) {
         const nameParts = customer_name ? customer_name.split(' ') : ['', ''];
@@ -145,157 +163,93 @@ export async function POST(request) {
       }
     }
 
-    const orderItems = [];
-    if (items && items.length > 0) {
-      for (const item of items) {
-        const { product_id, quantity, variant_id, name, sku, price, is_manual } = item;
-        const qty = quantity || 1;
-        if (!product_id || is_manual) {
-          const unitPrice = price || 0;
-          orderItems.push({
-            product_id: null,
-            product_variant_id: null,
-            product_name: name || 'Artículo manual',
-            product_sku: sku || null,
-            quantity: qty,
-            unit_price: unitPrice,
-            total_price: unitPrice * qty
-          });
-          continue;
-        }
-        const productDoc = await db.collection('products').doc(String(product_id)).get();
-        if (!productDoc.exists) {
-          throw new Error(`Product not found: ${product_id}`);
-        }
-        const productData = productDoc.data();
-        const unitPrice = Number(productData.price) || 0;
-        orderItems.push({
-          product_id: product_id,
-          product_variant_id: variant_id || null,
-          product_name: productData.name || 'Producto',
-          product_sku: productData.sku || null,
-          quantity: qty,
-          unit_price: unitPrice,
-          total_price: unitPrice * qty
-        });
-      }
+    const orderItems = await buildPricedOrderItems(items || []);
+    const orderServiceItems = await buildPricedServiceItems(service_items || []);
+    const subtotal = computeSubtotal(orderItems, orderServiceItems);
+
+    if (subtotal <= 0) {
+      return jsonError('No valid items in the order', 400, 'EMPTY_ORDER');
     }
 
-    const orderServiceItems = [];
-    if (service_items && service_items.length > 0) {
-      for (const item of service_items) {
-        const { service_id, schedule_id, quantity = 1 } = item;
-        const serviceDoc = await db.collection('services').doc(String(service_id)).get();
-        if (!serviceDoc.exists) {
-          throw new Error(`Service not found: ${service_id}`);
-        }
-        const serviceData = serviceDoc.data();
-        const unitPrice = Number(serviceData.price) || 0;
-        orderServiceItems.push({
-          service_id,
-          service_schedule_id: schedule_id || null,
-          service_name: serviceData.name || 'Servicio',
-          quantity,
-          unit_price: unitPrice,
-          total_price: unitPrice * quantity
+    const orderRef = db.collection('orders').doc();
+    const reviewToken = randomUUID();
+    const now = new Date().toISOString();
+
+    const createdOrder = await db.runTransaction(async (transaction) => {
+      let couponApplication = null;
+      if (coupon_code && String(coupon_code).trim()) {
+        couponApplication = await consumeCouponInTransaction({
+          transaction,
+          code: String(coupon_code).trim(),
+          userId: finalUserId || null,
+          customerEmail: normalizedCustomerEmail,
+          items: orderItems,
+          orderSubtotal: subtotal,
+          orderId: orderRef.id,
+          requestMeta
         });
       }
-    }
 
-    const result = await createOrder({
-      order_number: orderNumber,
-      user_id: finalUserId || null,
-      status_id: pendingStatusId,
-      subtotal: subtotal ?? total_amount,
-      tax_amount,
-      shipping_amount,
-      discount_amount,
-      total_amount,
-      shipping_address_id: finalShippingAddressId || null,
-      billing_address_id: billing_address_id || null,
-      notes: notes || null,
-      customer_email: normalizedCustomerEmail,
-      customer_phone: customer_phone || null,
-      payment_method: payment_method || null,
-      shipping_method: shipping_method || null,
-      pickup_point: pickup_point || null,
-      items: orderItems,
-      service_items: orderServiceItems
+      const totals = computeOrderTotals({
+        subtotal,
+        shippingMethod: shipping_method || null,
+        discountAmount: couponApplication?.discount_amount || 0
+      });
+
+      const orderPayload = {
+        id: orderRef.id,
+        order_number: orderNumber,
+        user_id: finalUserId || null,
+        status_id: pendingStatusId,
+        subtotal: totals.subtotal,
+        tax_amount: totals.tax_amount,
+        shipping_amount: totals.shipping_amount,
+        discount_amount: totals.discount_amount,
+        total_amount: totals.total_amount,
+        shipping_address_id: finalShippingAddressId || null,
+        billing_address_id: billing_address_id || null,
+        notes: notes || null,
+        customer_email: normalizedCustomerEmail,
+        customer_phone: customer_phone || null,
+        payment_method: payment_method || null,
+        shipping_method: shipping_method || null,
+        pickup_point: pickup_point || null,
+        items: orderItems,
+        service_items: orderServiceItems,
+        coupon_id: couponApplication?.coupon_id || null,
+        coupon_code: couponApplication?.coupon_code || null,
+        review_token: reviewToken,
+        review_token_used_at: null,
+        history: [
+          {
+            status_id: pendingStatusId,
+            notes: 'Order created',
+            created_at: now
+          }
+        ],
+        created_at: now,
+        updated_at: now
+      };
+
+      transaction.set(orderRef, orderPayload);
+      return orderPayload;
     });
 
     const orderData = {
-      order_number: result.order_number,
+      order_number: createdOrder.order_number,
       customer_name,
       customer_email: normalizedCustomerEmail,
       customer_phone,
-      total_amount: total_amount,
+      total_amount: createdOrder.total_amount,
       payment_method,
       shipping_method,
-      items: items || [],
-      service_items: service_items || [],
+      items: createdOrder.items || [],
+      service_items: createdOrder.service_items || [],
       address,
       pickup_point: pickup_point || null,
       notes,
       created_at: new Date()
     };
-    if (items?.length) {
-      try {
-        const enrichedItems = [];
-        for (const item of items) {
-          if (!item.product_id || item.is_manual) {
-            enrichedItems.push({
-              ...item,
-              product_name: item.name || 'Artículo manual',
-              product_slug: '',
-              product_image: '',
-              unit_price: item.price || 0,
-              total_price: (item.price || 0) * (item.quantity || 1)
-            });
-            continue;
-          }
-          const productDoc = await db.collection('products').doc(String(item.product_id)).get();
-          const p = productDoc.exists ? productDoc.data() : {};
-          const img = Array.isArray(p.images) && p.images[0] ? (p.images[0].url || p.images[0]) : p.image || '';
-          enrichedItems.push({
-            ...item,
-            product_name: p.name || 'Producto',
-            product_slug: p.slug || '',
-            product_image: img,
-            unit_price: p.price || item.price || 0,
-            total_price: (p.price || item.price || 0) * (item.quantity || 1)
-          });
-        }
-        orderData.items = enrichedItems;
-      } catch (e) {
-        console.error('Error enriching product data for email:', e);
-      }
-    }
-    if (service_items?.length) {
-      try {
-        const enriched = [];
-        for (const s of service_items) {
-          const serviceDoc = await db.collection('services').doc(String(s.service_id)).get();
-          const sd = serviceDoc.exists ? serviceDoc.data() : {};
-          enriched.push({
-            ...s,
-            service_name: sd.name || 'Servicio',
-            unit_price: sd.price || 0,
-            total_price: (sd.price || 0) * (s.quantity || 1)
-          });
-        }
-        orderData.service_items = enriched;
-      } catch (e) {
-        console.error('Error enriching service data for email:', e);
-      }
-    }
-
-    if (coupon_id) {
-      try {
-        await markCouponUsed(coupon_id);
-      } catch (couponErr) {
-        console.warn('Order created but failed to mark coupon as used:', couponErr);
-      }
-    }
 
     let customerEmailSent = false;
     if (!skip_email) {
@@ -313,16 +267,49 @@ export async function POST(request) {
       }
     }
 
+    await logSecurityEvent({
+      event_type: 'ORDER_CREATED',
+      result: 'success',
+      actor_user_id: finalUserId || null,
+      actor_email: normalizedCustomerEmail,
+      target_order_id: orderRef.id,
+      target_coupon_id: createdOrder.coupon_id || null,
+      ip: requestMeta.ip,
+      user_agent: requestMeta.userAgent,
+      request_id: requestMeta.requestId,
+      details: {
+        subtotal: createdOrder.subtotal,
+        discount_amount: createdOrder.discount_amount,
+        total_amount: createdOrder.total_amount
+      }
+    });
+
     return NextResponse.json(
-      { ...result, email_sent: customerEmailSent },
+      {
+        id: createdOrder.id,
+        order_number: createdOrder.order_number,
+        subtotal: createdOrder.subtotal,
+        shipping_amount: createdOrder.shipping_amount,
+        discount_amount: createdOrder.discount_amount,
+        total_amount: createdOrder.total_amount,
+        coupon_id: createdOrder.coupon_id,
+        coupon_code: createdOrder.coupon_code,
+        email_sent: customerEmailSent
+      },
       { status: 201 }
     );
   } catch (error) {
     console.error('Error creating order:', error);
-    const message = process.env.NODE_ENV === 'development' ? error.message : 'Failed to create order';
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
+    const message = error?.message || 'Failed to create order';
+    const isKnownValidation =
+      message.includes('not found') ||
+      message.includes('Coupon rejected') ||
+      message.includes('requires');
+
+    return jsonError(
+      isKnownValidation ? message : 'Failed to create order',
+      isKnownValidation ? 400 : 500,
+      'ORDER_CREATE_FAILED'
     );
   }
 }

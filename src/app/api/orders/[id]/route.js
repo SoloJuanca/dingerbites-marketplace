@@ -1,9 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getOrderById, updateOrderStatus, updateOrderDeliverySchedule, cancelOrder, getOrderStatusById } from '../../../../lib/firebaseOrders';
+import { authenticateUser, isAdmin } from '../../../../lib/auth';
+
+function canAccessOrder(user, order) {
+  if (!user || !order) return false;
+  if (isAdmin(user)) return true;
+  return String(order.user_id || '') === String(user.id || '');
+}
 
 // GET /api/orders/[id] - Get order by ID with details
 export async function GET(request, { params }) {
   try {
+    const user = await authenticateUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const { id } = await params;
     const order = await getOrderById(id);
     if (!order) {
@@ -12,6 +24,10 @@ export async function GET(request, { params }) {
         { status: 404 }
       );
     }
+    if (!canAccessOrder(user, order)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     return NextResponse.json({
       order,
       items: order.items,
@@ -30,6 +46,14 @@ export async function GET(request, { params }) {
 // PUT /api/orders/[id] - Update order status
 export async function PUT(request, { params }) {
   try {
+    const user = await authenticateUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+    if (!isAdmin(user)) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
     const { id } = await params;
     const body = await request.json().catch(() => ({}));
     const { status_id, notes, tracking_id, carrier_company, tracking_url, scheduled_delivery_date, scheduled_delivery_time } = body || {};
@@ -86,6 +110,14 @@ export async function PUT(request, { params }) {
 // DELETE /api/orders/[id] - Cancel order
 export async function DELETE(request, { params }) {
   try {
+    const user = await authenticateUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+    if (!isAdmin(user)) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
     const { id } = await params;
     const existingOrder = await getOrderById(id);
     if (!existingOrder) {
