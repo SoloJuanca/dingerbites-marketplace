@@ -17,7 +17,8 @@ import { useEffect } from 'react';
 function CatalogData() {
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [categories, setCategories] = useState([]);
-  const [brands, setBrands] = useState([]);
+  const [manufacturerBrands, setManufacturerBrands] = useState([]);
+  const [franchiseBrands, setFranchiseBrands] = useState([]);
   const [conditions, setConditions] = useState([]);
   const [priceRange, setPriceRange] = useState({ min: 0, max: 1000 });
   const [loading, setLoading] = useState(true);
@@ -25,6 +26,9 @@ function CatalogData() {
   
   const currentPage = parseInt(searchParams.get('page')) || 1;
   const category = searchParams.get('category') || '';
+  const subcategory = searchParams.get('subcategory') || '';
+  const manufacturerBrand = searchParams.get('manufacturerBrand') || '';
+  const franchiseBrand = searchParams.get('franchiseBrand') || '';
   const brand = searchParams.get('brand') || '';
   const condition = searchParams.get('condition') || '';
   const minPrice = searchParams.get('minPrice') || '';
@@ -45,7 +49,8 @@ function CatalogData() {
         
         const data = await response.json();
         setCategories(data.categories || []);
-        setBrands(data.brands || []);
+        setManufacturerBrands(data.manufacturerBrands || []);
+        setFranchiseBrands(data.franchiseBrands || []);
         setConditions(data.conditions || []);
         setPriceRange(data.priceRange || { min: 0, max: 1000 });
       } catch (error) {
@@ -56,10 +61,12 @@ function CatalogData() {
           { id: 2, name: 'Manicure', slug: 'manicure' },
           { id: 3, name: 'Cuidado de la Piel', slug: 'cuidado-piel' }
         ]);
-        setBrands([
+        setManufacturerBrands([
           { id: 1, name: 'Brand A', slug: 'brand-a' },
-          { id: 2, name: 'Brand B', slug: 'brand-b' },
-          { id: 3, name: 'Brand C', slug: 'brand-c' }
+          { id: 2, name: 'Brand C', slug: 'brand-c' }
+        ]);
+        setFranchiseBrands([
+          { id: 3, name: 'Brand B', slug: 'brand-b' }
         ]);
         setConditions([
           { value: 'nuevo sellado', label: 'Nuevo sellado' },
@@ -102,10 +109,14 @@ function CatalogData() {
             <aside className={styles.sidebar}>
               <FilterSidebar 
                 categories={categories}
-                brands={brands}
+                manufacturerBrands={manufacturerBrands}
+                franchiseBrands={franchiseBrands}
                 conditions={conditions}
                 priceRange={priceRange}
                 currentCategory={category}
+                currentSubcategory={subcategory}
+                currentManufacturerBrand={manufacturerBrand}
+                currentFranchiseBrand={franchiseBrand}
                 currentBrand={brand}
                 currentCondition={condition}
                 currentMinPrice={minPrice}
@@ -130,6 +141,9 @@ function CatalogData() {
               <ProductGrid 
                 currentPage={currentPage}
                 category={category}
+                subcategory={subcategory}
+                manufacturerBrand={manufacturerBrand}
+                franchiseBrand={franchiseBrand}
                 brand={brand}
                 condition={condition}
                 minPrice={minPrice}
@@ -145,10 +159,14 @@ function CatalogData() {
       
       <FilterModal
         categories={categories}
-        brands={brands}
+        manufacturerBrands={manufacturerBrands}
+        franchiseBrands={franchiseBrands}
         conditions={conditions}
         priceRange={priceRange}
         currentCategory={category}
+        currentSubcategory={subcategory}
+        currentManufacturerBrand={manufacturerBrand}
+        currentFranchiseBrand={franchiseBrand}
         currentBrand={brand}
         currentCondition={condition}
         currentMinPrice={minPrice}

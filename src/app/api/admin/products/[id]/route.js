@@ -38,6 +38,9 @@ export async function GET(request, { params }) {
 
     const product = { id: productSnap.id, ...productSnap.data() };
     let category_name = null;
+    let subcategory_name = null;
+    let manufacturer_brand_name = null;
+    let franchise_brand_name = null;
     let brand_name = null;
     if (product.category_id) {
       const catSnap = await db.collection(CATEGORIES_COLLECTION).doc(String(product.category_id)).get();
@@ -46,6 +49,21 @@ export async function GET(request, { params }) {
     if (product.brand_id) {
       const brandSnap = await db.collection(BRANDS_COLLECTION).doc(String(product.brand_id)).get();
       if (brandSnap.exists) brand_name = brandSnap.data().name;
+    }
+    if (product.subcategory_id) {
+      const subcategorySnap = await db.collection(CATEGORIES_COLLECTION).doc(String(product.subcategory_id)).get();
+      if (subcategorySnap.exists) subcategory_name = subcategorySnap.data().name;
+    }
+    if (product.manufacturer_brand_id) {
+      const manufacturerBrandSnap = await db.collection(BRANDS_COLLECTION).doc(String(product.manufacturer_brand_id)).get();
+      if (manufacturerBrandSnap.exists) manufacturer_brand_name = manufacturerBrandSnap.data().name;
+    }
+    if (product.franchise_brand_id) {
+      const franchiseBrandSnap = await db.collection(BRANDS_COLLECTION).doc(String(product.franchise_brand_id)).get();
+      if (franchiseBrandSnap.exists) franchise_brand_name = franchiseBrandSnap.data().name;
+    }
+    if (!brand_name) {
+      brand_name = franchise_brand_name || manufacturer_brand_name || null;
     }
 
     const images = Array.isArray(product.images)
@@ -68,6 +86,9 @@ export async function GET(request, { params }) {
       product: {
         ...product,
         category_name,
+        subcategory_name,
+        manufacturer_brand_name,
+        franchise_brand_name,
         brand_name,
         images,
         features
@@ -120,7 +141,9 @@ export async function PUT(request, { params }) {
       weight_grams,
       dimensions_cm,
       category_id,
-      brand_id,
+      subcategory_id,
+      manufacturer_brand_id,
+      franchise_brand_id,
       stock_quantity,
       low_stock_threshold,
       allow_backorders,
@@ -176,6 +199,27 @@ export async function PUT(request, { params }) {
     }
 
     const now = new Date().toISOString();
+    const finalCategoryId = category_id ?? existingProduct.category_id ?? null;
+    const finalSubcategoryId = subcategory_id ?? existingProduct.subcategory_id ?? null;
+
+    if (finalSubcategoryId) {
+      const subcategorySnap = await db.collection(CATEGORIES_COLLECTION).doc(String(finalSubcategoryId)).get();
+      if (!subcategorySnap.exists) {
+        return NextResponse.json(
+          { error: 'Subcategory not found' },
+          { status: 400 }
+        );
+      }
+      const subcategoryData = subcategorySnap.data();
+      const subcategoryParentId = subcategoryData?.parent_id || null;
+      if (!finalCategoryId || String(subcategoryParentId) !== String(finalCategoryId)) {
+        return NextResponse.json(
+          { error: 'Subcategory does not belong to selected category' },
+          { status: 400 }
+        );
+      }
+    }
+
     const normalizedImages = Array.isArray(images)
       ? images
           .map((img, idx) => {
@@ -198,8 +242,15 @@ export async function PUT(request, { params }) {
       barcode: barcode ?? existingProduct.barcode ?? null,
       weight_grams: weight_grams !== undefined ? toNumber(weight_grams, 0) : existingProduct.weight_grams,
       dimensions_cm: dimensions_cm ?? existingProduct.dimensions_cm ?? null,
-      category_id: category_id ?? existingProduct.category_id ?? null,
-      brand_id: brand_id ?? existingProduct.brand_id ?? null,
+      category_id: finalCategoryId,
+      subcategory_id: finalSubcategoryId,
+      manufacturer_brand_id: manufacturer_brand_id ?? existingProduct.manufacturer_brand_id ?? null,
+      franchise_brand_id: franchise_brand_id ?? existingProduct.franchise_brand_id ?? null,
+      brand_id:
+        (franchise_brand_id ?? existingProduct.franchise_brand_id) ||
+        (manufacturer_brand_id ?? existingProduct.manufacturer_brand_id) ||
+        existingProduct.brand_id ||
+        null,
       condition: normalizedCondition,
       stock_quantity: stock_quantity !== undefined ? toNumber(stock_quantity, 0) : existingProduct.stock_quantity,
       low_stock_threshold: low_stock_threshold !== undefined ? toNumber(low_stock_threshold, 5) : existingProduct.low_stock_threshold,

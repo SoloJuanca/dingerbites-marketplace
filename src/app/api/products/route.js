@@ -8,6 +8,9 @@ export async function GET(request) {
     const filters = {
       page: parseInt(searchParams.get('page')) || 1,
       category: searchParams.get('category') || '',
+      subcategory: searchParams.get('subcategory') || '',
+      manufacturerBrand: searchParams.get('manufacturerBrand') || '',
+      franchiseBrand: searchParams.get('franchiseBrand') || '',
       brand: searchParams.get('brand') || '',
       condition: searchParams.get('condition') || '',
       minPrice: searchParams.get('minPrice') || '',

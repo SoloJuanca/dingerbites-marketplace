@@ -21,11 +21,14 @@ export default function InventoryPage() {
   const [filters, setFilters] = useState({
     search: '',
     category: '',
-    brand: '',
+    subcategory: '',
+    manufacturerBrand: '',
+    franchiseBrand: '',
     stockStatus: 'all'
   });
   const [categories, setCategories] = useState([]);
-  const [brands, setBrands] = useState([]);
+  const [manufacturerBrands, setManufacturerBrands] = useState([]);
+  const [franchiseBrands, setFranchiseBrands] = useState([]);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -86,9 +89,10 @@ export default function InventoryPage() {
 
   const loadFiltersData = async () => {
     try {
-      const [categoriesResponse, brandsResponse] = await Promise.all([
+      const [categoriesResponse, manufacturerBrandsResponse, franchiseBrandsResponse] = await Promise.all([
         apiRequest('/api/admin/categories'),
-        apiRequest('/api/admin/brands')
+        apiRequest('/api/admin/brands?type=manufacturer'),
+        apiRequest('/api/admin/brands?type=franchise')
       ]);
 
       if (categoriesResponse.ok) {
@@ -96,9 +100,14 @@ export default function InventoryPage() {
         setCategories(categoriesData.categories || []);
       }
 
-      if (brandsResponse.ok) {
-        const brandsData = await brandsResponse.json();
-        setBrands(brandsData.brands || []);
+      if (manufacturerBrandsResponse.ok) {
+        const manufacturerBrandsData = await manufacturerBrandsResponse.json();
+        setManufacturerBrands(manufacturerBrandsData.brands || []);
+      }
+
+      if (franchiseBrandsResponse.ok) {
+        const franchiseBrandsData = await franchiseBrandsResponse.json();
+        setFranchiseBrands(franchiseBrandsData.brands || []);
       }
     } catch (error) {
       console.error('Error loading filters data:', error);
@@ -106,7 +115,12 @@ export default function InventoryPage() {
   };
 
   const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters((prev) => {
+      if (key === 'category') {
+        return { ...prev, category: value, subcategory: '' };
+      }
+      return { ...prev, [key]: value };
+    });
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
@@ -300,7 +314,7 @@ export default function InventoryPage() {
               className={styles.filterSelect}
             >
               <option value="">Todas las categorías</option>
-              {Array.isArray(categories) && categories.map(category => (
+              {Array.isArray(categories) && categories.filter((category) => !category.parent_id).map(category => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>
@@ -310,12 +324,45 @@ export default function InventoryPage() {
 
           <div className={styles.filterGroup}>
             <select
-              value={filters.brand}
-              onChange={(e) => handleFilterChange('brand', e.target.value)}
+              value={filters.subcategory}
+              onChange={(e) => handleFilterChange('subcategory', e.target.value)}
               className={styles.filterSelect}
             >
-              <option value="">Todas las marcas</option>
-              {Array.isArray(brands) && brands.map(brand => (
+              <option value="">Todas las subcategorías</option>
+              {Array.isArray(categories) &&
+                categories
+                  .filter((category) => category.parent_id && (!filters.category || category.parent_id === filters.category))
+                  .map((subcategory) => (
+                <option key={subcategory.id} value={subcategory.id}>
+                  {subcategory.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.filterGroup}>
+            <select
+              value={filters.manufacturerBrand}
+              onChange={(e) => handleFilterChange('manufacturerBrand', e.target.value)}
+              className={styles.filterSelect}
+            >
+              <option value="">Todas las marcas fabricante</option>
+              {Array.isArray(manufacturerBrands) && manufacturerBrands.map((brand) => (
+                <option key={brand.id} value={brand.id}>
+                  {brand.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.filterGroup}>
+            <select
+              value={filters.franchiseBrand}
+              onChange={(e) => handleFilterChange('franchiseBrand', e.target.value)}
+              className={styles.filterSelect}
+            >
+              <option value="">Todas las marcas de franquicia</option>
+              {Array.isArray(franchiseBrands) && franchiseBrands.map((brand) => (
                 <option key={brand.id} value={brand.id}>
                   {brand.name}
                 </option>

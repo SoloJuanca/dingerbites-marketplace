@@ -48,6 +48,9 @@ export async function GET(request) {
     const limit = parseInt(searchParams.get('limit')) || 20;
     const search = searchParams.get('search') || '';
     const category = searchParams.get('category') || '';
+    const subcategory = searchParams.get('subcategory') || '';
+    const manufacturerBrand = searchParams.get('manufacturerBrand') || '';
+    const franchiseBrand = searchParams.get('franchiseBrand') || '';
     const brand = searchParams.get('brand') || '';
     const stockStatus = searchParams.get('stockStatus') || 'all';
     
@@ -67,8 +70,29 @@ export async function GET(request) {
       products = products.filter((p) => String(p.category_id || '') === String(category));
     }
 
+    if (subcategory) {
+      products = products.filter((p) => String(p.subcategory_id || '') === String(subcategory));
+    }
+
+    if (manufacturerBrand) {
+      products = products.filter(
+        (p) => String(p.manufacturer_brand_id || '') === String(manufacturerBrand)
+      );
+    }
+
+    if (franchiseBrand) {
+      products = products.filter(
+        (p) => String(p.franchise_brand_id || '') === String(franchiseBrand)
+      );
+    }
+
     if (brand) {
-      products = products.filter((p) => String(p.brand_id || '') === String(brand));
+      products = products.filter(
+        (p) =>
+          String(p.brand_id || '') === String(brand) ||
+          String(p.manufacturer_brand_id || '') === String(brand) ||
+          String(p.franchise_brand_id || '') === String(brand)
+      );
     }
 
     if (stockStatus === 'out_of_stock') {
@@ -87,8 +111,20 @@ export async function GET(request) {
       });
     }
 
-    const categoryIds = [...new Set(products.map((p) => p.category_id).filter(Boolean))];
-    const brandIds = [...new Set(products.map((p) => p.brand_id).filter(Boolean))];
+    const categoryIds = [
+      ...new Set(
+        products
+          .flatMap((p) => [p.category_id, p.subcategory_id])
+          .filter(Boolean)
+      )
+    ];
+    const brandIds = [
+      ...new Set(
+        products
+          .flatMap((p) => [p.manufacturer_brand_id, p.franchise_brand_id, p.brand_id])
+          .filter(Boolean)
+      )
+    ];
 
     const [categoryDocs, brandDocs] = await Promise.all([
       Promise.all(categoryIds.map((id) => db.collection(CATEGORIES_COLLECTION).doc(String(id)).get())),
@@ -104,7 +140,18 @@ export async function GET(request) {
         stock_quantity: toNumber(p.stock_quantity, 0),
         low_stock_threshold: toNumber(p.low_stock_threshold, 5),
         category_name: p.category_id ? categoriesById.get(String(p.category_id))?.name || null : null,
-        brand_name: p.brand_id ? brandsById.get(String(p.brand_id))?.name || null : null,
+        subcategory_name: p.subcategory_id ? categoriesById.get(String(p.subcategory_id))?.name || null : null,
+        manufacturer_brand_name: p.manufacturer_brand_id
+          ? brandsById.get(String(p.manufacturer_brand_id))?.name || null
+          : null,
+        franchise_brand_name: p.franchise_brand_id
+          ? brandsById.get(String(p.franchise_brand_id))?.name || null
+          : null,
+        brand_name:
+          (p.franchise_brand_id ? brandsById.get(String(p.franchise_brand_id))?.name : null) ||
+          (p.manufacturer_brand_id ? brandsById.get(String(p.manufacturer_brand_id))?.name : null) ||
+          (p.brand_id ? brandsById.get(String(p.brand_id))?.name : null) ||
+          null,
         image_url:
           p.image ||
           (Array.isArray(p.images) && p.images.length > 0 ? p.images[0]?.url || p.images[0] : '') ||

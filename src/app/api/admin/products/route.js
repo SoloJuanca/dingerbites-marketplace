@@ -49,6 +49,9 @@ export async function GET(request) {
     const limit = parseInt(searchParams.get('limit')) || 20;
     const search = searchParams.get('search') || '';
     const category = searchParams.get('category') || '';
+    const subcategory = searchParams.get('subcategory') || '';
+    const manufacturerBrand = searchParams.get('manufacturerBrand') || '';
+    const franchiseBrand = searchParams.get('franchiseBrand') || '';
     const brand = searchParams.get('brand') || '';
     const status = searchParams.get('status') || 'all';
     
@@ -70,8 +73,29 @@ export async function GET(request) {
       products = products.filter((p) => String(p.category_id || '') === String(category));
     }
 
+    if (subcategory) {
+      products = products.filter((p) => String(p.subcategory_id || '') === String(subcategory));
+    }
+
+    if (manufacturerBrand) {
+      products = products.filter(
+        (p) => String(p.manufacturer_brand_id || '') === String(manufacturerBrand)
+      );
+    }
+
+    if (franchiseBrand) {
+      products = products.filter(
+        (p) => String(p.franchise_brand_id || '') === String(franchiseBrand)
+      );
+    }
+
     if (brand) {
-      products = products.filter((p) => String(p.brand_id || '') === String(brand));
+      products = products.filter(
+        (p) =>
+          String(p.brand_id || '') === String(brand) ||
+          String(p.franchise_brand_id || '') === String(brand) ||
+          String(p.manufacturer_brand_id || '') === String(brand)
+      );
     }
 
     if (status !== 'all') {
@@ -79,8 +103,20 @@ export async function GET(request) {
       products = products.filter((p) => Boolean(p.is_active) === isActive);
     }
 
-    const categoryIds = [...new Set(products.map((p) => p.category_id).filter(Boolean))];
-    const brandIds = [...new Set(products.map((p) => p.brand_id).filter(Boolean))];
+    const categoryIds = [
+      ...new Set(
+        products
+          .flatMap((p) => [p.category_id, p.subcategory_id])
+          .filter(Boolean)
+      )
+    ];
+    const brandIds = [
+      ...new Set(
+        products
+          .flatMap((p) => [p.manufacturer_brand_id, p.franchise_brand_id, p.brand_id])
+          .filter(Boolean)
+      )
+    ];
 
     const [categoryDocs, brandDocs] = await Promise.all([
       Promise.all(categoryIds.map((id) => db.collection(CATEGORIES_COLLECTION).doc(String(id)).get())),
@@ -94,7 +130,18 @@ export async function GET(request) {
       .map((p) => ({
         ...p,
         category_name: p.category_id ? categoriesById.get(String(p.category_id))?.name || null : null,
-        brand_name: p.brand_id ? brandsById.get(String(p.brand_id))?.name || null : null,
+        subcategory_name: p.subcategory_id ? categoriesById.get(String(p.subcategory_id))?.name || null : null,
+        manufacturer_brand_name: p.manufacturer_brand_id
+          ? brandsById.get(String(p.manufacturer_brand_id))?.name || null
+          : null,
+        franchise_brand_name: p.franchise_brand_id
+          ? brandsById.get(String(p.franchise_brand_id))?.name || null
+          : null,
+        brand_name:
+          (p.franchise_brand_id ? brandsById.get(String(p.franchise_brand_id))?.name : null) ||
+          (p.manufacturer_brand_id ? brandsById.get(String(p.manufacturer_brand_id))?.name : null) ||
+          (p.brand_id ? brandsById.get(String(p.brand_id))?.name : null) ||
+          null,
         image_url:
           p.image ||
           (Array.isArray(p.images) && p.images.length > 0 ? p.images[0]?.url || p.images[0] : '') ||
@@ -145,7 +192,9 @@ export async function POST(request) {
       weight_grams,
       dimensions_cm,
       category_id,
-      brand_id,
+      subcategory_id,
+      manufacturer_brand_id,
+      franchise_brand_id,
       stock_quantity,
       low_stock_threshold,
       allow_backorders,
@@ -207,6 +256,7 @@ export async function POST(request) {
     const now = new Date().toISOString();
 
     let finalCategoryId = category_id || null;
+    let finalSubcategoryId = subcategory_id || null;
 
     if (!finalCategoryId && suggested_category_name && suggested_category_name.trim()) {
       const normalizedName = suggested_category_name.trim();
@@ -255,6 +305,24 @@ export async function POST(request) {
           .filter(Boolean)
       : [];
 
+    if (finalSubcategoryId) {
+      const subcategorySnap = await db.collection(CATEGORIES_COLLECTION).doc(String(finalSubcategoryId)).get();
+      if (!subcategorySnap.exists) {
+        return NextResponse.json(
+          { error: 'Subcategory not found' },
+          { status: 400 }
+        );
+      }
+      const subcategoryData = subcategorySnap.data();
+      const subcategoryParentId = subcategoryData?.parent_id || null;
+      if (!finalCategoryId || String(subcategoryParentId) !== String(finalCategoryId)) {
+        return NextResponse.json(
+          { error: 'Subcategory does not belong to selected category' },
+          { status: 400 }
+        );
+      }
+    }
+
     const docRef = db.collection(PRODUCTS_COLLECTION).doc();
     const newProduct = {
       id: docRef.id,
@@ -270,7 +338,10 @@ export async function POST(request) {
       weight_grams: weight_grams !== undefined ? toNumber(weight_grams, 0) : null,
       dimensions_cm: dimensions_cm || null,
       category_id: finalCategoryId,
-      brand_id: brand_id || null,
+      subcategory_id: finalSubcategoryId,
+      manufacturer_brand_id: manufacturer_brand_id || null,
+      franchise_brand_id: franchise_brand_id || null,
+      brand_id: franchise_brand_id || manufacturer_brand_id || null,
       condition: normalizedCondition,
       stock_quantity: toNumber(stock_quantity, 0),
       low_stock_threshold: toNumber(low_stock_threshold, 5),

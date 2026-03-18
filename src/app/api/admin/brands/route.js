@@ -7,6 +7,8 @@ import {
   listCollection
 } from '../../../../lib/firebaseCatalog';
 
+const VALID_BRAND_TYPES = ['manufacturer', 'franchise'];
+
 // GET /api/admin/brands - Get all brands
 export async function GET(request) {
   try {
@@ -19,12 +21,18 @@ export async function GET(request) {
       );
     }
 
-    const { items: brands } = await listCollection(BRANDS_COLLECTION, {
+    const { searchParams } = new URL(request.url);
+    const type = searchParams.get('type') || '';
+
+    const { items: allBrands } = await listCollection(BRANDS_COLLECTION, {
       page: 1,
       limit: 500,
       onlyActive: false,
       orderBy: 'name'
     });
+    const brands = VALID_BRAND_TYPES.includes(type)
+      ? allBrands.filter((brand) => (brand.brand_type || 'manufacturer') === type)
+      : allBrands;
 
     return NextResponse.json({
       success: true,
@@ -59,6 +67,7 @@ export async function POST(request) {
       description,
       logo_url,
       website_url,
+      brand_type,
       is_active
     } = body;
 
@@ -69,6 +78,8 @@ export async function POST(request) {
         { status: 400 }
       );
     }
+
+    const normalizedBrandType = VALID_BRAND_TYPES.includes(brand_type) ? brand_type : 'manufacturer';
 
     // Check if slug already exists
     const existingBrand = await findBySlug(BRANDS_COLLECTION, slug);
@@ -86,6 +97,7 @@ export async function POST(request) {
       description,
       logo_url,
       website_url,
+      brand_type: normalizedBrandType,
       is_active: is_active !== undefined ? is_active : true
     });
 

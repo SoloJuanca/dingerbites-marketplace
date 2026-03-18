@@ -10,6 +10,9 @@ import styles from './ProductGrid.module.css';
 export default function ProductGrid({
   currentPage,
   category,
+  subcategory,
+  manufacturerBrand,
+  franchiseBrand,
   brand,
   condition,
   minPrice,
@@ -34,6 +37,9 @@ export default function ProductGrid({
         });
 
         if (category) params.set('category', category);
+        if (subcategory) params.set('subcategory', subcategory);
+        if (manufacturerBrand) params.set('manufacturerBrand', manufacturerBrand);
+        if (franchiseBrand) params.set('franchiseBrand', franchiseBrand);
         if (brand) params.set('brand', brand);
         if (condition) params.set('condition', condition);
         if (minPrice) params.set('minPrice', minPrice);
@@ -67,7 +73,7 @@ export default function ProductGrid({
     }
 
     loadProducts();
-  }, [currentPage, category, brand, condition, minPrice, maxPrice, sortBy, search]);
+  }, [currentPage, category, subcategory, manufacturerBrand, franchiseBrand, brand, condition, minPrice, maxPrice, sortBy, search]);
 
   if (loading) {
     return (

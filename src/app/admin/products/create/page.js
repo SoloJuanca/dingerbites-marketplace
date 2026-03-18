@@ -40,7 +40,8 @@ export default function CreateProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
-  const [brands, setBrands] = useState([]);
+  const [manufacturerBrands, setManufacturerBrands] = useState([]);
+  const [franchiseBrands, setFranchiseBrands] = useState([]);
   const [draftId, setDraftId] = useState(null);
   const [productType, setProductType] = useState(null); // 'normal' | 'tcg'
   const [currentStep, setCurrentStep] = useState(0);
@@ -55,7 +56,8 @@ export default function CreateProductPage() {
     compare_price: '',
     category_id: '',
     parent_category_id: '',
-    brand_id: '',
+    manufacturer_brand_id: '',
+    franchise_brand_id: '',
     stock_quantity: '0',
     low_stock_threshold: '5',
     tcg_product_id: null,
@@ -108,17 +110,29 @@ export default function CreateProductPage() {
 
   const loadBrands = useCallback(async () => {
     try {
-      const response = await apiRequest('/api/admin/brands');
-      if (response.ok) {
-        const data = await response.json();
-        const list = Array.isArray(data.brands) ? data.brands : (Array.isArray(data.brands?.rows) ? data.brands.rows : []);
-        setBrands(list);
-      } else {
-        if (response.status === 401) {
-          toast.error('Necesitas permisos de administrador.');
-        } else {
-          toast.error('Error al cargar marcas');
-        }
+      const [manufacturerResponse, franchiseResponse] = await Promise.all([
+        apiRequest('/api/admin/brands?type=manufacturer'),
+        apiRequest('/api/admin/brands?type=franchise')
+      ]);
+
+      if (manufacturerResponse.ok) {
+        const manufacturerData = await manufacturerResponse.json();
+        const list = Array.isArray(manufacturerData.brands)
+          ? manufacturerData.brands
+          : (Array.isArray(manufacturerData.brands?.rows) ? manufacturerData.brands.rows : []);
+        setManufacturerBrands(list);
+      }
+
+      if (franchiseResponse.ok) {
+        const franchiseData = await franchiseResponse.json();
+        const list = Array.isArray(franchiseData.brands)
+          ? franchiseData.brands
+          : (Array.isArray(franchiseData.brands?.rows) ? franchiseData.brands.rows : []);
+        setFranchiseBrands(list);
+      }
+
+      if (!manufacturerResponse.ok || !franchiseResponse.ok) {
+        toast.error('Error al cargar marcas');
       }
     } catch (error) {
       console.error('Error loading brands:', error);
@@ -251,14 +265,18 @@ export default function CreateProductPage() {
   };
 
   const handleBrandUpdate = (newBrand) => {
-    setBrands(prev => [...prev, newBrand]);
+    if (newBrand.brand_type === 'franchise') {
+      setFranchiseBrands((prev) => [...prev, newBrand]);
+      return;
+    }
+    setManufacturerBrands((prev) => [...prev, newBrand]);
   };
 
   const generateSKUFromData = (data) => {
     if (!data.name) return '';
     
     const categoryName = categories.find(cat => cat.id === data.category_id)?.name || '';
-    const brandName = brands.find(brand => brand.id === data.brand_id)?.name || '';
+    const brandName = manufacturerBrands.find(brand => brand.id === data.manufacturer_brand_id)?.name || '';
     
     // Extract first 3 letters from each component
     const categoryCode = categoryName ? categoryName.substring(0, 3).toUpperCase() : 'GEN'; // Generic if no category
@@ -400,8 +418,13 @@ export default function CreateProductPage() {
               height: formData.height_cm ? parseFloat(formData.height_cm) : null
             }
           : null,
-      category_id: formData.category_id || null,
-      brand_id: formData.brand_id || null,
+      category_id: formData.parent_category_id || formData.category_id || null,
+      subcategory_id:
+        formData.parent_category_id && formData.category_id !== formData.parent_category_id
+          ? formData.category_id
+          : null,
+      manufacturer_brand_id: formData.manufacturer_brand_id || null,
+      franchise_brand_id: formData.franchise_brand_id || null,
       condition: formData.condition,
       stock_quantity: parseInt(formData.stock_quantity, 10) || 0,
       low_stock_threshold: parseInt(formData.low_stock_threshold, 10) || 5,
@@ -1070,14 +1093,28 @@ export default function CreateProductPage() {
               </>
             )}
             <div className={styles.field}>
-              <label>Marca</label>
+              <label>Marca del fabricante</label>
               <SmartComboBox
-                value={formData.brand_id}
-                onChange={(value) => setFormData((prev) => ({ ...prev, brand_id: value }))}
-                options={brands}
+                value={formData.manufacturer_brand_id}
+                onChange={(value) => setFormData((prev) => ({ ...prev, manufacturer_brand_id: value }))}
+                options={manufacturerBrands}
                 placeholder="Buscar o crear marca..."
                 createEndpoint="/api/admin/brands"
-                createLabel="marca"
+                createLabel="marca fabricante"
+                createPayload={{ brand_type: 'manufacturer' }}
+                onOptionsUpdate={handleBrandUpdate}
+              />
+            </div>
+            <div className={styles.field}>
+              <label>Marca de serie/anime/videojuego</label>
+              <SmartComboBox
+                value={formData.franchise_brand_id}
+                onChange={(value) => setFormData((prev) => ({ ...prev, franchise_brand_id: value }))}
+                options={franchiseBrands}
+                placeholder="Buscar o crear marca de franquicia..."
+                createEndpoint="/api/admin/brands"
+                createLabel="marca de franquicia"
+                createPayload={{ brand_type: 'franchise' }}
                 onOptionsUpdate={handleBrandUpdate}
               />
             </div>
@@ -1333,7 +1370,10 @@ export default function CreateProductPage() {
 
     if (step === 6) {
       const catName = categories.find((c) => c.id === formData.category_id)?.name || formData.suggested_category_name || '—';
-      const brandName = brands.find((b) => b.id === formData.brand_id)?.name || '—';
+      const manufacturerBrandName =
+        manufacturerBrands.find((b) => b.id === formData.manufacturer_brand_id)?.name || '—';
+      const franchiseBrandName =
+        franchiseBrands.find((b) => b.id === formData.franchise_brand_id)?.name || '—';
       return (
         <div className={styles.wizardContent}>
           <h1 className={styles.wizardStepTitle}>{titles.title}</h1>
@@ -1347,8 +1387,10 @@ export default function CreateProductPage() {
               <dd>{formData.name || '—'}</dd>
               <dt>Categoría</dt>
               <dd>{catName}</dd>
-              <dt>Marca</dt>
-              <dd>{brandName}</dd>
+              <dt>Marca fabricante</dt>
+              <dd>{manufacturerBrandName}</dd>
+              <dt>Marca franquicia</dt>
+              <dd>{franchiseBrandName}</dd>
               <dt>Condición</dt>
               <dd>{PRODUCT_CONDITION_LABELS[formData.condition] || '—'}</dd>
               <dt>Precio</dt>

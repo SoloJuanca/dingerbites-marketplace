@@ -56,11 +56,14 @@ export async function getCategories() {
 }
 
 /** Public catalog: list active brands (same shape as lib/products getBrands). */
-export async function getBrands() {
+export async function getBrands({ type = null } = {}) {
   try {
     const snapshot = await db.collection(BRANDS_COLLECTION).get();
     let items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     items = items.filter((b) => b.is_active !== false);
+    if (type) {
+      items = items.filter((b) => (b.brand_type || 'manufacturer') === type);
+    }
     items.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
     return items.map((b) => ({
       id: b.id,
@@ -94,64 +97,73 @@ export async function getPriceRange() {
   }
 }
 
-/** Resolve category slugs to ids and brand slugs to ids. */
-async function resolveCategoryAndBrandSlugs(categorySlugs, brandSlugs) {
+async function resolveTaxonomySlugs({
+  categorySlugs = [],
+  subcategorySlugs = [],
+  manufacturerBrandSlugs = [],
+  franchiseBrandSlugs = [],
+  legacyBrandSlugs = []
+} = {}) {
   const [catSnap, brandSnap] = await Promise.all([
     db.collection(CATEGORIES_COLLECTION).get(),
     db.collection(BRANDS_COLLECTION).get()
   ]);
+
   const categories = catSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
   const slugToCategoryId = new Map();
   const childrenByParentId = new Map();
-
   categories.forEach((category) => {
-    if (category.slug) {
-      slugToCategoryId.set(category.slug, category.id);
-    }
+    if (category.slug) slugToCategoryId.set(category.slug, category.id);
     const parentId = category.parent_id || null;
-    if (!childrenByParentId.has(parentId)) {
-      childrenByParentId.set(parentId, []);
-    }
+    if (!childrenByParentId.has(parentId)) childrenByParentId.set(parentId, []);
     childrenByParentId.get(parentId).push(category.id);
   });
 
   const collectDescendantCategoryIds = (rootCategoryId) => {
     const result = new Set();
     const queue = [rootCategoryId];
-
     while (queue.length > 0) {
       const currentId = queue.shift();
       if (!currentId || result.has(currentId)) continue;
       result.add(currentId);
-
       const children = childrenByParentId.get(currentId) || [];
       children.forEach((childId) => {
-        if (!result.has(childId)) {
-          queue.push(childId);
-        }
+        if (!result.has(childId)) queue.push(childId);
       });
     }
-
     return [...result];
   };
 
-  const slugToBrandId = new Map();
-  brandSnap.docs.forEach((d) => {
-    const data = d.data();
-    if (data.slug) slugToBrandId.set(data.slug, d.id);
+  const allBrands = brandSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const manufacturerSlugToId = new Map();
+  const franchiseSlugToId = new Map();
+  const anyBrandSlugToId = new Map();
+  allBrands.forEach((brand) => {
+    if (!brand.slug) return;
+    anyBrandSlugToId.set(brand.slug, brand.id);
+    const brandType = brand.brand_type || 'manufacturer';
+    if (brandType === 'franchise') franchiseSlugToId.set(brand.slug, brand.id);
+    if (brandType === 'manufacturer') manufacturerSlugToId.set(brand.slug, brand.id);
   });
 
   const categoryIds = [
     ...new Set(
-      (categorySlugs || [])
+      categorySlugs
         .map((slug) => slugToCategoryId.get(slug))
         .filter(Boolean)
         .flatMap((categoryId) => collectDescendantCategoryIds(categoryId))
     )
   ];
+  const subcategoryIds = [...new Set(subcategorySlugs.map((slug) => slugToCategoryId.get(slug)).filter(Boolean))];
+  const manufacturerBrandIds = [
+    ...new Set(manufacturerBrandSlugs.map((slug) => manufacturerSlugToId.get(slug)).filter(Boolean))
+  ];
+  const franchiseBrandIds = [
+    ...new Set(franchiseBrandSlugs.map((slug) => franchiseSlugToId.get(slug)).filter(Boolean))
+  ];
+  const legacyBrandIds = [...new Set(legacyBrandSlugs.map((slug) => anyBrandSlugToId.get(slug)).filter(Boolean))];
 
-  const brandIds = (brandSlugs || []).map((s) => slugToBrandId.get(s)).filter(Boolean);
-  return { categoryIds, brandIds, categoriesById: slugToCategoryId, brandsById: slugToBrandId };
+  return { categoryIds, subcategoryIds, manufacturerBrandIds, franchiseBrandIds, legacyBrandIds };
 }
 
 /** Build category_id -> { name, slug } and brand_id -> { name, slug } for products. */
@@ -186,7 +198,11 @@ function getProductImage(p) {
 function mapProductToCatalogItem(p, categoriesById, brandsById) {
   const { images, image } = getProductImage(p);
   const cat = p.category_id ? categoriesById.get(p.category_id) : null;
-  const brand = p.brand_id ? brandsById.get(p.brand_id) : null;
+  const subcategory = p.subcategory_id ? categoriesById.get(p.subcategory_id) : null;
+  const manufacturerBrand = p.manufacturer_brand_id ? brandsById.get(p.manufacturer_brand_id) : null;
+  const franchiseBrand = p.franchise_brand_id ? brandsById.get(p.franchise_brand_id) : null;
+  const legacyBrand = p.brand_id ? brandsById.get(p.brand_id) : null;
+  const brand = franchiseBrand || manufacturerBrand || legacyBrand || null;
   const tcgSubTypeName = p.tcg_sub_type_name ?? null;
   const rawPrice = toNum(p.price, 0);
   const displayPrice =
@@ -207,6 +223,12 @@ function mapProductToCatalogItem(p, categoriesById, brandsById) {
     created_at: p.created_at,
     category_name: cat?.name ?? null,
     category_slug: cat?.slug ?? null,
+    subcategory_name: subcategory?.name ?? null,
+    subcategory_slug: subcategory?.slug ?? null,
+    manufacturer_brand_name: manufacturerBrand?.name ?? null,
+    manufacturer_brand_slug: manufacturerBrand?.slug ?? null,
+    franchise_brand_name: franchiseBrand?.name ?? null,
+    franchise_brand_slug: franchiseBrand?.slug ?? null,
     brand_name: brand?.name ?? null,
     brand_slug: brand?.slug ?? null,
     image,
@@ -235,6 +257,15 @@ export async function getProducts(filters = {}) {
     const page = Math.max(1, toNum(filters.page, 1));
     const limit = Math.max(1, toNum(filters.limit, 8));
     const categorySlugs = filters.category ? String(filters.category).split(',').map((s) => s.trim()).filter(Boolean) : [];
+    const subcategorySlugs = filters.subcategory
+      ? String(filters.subcategory).split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+    const manufacturerBrandSlugs = filters.manufacturerBrand
+      ? String(filters.manufacturerBrand).split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+    const franchiseBrandSlugs = filters.franchiseBrand
+      ? String(filters.franchiseBrand).split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
     const brandSlugs = filters.brand ? String(filters.brand).split(',').map((s) => s.trim()).filter(Boolean) : [];
     const minPrice = filters.minPrice ? toNum(filters.minPrice, 0) : null;
     const maxPrice = filters.maxPrice ? toNum(filters.maxPrice, Infinity) : null;
@@ -251,12 +282,45 @@ export async function getProducts(filters = {}) {
     let products = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     products = products.filter((p) => p.is_active !== false);
 
-    const { categoryIds, brandIds } = await resolveCategoryAndBrandSlugs(categorySlugs, brandSlugs);
+    const { categoryIds, subcategoryIds, manufacturerBrandIds, franchiseBrandIds, legacyBrandIds } =
+      await resolveTaxonomySlugs({
+        categorySlugs,
+        subcategorySlugs,
+        manufacturerBrandSlugs,
+        franchiseBrandSlugs,
+        legacyBrandSlugs: brandSlugs
+      });
     if (categoryIds.length > 0) {
       products = products.filter((p) => p.category_id && categoryIds.includes(p.category_id));
     }
-    if (brandIds.length > 0) {
-      products = products.filter((p) => p.brand_id && brandIds.includes(p.brand_id));
+    if (subcategoryIds.length > 0) {
+      products = products.filter(
+        (p) =>
+          (p.subcategory_id && subcategoryIds.includes(p.subcategory_id)) ||
+          (!p.subcategory_id && p.category_id && subcategoryIds.includes(p.category_id))
+      );
+    }
+    if (manufacturerBrandIds.length > 0) {
+      products = products.filter(
+        (p) =>
+          (p.manufacturer_brand_id && manufacturerBrandIds.includes(p.manufacturer_brand_id)) ||
+          (!p.manufacturer_brand_id && p.brand_id && manufacturerBrandIds.includes(p.brand_id))
+      );
+    }
+    if (franchiseBrandIds.length > 0) {
+      products = products.filter(
+        (p) =>
+          (p.franchise_brand_id && franchiseBrandIds.includes(p.franchise_brand_id)) ||
+          (!p.franchise_brand_id && p.brand_id && franchiseBrandIds.includes(p.brand_id))
+      );
+    }
+    if (legacyBrandIds.length > 0) {
+      products = products.filter(
+        (p) =>
+          (p.brand_id && legacyBrandIds.includes(p.brand_id)) ||
+          (p.manufacturer_brand_id && legacyBrandIds.includes(p.manufacturer_brand_id)) ||
+          (p.franchise_brand_id && legacyBrandIds.includes(p.franchise_brand_id))
+      );
     }
     if (conditionFilters.length > 0) {
       products = products.filter((p) => conditionFilters.includes(sanitizeProductCondition(p.condition)));
@@ -561,6 +625,12 @@ export async function getProductBySlug(slug) {
 
     let category_name = null;
     let category_slug = null;
+    let subcategory_name = null;
+    let subcategory_slug = null;
+    let manufacturer_brand_name = null;
+    let manufacturer_brand_slug = null;
+    let franchise_brand_name = null;
+    let franchise_brand_slug = null;
     let brand_name = null;
     let brand_slug = null;
     if (p.category_id) {
@@ -578,6 +648,37 @@ export async function getProductBySlug(slug) {
         brand_name = d.name;
         brand_slug = d.slug;
       }
+    }
+    if (p.subcategory_id) {
+      const subcategoryDoc = await db.collection(CATEGORIES_COLLECTION).doc(p.subcategory_id).get();
+      if (subcategoryDoc.exists) {
+        const d = subcategoryDoc.data();
+        subcategory_name = d.name;
+        subcategory_slug = d.slug;
+      }
+    }
+    if (p.manufacturer_brand_id) {
+      const manufacturerBrandDoc = await db.collection(BRANDS_COLLECTION).doc(p.manufacturer_brand_id).get();
+      if (manufacturerBrandDoc.exists) {
+        const d = manufacturerBrandDoc.data();
+        manufacturer_brand_name = d.name;
+        manufacturer_brand_slug = d.slug;
+      }
+    }
+    if (p.franchise_brand_id) {
+      const franchiseBrandDoc = await db.collection(BRANDS_COLLECTION).doc(p.franchise_brand_id).get();
+      if (franchiseBrandDoc.exists) {
+        const d = franchiseBrandDoc.data();
+        franchise_brand_name = d.name;
+        franchise_brand_slug = d.slug;
+      }
+    }
+
+    if (!brand_name) {
+      brand_name = franchise_brand_name || manufacturer_brand_name || null;
+    }
+    if (!brand_slug) {
+      brand_slug = franchise_brand_slug || manufacturer_brand_slug || null;
     }
 
     const tcgSubTypeName = p.tcg_sub_type_name ?? null;
@@ -599,6 +700,12 @@ export async function getProductBySlug(slug) {
       created_at: p.created_at,
       category_name,
       category_slug,
+      subcategory_name,
+      subcategory_slug,
+      manufacturer_brand_name,
+      manufacturer_brand_slug,
+      franchise_brand_name,
+      franchise_brand_slug,
       brand_name,
       brand_slug,
       brand: brand_name,

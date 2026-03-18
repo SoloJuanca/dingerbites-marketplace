@@ -4,14 +4,18 @@ import { PRODUCT_CONDITIONS, PRODUCT_CONDITION_LABELS } from '../../../lib/produ
 
 export async function GET() {
   try {
-    const [categories, brands, priceRange] = await Promise.all([
+    const [categories, manufacturerBrands, franchiseBrands, priceRange] = await Promise.all([
       getCategories(),
-      getBrands(),
+      getBrands({ type: 'manufacturer' }),
+      getBrands({ type: 'franchise' }),
       getPriceRange()
     ]);
+    const brands = [...manufacturerBrands, ...franchiseBrands];
 
     return NextResponse.json({
       categories,
+      manufacturerBrands,
+      franchiseBrands,
       brands,
       priceRange,
       conditions: PRODUCT_CONDITIONS.map((value) => ({
@@ -33,6 +37,12 @@ export async function GET() {
         { id: 1, name: 'Brand A', slug: 'brand-a' },
         { id: 2, name: 'Brand B', slug: 'brand-b' },
         { id: 3, name: 'Brand C', slug: 'brand-c' }
+      ],
+      manufacturerBrands: [
+        { id: 1, name: 'Brand A', slug: 'brand-a' }
+      ],
+      franchiseBrands: [
+        { id: 2, name: 'Brand B', slug: 'brand-b' }
       ],
       priceRange: { min: 0, max: 2000 },
       conditions: PRODUCT_CONDITIONS.map((value) => ({

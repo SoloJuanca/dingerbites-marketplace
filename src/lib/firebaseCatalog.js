@@ -3,6 +3,7 @@ import { db } from './firebaseAdmin';
 const CATEGORIES_COLLECTION = 'product_categories';
 const BRANDS_COLLECTION = 'product_brands';
 const PRODUCTS_COLLECTION = 'products';
+const BRAND_TYPES = ['manufacturer', 'franchise'];
 
 function normalizeDoc(id, payload) {
   return {
@@ -94,6 +95,7 @@ async function createCategory(category) {
 }
 
 async function createBrand(brand) {
+  const normalizedBrandType = BRAND_TYPES.includes(brand.brand_type) ? brand.brand_type : 'manufacturer';
   const docRef = db.collection(BRANDS_COLLECTION).doc();
   const payload = {
     name: brand.name,
@@ -101,6 +103,7 @@ async function createBrand(brand) {
     description: brand.description || null,
     logo_url: brand.logo_url || null,
     website_url: brand.website_url || null,
+    brand_type: normalizedBrandType,
     is_active: brand.is_active !== undefined ? Boolean(brand.is_active) : true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
@@ -152,13 +155,13 @@ async function hasSubcategories(categoryId) {
 }
 
 async function hasProductsWithBrandId(brandId) {
-  const snapshot = await db
-    .collection(PRODUCTS_COLLECTION)
-    .where('brand_id', '==', brandId)
-    .limit(1)
-    .get();
+  const [legacyBrand, manufacturerBrand, franchiseBrand] = await Promise.all([
+    db.collection(PRODUCTS_COLLECTION).where('brand_id', '==', brandId).limit(1).get(),
+    db.collection(PRODUCTS_COLLECTION).where('manufacturer_brand_id', '==', brandId).limit(1).get(),
+    db.collection(PRODUCTS_COLLECTION).where('franchise_brand_id', '==', brandId).limit(1).get()
+  ]);
 
-  return !snapshot.empty;
+  return !legacyBrand.empty || !manufacturerBrand.empty || !franchiseBrand.empty;
 }
 
 export {

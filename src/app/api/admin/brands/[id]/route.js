@@ -9,6 +9,8 @@ import {
   updateById
 } from '../../../../../lib/firebaseCatalog';
 
+const VALID_BRAND_TYPES = ['manufacturer', 'franchise'];
+
 // PUT /api/admin/brands/[id] - Update brand
 export async function PUT(request, { params }) {
   try {
@@ -40,6 +42,7 @@ export async function PUT(request, { params }) {
       description,
       logo_url,
       website_url,
+      brand_type,
       is_active
     } = body;
 
@@ -50,6 +53,10 @@ export async function PUT(request, { params }) {
         { status: 400 }
       );
     }
+
+    const normalizedBrandType = VALID_BRAND_TYPES.includes(brand_type)
+      ? brand_type
+      : (existingBrand.brand_type || 'manufacturer');
 
     // Check if slug already exists (excluding current brand)
     if (slug !== existingBrand.slug) {
@@ -69,6 +76,7 @@ export async function PUT(request, { params }) {
       description: description ?? null,
       logo_url: logo_url ?? null,
       website_url: website_url ?? null,
+      brand_type: normalizedBrandType,
       is_active: is_active !== undefined ? Boolean(is_active) : existingBrand.is_active
     });
 

@@ -7,10 +7,14 @@ import styles from './FilterSidebar.module.css';
 
 export default function FilterSidebar({ 
   categories = [],
-  brands = [],
+  manufacturerBrands = [],
+  franchiseBrands = [],
   conditions = [],
   priceRange = { min: 0, max: 1000 },
   currentCategory, 
+  currentSubcategory,
+  currentManufacturerBrand,
+  currentFranchiseBrand,
   currentBrand, 
   currentCondition,
   currentMinPrice, 
@@ -24,13 +28,18 @@ export default function FilterSidebar({
   // Estados para secciones colapsables
   const [collapsedSections, setCollapsedSections] = useState({
     categories: false,
-    brands: false,
+    subcategories: false,
+    manufacturerBrands: false,
+    franchiseBrands: false,
     conditions: false,
     price: false
   });
   
   // Convertir strings de URL a arrays
   const selectedCategories = currentCategory ? currentCategory.split(',') : [];
+  const selectedSubcategories = currentSubcategory ? currentSubcategory.split(',') : [];
+  const selectedManufacturerBrands = currentManufacturerBrand ? currentManufacturerBrand.split(',') : [];
+  const selectedFranchiseBrands = currentFranchiseBrand ? currentFranchiseBrand.split(',') : [];
   const selectedBrands = currentBrand ? currentBrand.split(',') : [];
   const selectedConditions = currentCondition ? currentCondition.split(',') : [];
 
@@ -58,7 +67,7 @@ export default function FilterSidebar({
 
   const hasSelectedDescendant = (categoryId) => {
     const descendants = getDescendantSlugs(categoryId);
-    return descendants.some((slug) => selectedCategories.includes(slug));
+    return descendants.some((slug) => selectedSubcategories.includes(slug));
   };
 
   const updateFilters = (newFilters) => {
@@ -82,18 +91,23 @@ export default function FilterSidebar({
 
   const handleCategoryChange = (categoryValue, categoryId) => {
     let newCategories = [...selectedCategories];
+    let newSubcategories = [...selectedSubcategories];
     
     if (newCategories.includes(categoryValue)) {
       const descendantSlugs = getDescendantSlugs(categoryId);
       newCategories = newCategories.filter(
-        (cat) => cat !== categoryValue && !descendantSlugs.includes(cat)
+        (cat) => cat !== categoryValue
       );
+      newSubcategories = newSubcategories.filter((slug) => !descendantSlugs.includes(slug));
     } else {
       newCategories.push(categoryValue);
     }
     
     updateFilters({
       category: newCategories,
+      subcategory: newSubcategories,
+      manufacturerBrand: selectedManufacturerBrands,
+      franchiseBrand: selectedFranchiseBrands,
       brand: selectedBrands,
       condition: selectedConditions,
       minPrice: currentMinPrice,
@@ -101,20 +115,61 @@ export default function FilterSidebar({
     });
   };
 
-  const handleBrandChange = (brandValue) => {
-    let newBrands = [...selectedBrands];
+  const handleSubcategoryChange = (subcategoryValue) => {
+    let newSubcategories = [...selectedSubcategories];
     
-    if (newBrands.includes(brandValue)) {
-      // Remover marca si ya está seleccionada
-      newBrands = newBrands.filter(brand => brand !== brandValue);
+    if (newSubcategories.includes(subcategoryValue)) {
+      newSubcategories = newSubcategories.filter((subcategory) => subcategory !== subcategoryValue);
     } else {
-      // Agregar nueva marca
-      newBrands.push(brandValue);
+      newSubcategories.push(subcategoryValue);
     }
     
     updateFilters({
       category: selectedCategories,
-      brand: newBrands,
+      subcategory: newSubcategories,
+      manufacturerBrand: selectedManufacturerBrands,
+      franchiseBrand: selectedFranchiseBrands,
+      brand: selectedBrands,
+      condition: selectedConditions,
+      minPrice: currentMinPrice,
+      maxPrice: currentMaxPrice
+    });
+  };
+
+  const handleManufacturerBrandChange = (brandValue) => {
+    let newManufacturerBrands = [...selectedManufacturerBrands];
+    if (newManufacturerBrands.includes(brandValue)) {
+      newManufacturerBrands = newManufacturerBrands.filter((brandSlug) => brandSlug !== brandValue);
+    } else {
+      newManufacturerBrands.push(brandValue);
+    }
+
+    updateFilters({
+      category: selectedCategories,
+      subcategory: selectedSubcategories,
+      manufacturerBrand: newManufacturerBrands,
+      franchiseBrand: selectedFranchiseBrands,
+      brand: selectedBrands,
+      condition: selectedConditions,
+      minPrice: currentMinPrice,
+      maxPrice: currentMaxPrice
+    });
+  };
+
+  const handleFranchiseBrandChange = (brandValue) => {
+    let newFranchiseBrands = [...selectedFranchiseBrands];
+    if (newFranchiseBrands.includes(brandValue)) {
+      newFranchiseBrands = newFranchiseBrands.filter((brandSlug) => brandSlug !== brandValue);
+    } else {
+      newFranchiseBrands.push(brandValue);
+    }
+
+    updateFilters({
+      category: selectedCategories,
+      subcategory: selectedSubcategories,
+      manufacturerBrand: selectedManufacturerBrands,
+      franchiseBrand: newFranchiseBrands,
+      brand: selectedBrands,
       condition: selectedConditions,
       minPrice: currentMinPrice,
       maxPrice: currentMaxPrice
@@ -132,6 +187,9 @@ export default function FilterSidebar({
 
     updateFilters({
       category: selectedCategories,
+      subcategory: selectedSubcategories,
+      manufacturerBrand: selectedManufacturerBrands,
+      franchiseBrand: selectedFranchiseBrands,
       brand: selectedBrands,
       condition: newConditions,
       minPrice: currentMinPrice,
@@ -143,6 +201,9 @@ export default function FilterSidebar({
     e.preventDefault();
     updateFilters({
       category: selectedCategories,
+      subcategory: selectedSubcategories,
+      manufacturerBrand: selectedManufacturerBrands,
+      franchiseBrand: selectedFranchiseBrands,
       brand: selectedBrands,
       condition: selectedConditions,
       minPrice: minPrice,
@@ -178,11 +239,6 @@ export default function FilterSidebar({
           <div className={`${styles.sectionContent} ${collapsedSections.categories ? styles.collapsed : ''}`}>
             <div className={styles.categoryList}>
               {(categoriesByParent.get(null) || []).map((parentCategory) => {
-                const childCategories = categoriesByParent.get(parentCategory.id) || [];
-                const showChildren =
-                  selectedCategories.includes(parentCategory.slug) ||
-                  hasSelectedDescendant(parentCategory.id);
-
                 return (
                   <div key={parentCategory.id}>
                     <label className={styles.checkboxItem}>
@@ -194,24 +250,6 @@ export default function FilterSidebar({
                       />
                       <span className={styles.checkboxLabel}>{parentCategory.name}</span>
                     </label>
-                    {showChildren &&
-                      childCategories.map((childCategory) => (
-                        <label
-                          key={childCategory.id}
-                          className={styles.checkboxItem}
-                          style={{ paddingLeft: 16 }}
-                        >
-                          <input
-                            type="checkbox"
-                            className={styles.checkbox}
-                            checked={selectedCategories.includes(childCategory.slug)}
-                            onChange={() => handleCategoryChange(childCategory.slug, childCategory.id)}
-                          />
-                          <span className={styles.checkboxLabel}>
-                            ↳ {childCategory.name}
-                          </span>
-                        </label>
-                      ))}
                   </div>
                 );
               })}
@@ -219,32 +257,98 @@ export default function FilterSidebar({
           </div>
         </div>
 
-        {/* Marcas */}
+        {/* Subcategorías */}
         <div className={styles.filterSection}>
-          <button 
+          <button
             className={styles.sectionHeader}
-            onClick={() => toggleSection('brands')}
+            onClick={() => toggleSection('subcategories')}
           >
-            <h4 className={styles.sectionTitle}>Marcas</h4>
-            <Icon 
-              name="keyboard_arrow_down" 
+            <h4 className={styles.sectionTitle}>Subcategorías</h4>
+            <Icon
+              name="keyboard_arrow_down"
               size={20}
-              className={`${styles.collapseIcon} ${!collapsedSections.brands ? styles.expanded : ''}`}
+              className={`${styles.collapseIcon} ${!collapsedSections.subcategories ? styles.expanded : ''}`}
             />
           </button>
-          <div className={`${styles.sectionContent} ${collapsedSections.brands ? styles.collapsed : ''}`}>
+          <div className={`${styles.sectionContent} ${collapsedSections.subcategories ? styles.collapsed : ''}`}>
             <div className={styles.brandList}>
-              {brands.map((brand) => (
-                <label key={brand.id} className={styles.checkboxItem}>
+              {(categoriesByParent.get(null) || [])
+                .filter((parentCategory) =>
+                  selectedCategories.includes(parentCategory.slug) || hasSelectedDescendant(parentCategory.id)
+                )
+                .flatMap((parentCategory) =>
+                  (categoriesByParent.get(parentCategory.id) || []).map((subcategory) => (
+                    <label key={subcategory.id} className={styles.checkboxItem}>
+                      <input
+                        type="checkbox"
+                        className={styles.checkbox}
+                        checked={selectedSubcategories.includes(subcategory.slug)}
+                        onChange={() => handleSubcategoryChange(subcategory.slug)}
+                      />
+                      <span className={styles.checkboxLabel}>
+                        {subcategory.name}
+                      </span>
+                    </label>
+                  ))
+                )}
+            </div>
+          </div>
+        </div>
+
+        {/* Marca fabricante */}
+        <div className={styles.filterSection}>
+          <button
+            className={styles.sectionHeader}
+            onClick={() => toggleSection('manufacturerBrands')}
+          >
+            <h4 className={styles.sectionTitle}>Marca fabricante</h4>
+            <Icon
+              name="keyboard_arrow_down"
+              size={20}
+              className={`${styles.collapseIcon} ${!collapsedSections.manufacturerBrands ? styles.expanded : ''}`}
+            />
+          </button>
+          <div className={`${styles.sectionContent} ${collapsedSections.manufacturerBrands ? styles.collapsed : ''}`}>
+            <div className={styles.brandList}>
+              {manufacturerBrands.map((brandOption) => (
+                <label key={brandOption.id} className={styles.checkboxItem}>
                   <input
                     type="checkbox"
                     className={styles.checkbox}
-                    checked={selectedBrands.includes(brand.slug)}
-                    onChange={() => handleBrandChange(brand.slug)}
+                    checked={selectedManufacturerBrands.includes(brandOption.slug)}
+                    onChange={() => handleManufacturerBrandChange(brandOption.slug)}
                   />
-                  <span className={styles.checkboxLabel}>
-                    {brand.name}
-                  </span>
+                  <span className={styles.checkboxLabel}>{brandOption.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Marca franquicia */}
+        <div className={styles.filterSection}>
+          <button
+            className={styles.sectionHeader}
+            onClick={() => toggleSection('franchiseBrands')}
+          >
+            <h4 className={styles.sectionTitle}>Marca de franquicia</h4>
+            <Icon
+              name="keyboard_arrow_down"
+              size={20}
+              className={`${styles.collapseIcon} ${!collapsedSections.franchiseBrands ? styles.expanded : ''}`}
+            />
+          </button>
+          <div className={`${styles.sectionContent} ${collapsedSections.franchiseBrands ? styles.collapsed : ''}`}>
+            <div className={styles.brandList}>
+              {franchiseBrands.map((brandOption) => (
+                <label key={brandOption.id} className={styles.checkboxItem}>
+                  <input
+                    type="checkbox"
+                    className={styles.checkbox}
+                    checked={selectedFranchiseBrands.includes(brandOption.slug)}
+                    onChange={() => handleFranchiseBrandChange(brandOption.slug)}
+                  />
+                  <span className={styles.checkboxLabel}>{brandOption.name}</span>
                 </label>
               ))}
             </div>

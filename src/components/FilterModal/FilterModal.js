@@ -7,10 +7,14 @@ import styles from './FilterModal.module.css';
 
 export default function FilterModal({ 
   categories = [],
-  brands = [],
+  manufacturerBrands = [],
+  franchiseBrands = [],
   conditions = [],
   priceRange = { min: 0, max: 1000 },
   currentCategory, 
+  currentSubcategory,
+  currentManufacturerBrand,
+  currentFranchiseBrand,
   currentBrand, 
   currentCondition,
   currentMinPrice, 
@@ -25,6 +29,9 @@ export default function FilterModal({
   
   // Convertir strings de URL a arrays
   const selectedCategories = currentCategory ? currentCategory.split(',') : [];
+  const selectedSubcategories = currentSubcategory ? currentSubcategory.split(',') : [];
+  const selectedManufacturerBrands = currentManufacturerBrand ? currentManufacturerBrand.split(',') : [];
+  const selectedFranchiseBrands = currentFranchiseBrand ? currentFranchiseBrand.split(',') : [];
   const selectedBrands = currentBrand ? currentBrand.split(',') : [];
   const selectedConditions = currentCondition ? currentCondition.split(',') : [];
 
@@ -52,7 +59,7 @@ export default function FilterModal({
 
   const hasSelectedDescendant = (categoryId) => {
     const descendants = getDescendantSlugs(categoryId);
-    return descendants.some((slug) => selectedCategories.includes(slug));
+    return descendants.some((slug) => selectedSubcategories.includes(slug));
   };
 
   // Bloquear scroll del body cuando el modal está abierto
@@ -90,18 +97,23 @@ export default function FilterModal({
 
   const handleCategoryChange = (categoryValue, categoryId) => {
     let newCategories = [...selectedCategories];
+    let newSubcategories = [...selectedSubcategories];
     
     if (newCategories.includes(categoryValue)) {
       const descendantSlugs = getDescendantSlugs(categoryId);
       newCategories = newCategories.filter(
-        (cat) => cat !== categoryValue && !descendantSlugs.includes(cat)
+        (cat) => cat !== categoryValue
       );
+      newSubcategories = newSubcategories.filter((slug) => !descendantSlugs.includes(slug));
     } else {
       newCategories.push(categoryValue);
     }
     
     updateFilters({
       category: newCategories,
+      subcategory: newSubcategories,
+      manufacturerBrand: selectedManufacturerBrands,
+      franchiseBrand: selectedFranchiseBrands,
       brand: selectedBrands,
       condition: selectedConditions,
       minPrice: currentMinPrice,
@@ -109,20 +121,61 @@ export default function FilterModal({
     });
   };
 
-  const handleBrandChange = (brandValue) => {
-    let newBrands = [...selectedBrands];
+  const handleSubcategoryChange = (subcategoryValue) => {
+    let newSubcategories = [...selectedSubcategories];
     
-    if (newBrands.includes(brandValue)) {
-      // Remover marca si ya está seleccionada
-      newBrands = newBrands.filter(brand => brand !== brandValue);
+    if (newSubcategories.includes(subcategoryValue)) {
+      newSubcategories = newSubcategories.filter((subcategory) => subcategory !== subcategoryValue);
     } else {
-      // Agregar nueva marca
-      newBrands.push(brandValue);
+      newSubcategories.push(subcategoryValue);
     }
     
     updateFilters({
       category: selectedCategories,
-      brand: newBrands,
+      subcategory: newSubcategories,
+      manufacturerBrand: selectedManufacturerBrands,
+      franchiseBrand: selectedFranchiseBrands,
+      brand: selectedBrands,
+      condition: selectedConditions,
+      minPrice: currentMinPrice,
+      maxPrice: currentMaxPrice
+    });
+  };
+
+  const handleManufacturerBrandChange = (brandValue) => {
+    let newManufacturerBrands = [...selectedManufacturerBrands];
+    if (newManufacturerBrands.includes(brandValue)) {
+      newManufacturerBrands = newManufacturerBrands.filter((brandSlug) => brandSlug !== brandValue);
+    } else {
+      newManufacturerBrands.push(brandValue);
+    }
+
+    updateFilters({
+      category: selectedCategories,
+      subcategory: selectedSubcategories,
+      manufacturerBrand: newManufacturerBrands,
+      franchiseBrand: selectedFranchiseBrands,
+      brand: selectedBrands,
+      condition: selectedConditions,
+      minPrice: currentMinPrice,
+      maxPrice: currentMaxPrice
+    });
+  };
+
+  const handleFranchiseBrandChange = (brandValue) => {
+    let newFranchiseBrands = [...selectedFranchiseBrands];
+    if (newFranchiseBrands.includes(brandValue)) {
+      newFranchiseBrands = newFranchiseBrands.filter((brandSlug) => brandSlug !== brandValue);
+    } else {
+      newFranchiseBrands.push(brandValue);
+    }
+
+    updateFilters({
+      category: selectedCategories,
+      subcategory: selectedSubcategories,
+      manufacturerBrand: selectedManufacturerBrands,
+      franchiseBrand: newFranchiseBrands,
+      brand: selectedBrands,
       condition: selectedConditions,
       minPrice: currentMinPrice,
       maxPrice: currentMaxPrice
@@ -140,6 +193,9 @@ export default function FilterModal({
 
     updateFilters({
       category: selectedCategories,
+      subcategory: selectedSubcategories,
+      manufacturerBrand: selectedManufacturerBrands,
+      franchiseBrand: selectedFranchiseBrands,
       brand: selectedBrands,
       condition: newConditions,
       minPrice: currentMinPrice,
@@ -151,6 +207,9 @@ export default function FilterModal({
     e.preventDefault();
     updateFilters({
       category: selectedCategories,
+      subcategory: selectedSubcategories,
+      manufacturerBrand: selectedManufacturerBrands,
+      franchiseBrand: selectedFranchiseBrands,
       brand: selectedBrands,
       condition: selectedConditions,
       minPrice: minPrice,
@@ -161,6 +220,9 @@ export default function FilterModal({
   const clearAllFilters = () => {
     updateFilters({
       category: [],
+      subcategory: [],
+      manufacturerBrand: [],
+      franchiseBrand: [],
       brand: [],
       condition: [],
       minPrice: '',
@@ -190,11 +252,6 @@ export default function FilterModal({
             <div className={styles.sectionContent}>
               <div className={styles.categoryList}>
                 {(categoriesByParent.get(null) || []).map((parentCategory) => {
-                  const childCategories = categoriesByParent.get(parentCategory.id) || [];
-                  const showChildren =
-                    selectedCategories.includes(parentCategory.slug) ||
-                    hasSelectedDescendant(parentCategory.id);
-
                   return (
                     <div key={parentCategory.id}>
                       <div className={styles.checkboxItem}>
@@ -209,28 +266,41 @@ export default function FilterModal({
                           {parentCategory.name}
                         </label>
                       </div>
-                      {showChildren &&
-                        childCategories.map((childCategory) => (
-                          <div
-                            key={childCategory.id}
-                            className={styles.checkboxItem}
-                            style={{ paddingLeft: 16 }}
-                          >
-                            <input
-                              type="checkbox"
-                              id={`cat-${childCategory.id}`}
-                              className={styles.checkbox}
-                              checked={selectedCategories.includes(childCategory.slug)}
-                              onChange={() => handleCategoryChange(childCategory.slug, childCategory.id)}
-                            />
-                            <label htmlFor={`cat-${childCategory.id}`} className={styles.checkboxLabel}>
-                              ↳ {childCategory.name}
-                            </label>
-                          </div>
-                        ))}
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          </div>
+
+          {/* Subcategorías */}
+          <div className={styles.filterSection}>
+            <button className={styles.sectionHeader}>
+              <h3 className={styles.sectionTitle}>Subcategorías</h3>
+              <Icon name="expand_more" className={styles.collapseIcon} />
+            </button>
+            <div className={styles.sectionContent}>
+              <div className={styles.brandList}>
+                {(categoriesByParent.get(null) || [])
+                  .filter((parentCategory) =>
+                    selectedCategories.includes(parentCategory.slug) || hasSelectedDescendant(parentCategory.id)
+                  )
+                  .flatMap((parentCategory) =>
+                    (categoriesByParent.get(parentCategory.id) || []).map((subcategory) => (
+                      <div key={subcategory.id} className={styles.checkboxItem}>
+                        <input
+                          type="checkbox"
+                          id={`subcategory-${subcategory.id}`}
+                          className={styles.checkbox}
+                          checked={selectedSubcategories.includes(subcategory.slug)}
+                          onChange={() => handleSubcategoryChange(subcategory.slug)}
+                        />
+                        <label htmlFor={`subcategory-${subcategory.id}`} className={styles.checkboxLabel}>
+                          {subcategory.name}
+                        </label>
+                      </div>
+                    ))
+                  )}
               </div>
             </div>
           </div>
@@ -264,25 +334,51 @@ export default function FilterModal({
             </div>
           </div>
 
-          {/* Marcas */}
+          {/* Marca fabricante */}
           <div className={styles.filterSection}>
             <button className={styles.sectionHeader}>
-              <h3 className={styles.sectionTitle}>Marcas</h3>
+              <h3 className={styles.sectionTitle}>Marca fabricante</h3>
               <Icon name="expand_more" className={styles.collapseIcon} />
             </button>
             <div className={styles.sectionContent}>
               <div className={styles.brandList}>
-                {brands.map((brand) => (
-                  <div key={brand.id} className={styles.checkboxItem}>
+                {manufacturerBrands.map((brandOption) => (
+                  <div key={brandOption.id} className={styles.checkboxItem}>
                     <input
                       type="checkbox"
-                      id={`brand-${brand.id}`}
+                      id={`manufacturer-brand-${brandOption.id}`}
                       className={styles.checkbox}
-                      checked={selectedBrands.includes(brand.slug)}
-                      onChange={() => handleBrandChange(brand.slug)}
+                      checked={selectedManufacturerBrands.includes(brandOption.slug)}
+                      onChange={() => handleManufacturerBrandChange(brandOption.slug)}
                     />
-                    <label htmlFor={`brand-${brand.id}`} className={styles.checkboxLabel}>
-                      {brand.name}
+                    <label htmlFor={`manufacturer-brand-${brandOption.id}`} className={styles.checkboxLabel}>
+                      {brandOption.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Marca franquicia */}
+          <div className={styles.filterSection}>
+            <button className={styles.sectionHeader}>
+              <h3 className={styles.sectionTitle}>Marca de franquicia</h3>
+              <Icon name="expand_more" className={styles.collapseIcon} />
+            </button>
+            <div className={styles.sectionContent}>
+              <div className={styles.brandList}>
+                {franchiseBrands.map((brandOption) => (
+                  <div key={brandOption.id} className={styles.checkboxItem}>
+                    <input
+                      type="checkbox"
+                      id={`franchise-brand-${brandOption.id}`}
+                      className={styles.checkbox}
+                      checked={selectedFranchiseBrands.includes(brandOption.slug)}
+                      onChange={() => handleFranchiseBrandChange(brandOption.slug)}
+                    />
+                    <label htmlFor={`franchise-brand-${brandOption.id}`} className={styles.checkboxLabel}>
+                      {brandOption.name}
                     </label>
                   </div>
                 ))}
