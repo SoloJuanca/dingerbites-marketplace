@@ -8,15 +8,16 @@ const secret = new TextEncoder().encode(
 
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
+  const isApiRoute = pathname.startsWith('/api/');
+  const isAdminApiRoute = pathname.startsWith('/api/admin');
 
-  const isAdminRoute = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
-  const isProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/profile');
-
-  if (!isAdminRoute && !isProtectedRoute) {
+  // UI routes (/admin, /profile, etc.) are protected client-side in layouts/pages.
+  // Middleware auth here is API-focused because browser navigation does not send Authorization headers.
+  if (!isApiRoute) {
     return NextResponse.next();
   }
 
-  if (isAdminRoute || isProtectedRoute) {
+  if (isAdminApiRoute) {
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
     
@@ -33,17 +34,14 @@ export async function middleware(request) {
       // Verify the JWT token
       const { payload } = await jwtVerify(token, secret);
       
-      // Check if admin access is required
-      if (isAdminRoute) {
-        const userRole = payload.role || 'user';
-        if (userRole !== 'admin' && userRole !== 'superadmin') {
-          return NextResponse.json(
-            { error: 'Admin access required' },
-            { status: 403 }
-          );
-        }
+      const userRole = payload.role || 'user';
+      if (userRole !== 'admin' && userRole !== 'superadmin') {
+        return NextResponse.json(
+          { error: 'Admin access required' },
+          { status: 403 }
+        );
       }
-      
+
       // Add user info to request headers for use in API routes
       const requestHeaders = new Headers(request.headers);
       requestHeaders.set('x-user-id', String(payload.userId || ''));
