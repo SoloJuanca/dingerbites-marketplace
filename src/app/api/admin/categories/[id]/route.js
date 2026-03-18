@@ -3,10 +3,10 @@ import { authenticateAdmin } from '../../../../../lib/auth';
 import {
   CATEGORIES_COLLECTION,
   deleteById,
-  findBySlugExcludingId,
   getById,
   hasProductsWithCategoryId,
   hasSubcategories,
+  listCollection,
   updateById
 } from '../../../../../lib/firebaseCatalog';
 
@@ -53,20 +53,42 @@ export async function PUT(request, { params }) {
       );
     }
 
-    // Check if slug already exists (excluding current category)
-    if (slug !== existingCategory.slug) {
-      const slugExists = await findBySlugExcludingId(CATEGORIES_COLLECTION, slug, id);
+    const normalizeSlug = (value = '') =>
+      String(value)
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
 
-      if (slugExists) {
-        return NextResponse.json(
-          { error: 'Category with this slug already exists' },
-          { status: 400 }
-        );
-      }
+    const resolvedParentId = parent_id || null;
+    const normalizedSlug = normalizeSlug(slug);
+
+    // Check if slug already exists under same parent (excluding current category)
+    const allCategories = await listCollection(CATEGORIES_COLLECTION, {
+      page: 1,
+      limit: 1000,
+      onlyActive: false,
+      orderBy: 'name'
+    });
+    const slugExistsInSameParent = allCategories.items.find(
+      (item) =>
+        item.id !== id &&
+        item.slug === normalizedSlug &&
+        (item.parent_id || null) === resolvedParentId
+    );
+
+    if (slugExistsInSameParent) {
+      return NextResponse.json(
+        { error: 'Category with this slug already exists under the same parent category' },
+        { status: 400 }
+      );
     }
 
     // Validate parent_id: prevent circular references and validate parent exists
-    const resolvedParentId = parent_id || null;
     if (resolvedParentId) {
       if (resolvedParentId === id) {
         return NextResponse.json(
@@ -96,7 +118,7 @@ export async function PUT(request, { params }) {
 
     const updatedCategory = await updateById(CATEGORIES_COLLECTION, id, {
       name,
-      slug,
+      slug: normalizedSlug,
       description: description ?? null,
       image_url: image_url ?? null,
       is_active: is_active !== undefined ? Boolean(is_active) : existingCategory.is_active,

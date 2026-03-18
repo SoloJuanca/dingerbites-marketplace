@@ -16,6 +16,7 @@ export default function CreateBrandPage() {
     description: '',
     logo_url: '',
     website_url: '',
+    brand_type: 'manufacturer',
     is_active: true
   });
   const [loading, setLoading] = useState(false);
@@ -143,6 +144,19 @@ export default function CreateBrandPage() {
                 className={styles.formInput}
                 placeholder="https://ejemplo.com"
               />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Tipo de marca</label>
+              <select
+                name="brand_type"
+                value={formData.brand_type}
+                onChange={handleInputChange}
+                className={styles.formInput}
+              >
+                <option value="manufacturer">Fabricante</option>
+                <option value="franchise">Franquicia/Serie</option>
+              </select>
             </div>
 
             <div className={styles.formGroup}>

@@ -13,6 +13,7 @@ export default function BrandsPage() {
   const { apiRequest } = useAuth();
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeType, setActiveType] = useState('manufacturer');
   const [showModal, setShowModal] = useState(false);
   const [editingBrand, setEditingBrand] = useState(null);
   const [formData, setFormData] = useState({
@@ -20,17 +21,18 @@ export default function BrandsPage() {
     description: '',
     logo_url: '',
     website_url: '',
+    brand_type: 'manufacturer',
     is_active: true
   });
 
   useEffect(() => {
     loadBrands();
-  }, []);
+  }, [activeType]);
 
   const loadBrands = async () => {
     try {
       setLoading(true);
-      const response = await apiRequest('/api/brands');
+      const response = await apiRequest(`/api/admin/brands?type=${activeType}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -97,6 +99,7 @@ export default function BrandsPage() {
       description: brand.description || '',
       logo_url: brand.logo_url || '',
       website_url: brand.website_url || '',
+      brand_type: brand.brand_type || 'manufacturer',
       is_active: brand.is_active
     });
     setShowModal(true);
@@ -133,6 +136,7 @@ export default function BrandsPage() {
       description: '',
       logo_url: '',
       website_url: '',
+      brand_type: activeType,
       is_active: true
     });
     setShowModal(true);
@@ -146,6 +150,7 @@ export default function BrandsPage() {
       description: '',
       logo_url: '',
       website_url: '',
+      brand_type: activeType,
       is_active: true
     });
   };
@@ -162,6 +167,20 @@ export default function BrandsPage() {
             </span>
           </div>
           <div className={styles.headerRight}>
+            <button
+              type="button"
+              onClick={() => setActiveType('manufacturer')}
+              className={styles.createButton}
+            >
+              Fabricante
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveType('franchise')}
+              className={styles.createButton}
+            >
+              Franquicia
+            </button>
             <Link href="/admin/brands/create" className={styles.createButton}>
               ➕ Agregar Marca
             </Link>
@@ -199,6 +218,9 @@ export default function BrandsPage() {
                   </p>
                   <div className={styles.brandMeta}>
                     <span className={styles.brandSlug}>/{brand.slug}</span>
+                    <span className={styles.statusBadge}>
+                      {(brand.brand_type || 'manufacturer') === 'franchise' ? 'Franquicia' : 'Fabricante'}
+                    </span>
                     {brand.website_url && (
                       <a 
                         href={brand.website_url} 
@@ -302,6 +324,18 @@ export default function BrandsPage() {
                     className={styles.formInput}
                     placeholder="https://ejemplo.com"
                   />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Tipo de marca</label>
+                  <select
+                    value={formData.brand_type}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, brand_type: e.target.value }))}
+                    className={styles.formInput}
+                  >
+                    <option value="manufacturer">Fabricante</option>
+                    <option value="franchise">Franquicia/Serie</option>
+                  </select>
                 </div>
 
                 <div className={styles.formGroup}>

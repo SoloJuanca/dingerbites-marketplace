@@ -3,7 +3,6 @@ import { authenticateAdmin } from '../../../../lib/auth';
 import {
   CATEGORIES_COLLECTION,
   createCategory,
-  findBySlug,
   getById,
   listCollection
 } from '../../../../lib/firebaseCatalog';
@@ -72,19 +71,41 @@ export async function POST(request) {
       );
     }
 
-    // Check if slug already exists
-    const existingCategory = await findBySlug(CATEGORIES_COLLECTION, slug);
+    const normalizeSlug = (value = '') =>
+      String(value)
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
 
-    if (existingCategory) {
+    const normalizedSlug = normalizeSlug(slug);
+    const resolvedParentId = parent_id || null;
+
+    // Check if slug already exists only under same parent
+    const sameSlugSnapshot = await listCollection(CATEGORIES_COLLECTION, {
+      page: 1,
+      limit: 1000,
+      onlyActive: false,
+      orderBy: 'name'
+    });
+    const existingCategoryInSameParent = sameSlugSnapshot.items.find(
+      (item) => item.slug === normalizedSlug && (item.parent_id || null) === resolvedParentId
+    );
+
+    if (existingCategoryInSameParent) {
       return NextResponse.json(
-        { error: 'Category with this slug already exists' },
+        { error: 'Category with this slug already exists under the same parent category' },
         { status: 400 }
       );
     }
 
     // Validate parent exists if provided
-    if (parent_id) {
-      const parent = await getById(CATEGORIES_COLLECTION, parent_id);
+    if (resolvedParentId) {
+      const parent = await getById(CATEGORIES_COLLECTION, resolvedParentId);
       if (!parent) {
         return NextResponse.json(
           { error: 'La categoría padre no existe' },
@@ -95,11 +116,11 @@ export async function POST(request) {
 
     const newCategory = await createCategory({
       name,
-      slug,
+      slug: normalizedSlug,
       description,
       image_url,
       is_active: is_active !== undefined ? is_active : true,
-      parent_id: parent_id || null,
+      parent_id: resolvedParentId,
       tcg_category_id: tcg_category_id != null ? Number(tcg_category_id) : null
     });
 

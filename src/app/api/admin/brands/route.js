@@ -1,13 +1,25 @@
 import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../lib/auth';
+import { db } from '../../../../lib/firebaseAdmin';
 import {
   BRANDS_COLLECTION,
   createBrand,
-  findBySlug,
   listCollection
 } from '../../../../lib/firebaseCatalog';
 
 const VALID_BRAND_TYPES = ['manufacturer', 'franchise'];
+
+function normalizeSlug(value = '') {
+  return String(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
 
 // GET /api/admin/brands - Get all brands
 export async function GET(request) {
@@ -80,20 +92,28 @@ export async function POST(request) {
     }
 
     const normalizedBrandType = VALID_BRAND_TYPES.includes(brand_type) ? brand_type : 'manufacturer';
+    const normalizedSlug = normalizeSlug(slug);
 
-    // Check if slug already exists
-    const existingBrand = await findBySlug(BRANDS_COLLECTION, slug);
+    // Check if slug already exists for the same brand type
+    const existingBrandSnapshot = await db
+      .collection(BRANDS_COLLECTION)
+      .where('slug', '==', normalizedSlug)
+      .get();
+    const isConflictingSlug = existingBrandSnapshot.docs.some((doc) => {
+      const data = doc.data();
+      return (data.brand_type || 'manufacturer') === normalizedBrandType;
+    });
 
-    if (existingBrand) {
+    if (isConflictingSlug) {
       return NextResponse.json(
-        { error: 'Brand with this slug already exists' },
+        { error: 'Brand with this slug already exists for this brand type' },
         { status: 400 }
       );
     }
 
     const newBrand = await createBrand({
       name,
-      slug,
+      slug: normalizedSlug,
       description,
       logo_url,
       website_url,

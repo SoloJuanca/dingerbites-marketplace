@@ -1,15 +1,27 @@
 import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../../lib/auth';
+import { db } from '../../../../../lib/firebaseAdmin';
 import {
   BRANDS_COLLECTION,
   deleteById,
-  findBySlugExcludingId,
   getById,
   hasProductsWithBrandId,
   updateById
 } from '../../../../../lib/firebaseCatalog';
 
 const VALID_BRAND_TYPES = ['manufacturer', 'franchise'];
+
+function normalizeSlug(value = '') {
+  return String(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
 
 // PUT /api/admin/brands/[id] - Update brand
 export async function PUT(request, { params }) {
@@ -57,14 +69,23 @@ export async function PUT(request, { params }) {
     const normalizedBrandType = VALID_BRAND_TYPES.includes(brand_type)
       ? brand_type
       : (existingBrand.brand_type || 'manufacturer');
+    const normalizedSlug = normalizeSlug(slug);
 
     // Check if slug already exists (excluding current brand)
-    if (slug !== existingBrand.slug) {
-      const slugExists = await findBySlugExcludingId(BRANDS_COLLECTION, slug, id);
+    if (normalizedSlug !== existingBrand.slug || normalizedBrandType !== (existingBrand.brand_type || 'manufacturer')) {
+      const slugMatches = await db
+        .collection(BRANDS_COLLECTION)
+        .where('slug', '==', normalizedSlug)
+        .get();
+      const conflictsInSameType = slugMatches.docs.some((doc) => {
+        if (doc.id === id) return false;
+        const data = doc.data();
+        return (data.brand_type || 'manufacturer') === normalizedBrandType;
+      });
 
-      if (slugExists) {
+      if (conflictsInSameType) {
         return NextResponse.json(
-          { error: 'Brand with this slug already exists' },
+          { error: 'Brand with this slug already exists for this brand type' },
           { status: 400 }
         );
       }
@@ -72,7 +93,7 @@ export async function PUT(request, { params }) {
 
     const updatedBrand = await updateById(BRANDS_COLLECTION, id, {
       name,
-      slug,
+      slug: normalizedSlug,
       description: description ?? null,
       logo_url: logo_url ?? null,
       website_url: website_url ?? null,
