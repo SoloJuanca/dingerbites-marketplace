@@ -8,20 +8,32 @@ const CartContext = createContext();
 function cartReducer(state, action) {
   switch (action.type) {
     case 'ADD_TO_CART':
+      const quantityToAdd = Math.max(1, Number(action.payload.quantityToAdd) || 1);
+      const maxStock = Number(action.payload.stock_quantity);
       const existingItem = state.items.find(item => item.id === action.payload.id);
       if (existingItem) {
+        const nextQuantity = existingItem.quantity + quantityToAdd;
+        const boundedQuantity = Number.isFinite(maxStock) && maxStock >= 0
+          ? Math.min(nextQuantity, maxStock)
+          : nextQuantity;
         return {
           ...state,
           items: state.items.map(item =>
             item.id === action.payload.id
-              ? { ...item, quantity: item.quantity + 1 }
+              ? { ...item, quantity: boundedQuantity }
               : item
           )
         };
       }
+      const initialQuantity = Number.isFinite(maxStock) && maxStock >= 0
+        ? Math.min(quantityToAdd, maxStock)
+        : quantityToAdd;
+      if (initialQuantity <= 0) {
+        return state;
+      }
       return {
         ...state,
-        items: [...state.items, { ...action.payload, quantity: 1 }]
+        items: [...state.items, { ...action.payload, quantity: initialQuantity }]
       };
 
     case 'REMOVE_FROM_CART':
@@ -64,6 +76,16 @@ const initialState = {
 
 export function CartProvider({ children }) {
   const [state, dispatch] = useReducer(cartReducer, initialState);
+
+  const mapDbCartItem = useCallback((item) => ({
+    id: item.product_id,
+    name: item.name,
+    price: item.variant_price || item.price,
+    quantity: item.quantity,
+    image: item.image_url,
+    variantId: item.variant_id,
+    stock_quantity: item.stock_quantity
+  }), []);
 
   // Cargar carrito desde localStorage al inicializar
   useEffect(() => {
@@ -153,21 +175,14 @@ export function CartProvider({ children }) {
       const response = await apiRequest(`/api/cart?userId=${user.id}`);
       if (response.ok) {
         const data = await response.json();
-        const dbCartItems = data.items.map(item => ({
-          id: item.product_id,
-          name: item.name,
-          price: item.variant_price || item.price,
-          quantity: item.quantity,
-          image: item.image_url,
-          variantId: item.variant_id
-        }));
+        const dbCartItems = data.items.map(mapDbCartItem);
         
         dispatch({ type: 'LOAD_CART', payload: dbCartItems });
       }
     } catch (error) {
       console.error('Error syncing cart:', error);
     }
-  }, [state.items]);
+  }, [state.items, mapDbCartItem]);
 
   // Add item to cart with database sync
   const addToCartWithSync = useCallback(async (product, user, apiRequest, quantity = 1) => {
@@ -188,14 +203,7 @@ export function CartProvider({ children }) {
           const cartResponse = await apiRequest(`/api/cart?userId=${user.id}`);
           if (cartResponse.ok) {
             const cartData = await cartResponse.json();
-            const dbCartItems = cartData.items.map(item => ({
-              id: item.product_id,
-              name: item.name,
-              price: item.variant_price || item.price,
-              quantity: item.quantity,
-              image: item.image_url,
-              variantId: item.variant_id
-            }));
+            const dbCartItems = cartData.items.map(mapDbCartItem);
             dispatch({ type: 'LOAD_CART', payload: dbCartItems });
           }
         } else {
@@ -205,14 +213,20 @@ export function CartProvider({ children }) {
       } catch (error) {
         console.error('Error adding to cart:', error);
         // Fallback to local storage
-        dispatch({ type: 'ADD_TO_CART', payload: product });
+        dispatch({
+          type: 'ADD_TO_CART',
+          payload: { ...product, quantityToAdd: quantity }
+        });
         throw error; // Re-throw to let calling component handle it
       }
     } else {
       // Guest user - use local storage
-      dispatch({ type: 'ADD_TO_CART', payload: product });
+      dispatch({
+        type: 'ADD_TO_CART',
+        payload: { ...product, quantityToAdd: quantity }
+      });
     }
-  }, []);
+  }, [mapDbCartItem]);
 
   // Remove item from cart with database sync
   const removeFromCartWithSync = useCallback(async (productId, user, apiRequest) => {
@@ -234,14 +248,7 @@ export function CartProvider({ children }) {
               const updatedCartResponse = await apiRequest(`/api/cart?userId=${user.id}`);
               if (updatedCartResponse.ok) {
                 const updatedCartData = await updatedCartResponse.json();
-                const dbCartItems = updatedCartData.items.map(item => ({
-                  id: item.product_id,
-                  name: item.name,
-                  price: item.variant_price || item.price,
-                  quantity: item.quantity,
-                  image: item.image_url,
-                  variantId: item.variant_id
-                }));
+                const dbCartItems = updatedCartData.items.map(mapDbCartItem);
                 dispatch({ type: 'LOAD_CART', payload: dbCartItems });
               } else {
                 // Fallback to local update
@@ -268,7 +275,7 @@ export function CartProvider({ children }) {
       // Guest user - use local storage
       removeFromCart(productId);
     }
-  }, []);
+  }, [mapDbCartItem]);
 
   // Update quantity with database sync
   const updateQuantityWithSync = useCallback(async (productId, quantity, user, apiRequest) => {
@@ -295,14 +302,7 @@ export function CartProvider({ children }) {
               const updatedCartResponse = await apiRequest(`/api/cart?userId=${user.id}`);
               if (updatedCartResponse.ok) {
                 const updatedCartData = await updatedCartResponse.json();
-                const dbCartItems = updatedCartData.items.map(item => ({
-                  id: item.product_id,
-                  name: item.name,
-                  price: item.variant_price || item.price,
-                  quantity: item.quantity,
-                  image: item.image_url,
-                  variantId: item.variant_id
-                }));
+                const dbCartItems = updatedCartData.items.map(mapDbCartItem);
                 dispatch({ type: 'LOAD_CART', payload: dbCartItems });
               } else {
                 // Fallback to local update
@@ -330,7 +330,13 @@ export function CartProvider({ children }) {
       // Guest user - use local storage
       updateQuantity(productId, quantity);
     }
-  }, []);
+  }, [mapDbCartItem]);
+
+  const getCartQuantityByProductId = useCallback((productId) => {
+    return state.items.reduce((total, item) => (
+      String(item.id) === String(productId) ? total + Number(item.quantity || 0) : total
+    ), 0);
+  }, [state.items]);
 
   const value = {
     items: state.items,
@@ -343,7 +349,8 @@ export function CartProvider({ children }) {
     syncCartWithDatabase,
     addToCartWithSync,
     removeFromCartWithSync,
-    updateQuantityWithSync
+    updateQuantityWithSync,
+    getCartQuantityByProductId
   };
 
   return (

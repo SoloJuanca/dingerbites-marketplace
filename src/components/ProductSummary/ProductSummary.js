@@ -16,7 +16,7 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
   const [isReminderLoading, setIsReminderLoading] = useState(false);
   const [hasReminder, setHasReminder] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  const { addToCartWithSync } = useCart();
+  const { addToCartWithSync, getCartQuantityByProductId } = useCart();
   const { user, apiRequest, isAuthenticated } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -52,9 +52,12 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
 
   const hasPrice = displayPrice != null && displayPrice > 0;
   const stockQuantity = Number(product.stock_quantity || 0);
+  const inCartQuantity = getCartQuantityByProductId(product.id);
+  const remainingStock = Math.max(0, stockQuantity - inCartQuantity);
   const isOutOfStock = stockQuantity <= 0;
-  const maxSelectableQuantity = Math.max(1, Math.min(10, stockQuantity || 1));
-  const canAddToCart = !(isTcgProduct && !hasPrice) && !isOutOfStock;
+  const maxSelectableQuantity = Math.max(1, Math.min(10, remainingStock || 1));
+  const isCartAtStockLimit = !isOutOfStock && remainingStock <= 0;
+  const canAddToCart = !(isTcgProduct && !hasPrice) && !isOutOfStock && !isCartAtStockLimit;
 
   const handleQuantityChange = (newQuantity) => {
     const bounded = Math.max(1, Math.min(maxSelectableQuantity, Number(newQuantity) || 1));
@@ -91,9 +94,9 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
 
   const handleAddToCart = async () => {
     if (!canAddToCart) return;
-    if (quantity > stockQuantity) {
-      toast.error(`Solo hay ${stockQuantity} unidad(es) disponibles`);
-      handleQuantityChange(stockQuantity);
+    if (quantity > remainingStock) {
+      toast.error(`Solo puedes agregar ${remainingStock} unidad(es) más`);
+      handleQuantityChange(remainingStock);
       return;
     }
     setIsAddingToCart(true);
@@ -106,7 +109,8 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
       name: product.name,
       description: product.description,
       price: cartPrice,
-      image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null)
+      image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null),
+      stock_quantity: stockQuantity
     }, user, apiRequest, quantity);
     
     // Simular feedback visual
@@ -117,9 +121,9 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
 
   const handleBuyNow = async () => {
     if (!canAddToCart) return;
-    if (quantity > stockQuantity) {
-      toast.error(`Solo hay ${stockQuantity} unidad(es) disponibles`);
-      handleQuantityChange(stockQuantity);
+    if (quantity > remainingStock) {
+      toast.error(`Solo puedes agregar ${remainingStock} unidad(es) más`);
+      handleQuantityChange(remainingStock);
       return;
     }
     const cartPrice = isTcgProduct && marketPriceMxn != null
@@ -130,7 +134,8 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
       name: product.name,
       description: product.description,
       price: cartPrice,
-      image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null)
+      image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null),
+      stock_quantity: stockQuantity
     }, user, apiRequest, quantity);
     
     // Aquí iría la navegación al checkout
@@ -274,7 +279,9 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
               </button>
             </div>
             <small className={styles.stockLimitHint}>
-              Máximo disponible: {stockQuantity}
+              {isCartAtStockLimit
+                ? `Ya tienes ${stockQuantity} unidad(es) en tu carrito (máximo disponible)`
+                : `Puedes agregar hasta ${remainingStock} unidad(es) más`}
             </small>
           </div>
 

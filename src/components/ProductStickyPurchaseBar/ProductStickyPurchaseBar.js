@@ -16,7 +16,7 @@ export default function ProductStickyPurchaseBar({
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  const { addToCartWithSync } = useCart();
+  const { addToCartWithSync, getCartQuantityByProductId } = useCart();
   const { user, apiRequest } = useAuth();
 
   useEffect(() => {
@@ -42,9 +42,12 @@ export default function ProductStickyPurchaseBar({
 
   const hasPrice = displayPrice != null && displayPrice > 0;
   const stockQuantity = Number(product.stock_quantity || 0);
+  const inCartQuantity = getCartQuantityByProductId(product.id);
+  const remainingStock = Math.max(0, stockQuantity - inCartQuantity);
   const isOutOfStock = stockQuantity <= 0;
-  const maxSelectableQuantity = Math.max(1, Math.min(10, stockQuantity || 1));
-  const canAddToCart = !(isTcgProduct && !hasPrice) && !isOutOfStock;
+  const maxSelectableQuantity = Math.max(1, Math.min(10, remainingStock || 1));
+  const isCartAtStockLimit = !isOutOfStock && remainingStock <= 0;
+  const canAddToCart = !(isTcgProduct && !hasPrice) && !isOutOfStock && !isCartAtStockLimit;
 
   const handleQuantityChange = (newQuantity) => {
     const bounded = Math.max(1, Math.min(maxSelectableQuantity, Number(newQuantity) || 1));
@@ -57,9 +60,9 @@ export default function ProductStickyPurchaseBar({
 
   const handleAddToCart = async () => {
     if (!canAddToCart) return;
-    if (quantity > stockQuantity) {
-      toast.error(`Solo hay ${stockQuantity} unidad(es) disponibles`);
-      handleQuantityChange(stockQuantity);
+    if (quantity > remainingStock) {
+      toast.error(`Solo puedes agregar ${remainingStock} unidad(es) más`);
+      handleQuantityChange(remainingStock);
       return;
     }
 
@@ -74,7 +77,8 @@ export default function ProductStickyPurchaseBar({
       name: product.name,
       description: product.description,
       price: cartPrice,
-      image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null)
+      image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null),
+      stock_quantity: stockQuantity
     }, user, apiRequest, quantity);
 
     setTimeout(() => {
@@ -117,6 +121,8 @@ export default function ProductStickyPurchaseBar({
       >
         {isOutOfStock
           ? 'Sin stock'
+          : isCartAtStockLimit
+            ? 'Maximo en carrito'
           : isAddingToCart
             ? 'Agregado'
             : `Agregar ${hasPrice ? formatPrice(displayPrice * quantity) : ''}`.trim()}

@@ -111,9 +111,32 @@ export default function CheckoutFlow() {
     );
   };
 
+  const getStockConflicts = () => {
+    return items
+      .map((item) => {
+        const stock = Number(item.stock_quantity);
+        if (!Number.isFinite(stock)) return null;
+        if (item.quantity > stock) {
+          return {
+            name: item.name,
+            available: Math.max(0, stock)
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+  };
+
   const handleSubmitOrder = async () => {
     if (!isContactInfoValid()) {
       toast.error('Por favor completa todos los campos obligatorios');
+      return;
+    }
+
+    const stockConflicts = getStockConflicts();
+    if (stockConflicts.length > 0) {
+      const firstConflict = stockConflicts[0];
+      toast.error(`Stock insuficiente para ${firstConflict.name}. Disponible: ${firstConflict.available}`);
       return;
     }
 

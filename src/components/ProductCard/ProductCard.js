@@ -12,7 +12,7 @@ import Icon from '../Icon/Icon';
 import styles from './ProductCard.module.css';
 
 export default function ProductCard({ product }) {
-  const { addToCartWithSync } = useCart();
+  const { addToCartWithSync, getCartQuantityByProductId } = useCart();
   const { user, apiRequest, isAuthenticated } = useAuth();
   const { isInWishlist, addToWishlistWithSync, removeFromWishlistWithSync } = useWishlist();
   const [isAdding, setIsAdding] = useState(false);
@@ -38,6 +38,12 @@ export default function ProductCard({ product }) {
       Number(product.price) || 0
     )
     : Number(product.price) || 0;
+  const stockQuantity = Number(product.stock_quantity || 0);
+  const inCartQuantity = getCartQuantityByProductId(product.id);
+  const remainingStock = Math.max(0, stockQuantity - inCartQuantity);
+  const isOutOfStock = stockQuantity <= 0;
+  const isCartAtStockLimit = !isOutOfStock && remainingStock <= 0;
+  const disableAddButton = isAdding || isOutOfStock || isCartAtStockLimit;
 
   const sanitizeHtml = (html) => {
     if (!html || typeof html !== 'string') return '';
@@ -50,6 +56,15 @@ export default function ProductCard({ product }) {
   };
 
   const handleAddToCart = async () => {
+    if (isOutOfStock) {
+      toast.error('Este producto está sin stock');
+      return;
+    }
+    if (isCartAtStockLimit) {
+      toast.error(`Ya tienes el máximo disponible (${stockQuantity}) en el carrito`);
+      return;
+    }
+
     setIsAdding(true);
     
     try {
@@ -59,7 +74,8 @@ export default function ProductCard({ product }) {
         name: product.name,
         description: product.description,
         price: displayPrice,
-        image: product.image
+        image: product.image,
+        stock_quantity: stockQuantity
       }, user, apiRequest);
 
       // Mostrar mensaje de éxito
@@ -151,9 +167,9 @@ export default function ProductCard({ product }) {
           <button 
             className={`${styles.addBtn} ${isAdding ? styles.adding : ''}`}
             onClick={handleAddToCart}
-            disabled={isAdding}
+            disabled={disableAddButton}
           >
-            {isAdding ? '✓ Agregado' : '+ Agregar'}
+            {isOutOfStock ? 'Sin stock' : isCartAtStockLimit ? 'Máximo en carrito' : isAdding ? '✓ Agregado' : '+ Agregar'}
           </button>
         </div>
       </div>

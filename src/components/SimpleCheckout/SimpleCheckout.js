@@ -292,12 +292,35 @@ export default function SimpleCheckout() {
     return parts.join(', ');
   };
 
+  const getStockConflicts = () => {
+    return items
+      .map((item) => {
+        const stock = Number(item.stock_quantity);
+        if (!Number.isFinite(stock)) return null;
+        if (item.quantity > stock) {
+          return {
+            name: item.name,
+            available: Math.max(0, stock)
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Verificar que hay productos en el carrito
     if (!items || items.length === 0) {
       toast.error('No hay productos en el carrito');
+      return;
+    }
+
+    const stockConflicts = getStockConflicts();
+    if (stockConflicts.length > 0) {
+      const firstConflict = stockConflicts[0];
+      toast.error(`Stock insuficiente para ${firstConflict.name}. Disponible: ${firstConflict.available}`);
       return;
     }
     
