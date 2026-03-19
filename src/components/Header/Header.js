@@ -5,6 +5,7 @@ import { useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Icon from '../Icon/Icon';
+import HeaderSearchBar from '../HeaderSearchBar/HeaderSearchBar';
 import { useCart } from '../../lib/CartContext';
 import { useAuth } from '../../lib/AuthContext';
 import styles from './Header.module.css';
@@ -45,7 +46,6 @@ export default function Header() {
     setIsMenuOpen(false);
     logout();
   };
-  console.log(user);
   const isAdminUser = user?.role === 'admin' || user?.role === 'superadmin' || user?.is_admin === true;
   const displayName = user?.first_name || user?.email?.split('@')[0] || 'Mi cuenta';
   const userInitial = displayName?.charAt(0)?.toUpperCase() || 'U';
@@ -58,14 +58,8 @@ export default function Header() {
             <Image src="/logo-wildshot.png" alt="Dingerbites" width={64} height={64} priority />
           </Link>
         </div>
-        
-        {/* Desktop Navigation */}
-        <nav className={styles.nav}>
-          <Link href="/" className={styles.navLink}>Inicio</Link>
-          <Link href="/catalog" className={styles.navLink}>Catálogo</Link>
-          <Link href="/#reviews" className={styles.navLink}>Reseñas</Link>
-          <Link href="/contact" className={styles.navLink}>Contacto</Link>
-        </nav>
+
+        <HeaderSearchBar />
 
         <div className={styles.actions}>
           {isClient ? (
@@ -167,10 +161,6 @@ export default function Header() {
 
       {/* Mobile Navigation */}
       <nav className={`${styles.mobileNav} ${isMenuOpen ? styles.mobileNavOpen : ''}`}>
-        <Link href="/" className={styles.mobileNavLink} onClick={closeMenu}>Inicio</Link>
-        <Link href="/catalog" className={styles.mobileNavLink} onClick={closeMenu}>Catálogo</Link>
-        <Link href="/#reviews" className={styles.mobileNavLink} onClick={closeMenu}>Reseñas</Link>
-        <Link href="/contact" className={styles.mobileNavLink} onClick={closeMenu}>Contacto</Link>
         {isClient ? (
           <>
             {isAuthenticated ? (

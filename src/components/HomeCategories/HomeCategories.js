@@ -30,7 +30,7 @@ export default function HomeCategories({ categories = [] }) {
           <div className={styles.carouselTrack} ref={trackRef}>
             {filteredCategories.map((category) => (
               <Link
-                href={`/catalog?category=${encodeURIComponent(category.slug)}`}
+                href={`/catalog/${encodeURIComponent(category.slug)}`}
                 key={category.id || category.slug}
                 className={styles.card}
               >

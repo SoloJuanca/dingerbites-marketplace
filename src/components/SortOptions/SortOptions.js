@@ -1,11 +1,12 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import styles from './SortOptions.module.css';
 
 export default function SortOptions({ currentSort }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
 
   const sortOptions = [
     { value: 'newest', label: 'Más nuevos' },
@@ -27,7 +28,7 @@ export default function SortOptions({ currentSort }) {
       params.delete('sortBy');
     }
 
-    router.push(`/catalog?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   return (

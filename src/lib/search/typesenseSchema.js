@@ -1,0 +1,44 @@
+export const PRODUCTS_COLLECTION_SCHEMA = {
+  name: process.env.TYPESENSE_COLLECTION_PRODUCTS || 'products_v1',
+  enable_nested_fields: false,
+  fields: [
+    { name: 'id', type: 'string' },
+    { name: 'slug', type: 'string' },
+    { name: 'name', type: 'string', infix: true },
+    { name: 'name_normalized', type: 'string', optional: true, infix: true },
+    { name: 'description', type: 'string', optional: true },
+    { name: 'short_description', type: 'string', optional: true },
+    { name: 'sku', type: 'string', optional: true },
+    { name: 'barcode', type: 'string', optional: true },
+    { name: 'search_blob', type: 'string', optional: true, infix: true },
+    { name: 'category_id', type: 'string', optional: true, facet: true },
+    { name: 'category_slug', type: 'string', optional: true, facet: true },
+    { name: 'category_name', type: 'string', optional: true, facet: true },
+    { name: 'subcategory_id', type: 'string', optional: true, facet: true },
+    { name: 'subcategory_slug', type: 'string', optional: true, facet: true },
+    { name: 'manufacturer_brand_id', type: 'string', optional: true, facet: true },
+    { name: 'manufacturer_brand_slug', type: 'string', optional: true, facet: true },
+    { name: 'franchise_brand_id', type: 'string', optional: true, facet: true },
+    { name: 'franchise_brand_slug', type: 'string', optional: true, facet: true },
+    { name: 'brand_id', type: 'string', optional: true, facet: true },
+    { name: 'brand_slug', type: 'string', optional: true, facet: true },
+    { name: 'brand_name', type: 'string', optional: true, facet: true },
+    { name: 'condition', type: 'string', optional: true, facet: true },
+    { name: 'tags', type: 'string[]', optional: true, facet: true },
+    { name: 'price', type: 'float', optional: true, sort: true },
+    { name: 'stock_quantity', type: 'int32', optional: true, sort: true },
+    { name: 'is_active', type: 'bool', facet: true },
+    { name: 'is_featured', type: 'bool', facet: true },
+    { name: 'is_bestseller', type: 'bool', facet: true },
+    { name: 'popularity', type: 'float', optional: true, sort: true },
+    // Required when used as default_sorting_field (Typesense rejects optional default sort field)
+    { name: 'created_at_ts', type: 'int64', sort: true },
+    { name: 'updated_at_ts', type: 'int64', optional: true, sort: true },
+    { name: 'created_at', type: 'string', optional: true },
+    { name: 'updated_at', type: 'string', optional: true },
+    { name: 'image', type: 'string', optional: true }
+  ],
+  default_sorting_field: 'created_at_ts'
+};
+
+export const PRODUCTS_SEARCH_FIELDS = 'name,name_normalized,search_blob,description,short_description,brand_name,category_name,tags';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import Icon from '../Icon/Icon';
 import styles from './FilterSidebar.module.css';
@@ -22,6 +22,7 @@ export default function FilterSidebar({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const [minPrice, setMinPrice] = useState(currentMinPrice || '');
   const [maxPrice, setMaxPrice] = useState(currentMaxPrice || '');
   
@@ -86,7 +87,7 @@ export default function FilterSidebar({
       }
     });
 
-    router.push(`/catalog?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   const handleCategoryChange = (categoryValue, categoryId) => {

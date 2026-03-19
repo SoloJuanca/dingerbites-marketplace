@@ -83,11 +83,11 @@
   .leftColumn {
     gap: 24px;
   }
-  
+
   .container {
     padding: 0 16px;
   }
-  
+
   .main {
     padding: 24px 0 120px;
   }
@@ -136,8 +136,8 @@
   .notFound {
     padding: 40px 16px;
   }
-  
+
   .notFound h1 {
     font-size: 24px;
   }
-} 
+}

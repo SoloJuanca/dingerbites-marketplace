@@ -2,6 +2,7 @@
   width: 100%;
   max-width: 600px;
   margin: 0;
+  position: relative;
 }
 
 .searchForm {
@@ -92,6 +93,48 @@
 
 .searchButtonText {
   display: inline;
+}
+
+.suggestionsList {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.suggestionItem {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: none;
+  background: transparent;
+  padding: 12px 16px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+}
+
+.suggestionItem:hover,
+.suggestionActive {
+  background: rgba(107, 33, 168, 0.08);
+}
+
+.suggestionItem small {
+  color: #6b7280;
+  margin-left: 12px;
+}
+
+.suggestionItemMuted {
+  padding: 12px 16px;
+  color: #6b7280;
 }
 
 @media (max-width: 768px) {

@@ -18,14 +18,15 @@ export default function ProductGrid({
   minPrice,
   maxPrice,
   sortBy,
-  search
+  search,
+  initialData = null
 }) {
-  const [products, setProducts] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [hasNextPage, setHasNextPage] = useState(false);
-  const [hasPrevPage, setHasPrevPage] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState(initialData?.products || []);
+  const [total, setTotal] = useState(initialData?.total || 0);
+  const [totalPages, setTotalPages] = useState(initialData?.totalPages || 0);
+  const [hasNextPage, setHasNextPage] = useState(initialData?.hasNextPage || false);
+  const [hasPrevPage, setHasPrevPage] = useState(initialData?.hasPrevPage || false);
+  const [loading, setLoading] = useState(!initialData);
 
   useEffect(() => {
     async function loadProducts() {
@@ -45,9 +46,9 @@ export default function ProductGrid({
         if (minPrice) params.set('minPrice', minPrice);
         if (maxPrice) params.set('maxPrice', maxPrice);
         if (sortBy) params.set('sortBy', sortBy);
-        if (search) params.set('search', search);
+        if (search) params.set('q', search);
 
-        const response = await fetch(`/api/products?${params.toString()}`);
+        const response = await fetch(`/api/search/products?${params.toString()}`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch products');
@@ -72,8 +73,18 @@ export default function ProductGrid({
       }
     }
 
+    if (initialData) {
+      setProducts(initialData.products || []);
+      setTotal(initialData.total || 0);
+      setTotalPages(initialData.totalPages || 0);
+      setHasNextPage(initialData.hasNextPage || false);
+      setHasPrevPage(initialData.hasPrevPage || false);
+      setLoading(false);
+      return;
+    }
+
     loadProducts();
-  }, [currentPage, category, subcategory, manufacturerBrand, franchiseBrand, brand, condition, minPrice, maxPrice, sortBy, search]);
+  }, [currentPage, category, subcategory, manufacturerBrand, franchiseBrand, brand, condition, minPrice, maxPrice, sortBy, search, initialData]);
 
   if (loading) {
     return (

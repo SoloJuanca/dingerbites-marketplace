@@ -1,200 +1,132 @@
-'use client';
-
-import { Suspense, useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import Header from '../../../components/Header/Header';
 import Footer from '../../../components/Footer/Footer';
-import ImageCarousel from '../../../components/ImageCarousel/ImageCarousel';
-import ProductInfo from '../../../components/ProductInfo/ProductInfo';
-import ProductReviews from '../../../components/ProductReviews/ProductReviews';
-import ProductSummary from '../../../components/ProductSummary/ProductSummary';
-import ProductQuestions from '../../../components/ProductQuestions/ProductQuestions';
-import ProductStickyPurchaseBar from '../../../components/ProductStickyPurchaseBar/ProductStickyPurchaseBar';
-import Icon from '../../../components/Icon/Icon';
-import styles from './product.module.css';
+import CatalogClient from '../../../components/Catalog/CatalogClient';
+import CatalogProductPage from '../../../components/CatalogProductPage/CatalogProductPage';
+import { getCategories, getBrands, getPriceRange, getProductBySlug } from '../../../lib/firebaseProducts';
+import { PRODUCT_CONDITIONS, PRODUCT_CONDITION_LABELS } from '../../../lib/productCondition';
+import { searchProducts } from '../../../lib/search/typesenseSearch';
 
-// Client Component para obtener datos del producto
-function ProductData({ slug }) {
-  const [product, setProduct] = useState(null);
-  const [marketPriceMxn, setMarketPriceMxn] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+export const dynamic = 'force-dynamic';
 
-  useEffect(() => {
-    async function loadProduct() {
-      try {
-        setLoading(true);
-        setError(null);
-        setMarketPriceMxn(null);
+function normalizeFilters(searchParams, categorySlug) {
+  const safeParams = searchParams || {};
+  return {
+    currentPage: parseInt(safeParams.page, 10) || 1,
+    category: categorySlug || '',
+    subcategory: safeParams.subcategory || '',
+    manufacturerBrand: safeParams.manufacturerBrand || '',
+    franchiseBrand: safeParams.franchiseBrand || '',
+    brand: safeParams.brand || '',
+    condition: safeParams.condition || '',
+    minPrice: safeParams.minPrice || '',
+    maxPrice: safeParams.maxPrice || '',
+    sortBy: safeParams.sortBy || 'newest',
+    search: safeParams.q || safeParams.search || ''
+  };
+}
 
-        const response = await fetch(`/api/products/${slug}`);
+export async function generateMetadata({ params }) {
+  const { slug } = await params;
 
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError('not_found');
-          } else {
-            throw new Error('Failed to fetch product');
-          }
-          return;
-        }
-
-        const productData = await response.json();
-        setProduct(productData);
-
-        if (productData.tcg_product_id) {
-          const priceRes = await fetch(`/api/tcg/product/${productData.id}/market-price`);
-          if (priceRes.ok) {
-            const priceData = await priceRes.json();
-            setMarketPriceMxn(priceData.marketPriceMxn);
-          }
-        }
-      } catch (err) {
-        console.error('Error loading product:', err);
-        setError('server_error');
-      } finally {
-        setLoading(false);
+  const product = await getProductBySlug(slug);
+  if (product) {
+    const description =
+      product.short_description ||
+      product.description?.replace(/<[^>]+>/g, '').slice(0, 160) ||
+      `${product.name} en Dingerbites.`;
+    return {
+      title: product.name,
+      description,
+      alternates: { canonical: `/catalog/${product.slug}` },
+      openGraph: {
+        title: product.name,
+        description,
+        url: `/catalog/${product.slug}`,
+        type: 'website'
       }
-    }
-
-    if (slug) {
-      loadProduct();
-    }
-  }, [slug]);
-
-  if (loading) {
-    return (
-      <>
-        <Header />
-        <main className={styles.main}>
-          <div className={styles.container}>
-            <div style={{ textAlign: 'center', padding: '40px' }}>
-              Cargando producto...
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </>
-    );
+    };
   }
 
-  if (error === 'not_found' || !product) {
-    return (
-      <>
-        <Header />
-        <main className={styles.main}>
-          <div className={styles.container}>
-            <div className={styles.notFound}>
-              <h1>Producto no encontrado</h1>
-              <p>El producto que buscas no existe o ha sido eliminado.</p>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </>
-    );
+  const categories = await getCategories();
+  const category = categories.find((item) => item.slug === slug && !item.parent_id);
+  if (!category) {
+    return { title: 'No encontrado' };
   }
 
-  if (error === 'server_error') {
-    return (
-      <>
-        <Header />
-        <main className={styles.main}>
-          <div className={styles.container}>
-            <div className={styles.notFound}>
-              <h1>Error del servidor</h1>
-              <p>Hubo un problema cargando el producto. Por favor intenta de nuevo.</p>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </>
-    );
+  const title = `${category.name} | Catálogo`;
+  const description =
+    category.description ||
+    `Compra ${category.name} en Dingerbites. Descubre productos actualizados, precios competitivos y envío seguro.`;
+  const canonical = `/catalog/${category.slug}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: { title, description, url: canonical, type: 'website' },
+    twitter: { title, description }
+  };
+}
+
+export default async function CatalogSlugPage({ params, searchParams }) {
+  const { slug } = await params;
+  const resolvedSearch = await searchParams;
+
+  const product = await getProductBySlug(slug);
+  if (product) {
+    return <CatalogProductPage slug={slug} />;
   }
+
+  const categories = await getCategories();
+  const category = categories.find((item) => item.slug === slug && !item.parent_id);
+  if (!category) {
+    notFound();
+  }
+
+  const filters = normalizeFilters(resolvedSearch, slug);
+
+  const [manufacturerBrands, franchiseBrands, priceRange, initialResult] = await Promise.all([
+    getBrands({ type: 'manufacturer' }),
+    getBrands({ type: 'franchise' }),
+    getPriceRange(),
+    searchProducts(
+      {
+        page: filters.currentPage,
+        limit: 12,
+        category: filters.category,
+        subcategory: filters.subcategory,
+        manufacturerBrand: filters.manufacturerBrand,
+        franchiseBrand: filters.franchiseBrand,
+        brand: filters.brand,
+        condition: filters.condition,
+        minPrice: filters.minPrice,
+        maxPrice: filters.maxPrice,
+        sortBy: filters.sortBy,
+        q: filters.search
+      },
+      { allowFallback: true }
+    )
+  ]);
+
+  const conditions = PRODUCT_CONDITIONS.map((value) => ({
+    value,
+    label: PRODUCT_CONDITION_LABELS[value]
+  }));
 
   return (
     <>
       <Header />
-      <main className={styles.main}>
-        <div className={styles.container}>
-          <div className={styles.productLayout}>
-            {/* Columna izquierda - Información completa */}
-            <div className={styles.leftColumn}>
-              <ImageCarousel 
-                images={product.images || [product.image]}
-                productName={product.name}
-                isTcgProduct={!!product.tcg_product_id}
-              />
-              
-              <ProductInfo product={product} marketPriceMxn={marketPriceMxn} isTcgProduct={!!product.tcg_product_id} />
-
-              <section className={styles.mobileTrustFeatures} aria-label="Beneficios de compra">
-                <article className={styles.mobileTrustFeature}>
-                  <Icon name="local_shipping" size={20} className={styles.mobileTrustFeatureIcon} />
-                  <div className={styles.mobileTrustFeatureText}>
-                    <strong>Envío gratis</strong>
-                    <span>En pedidos mayores a $800</span>
-                  </div>
-                </article>
-
-                <article className={styles.mobileTrustFeature}>
-                  <Icon name="verified_user" size={20} className={styles.mobileTrustFeatureIcon} />
-                  <div className={styles.mobileTrustFeatureText}>
-                    <strong>Compra segura</strong>
-                    <span>Pago protegido y datos cifrados</span>
-                  </div>
-                </article>
-
-                <article className={styles.mobileTrustFeature}>
-                  <Icon name="autorenew" size={20} className={styles.mobileTrustFeatureIcon} />
-                  <div className={styles.mobileTrustFeatureText}>
-                    <strong>Cambios y devoluciones</strong>
-                    <span>Hasta 30 días</span>
-                  </div>
-                </article>
-              </section>
-              
-              <ProductReviews productId={product.id} />
-
-              <ProductQuestions productId={product.id} productSlug={product.slug} />
-            </div>
-
-            {/* Columna derecha - Resumen y acciones */}
-            <div className={styles.rightColumn}>
-              <ProductSummary product={product} marketPriceMxn={marketPriceMxn} isTcgProduct={!!product.tcg_product_id} />
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.mobileStickyBar}>
-          <ProductStickyPurchaseBar
-            product={product}
-            marketPriceMxn={marketPriceMxn}
-            isTcgProduct={!!product.tcg_product_id}
-          />
-        </div>
-      </main>
+      <CatalogClient
+        categories={categories}
+        manufacturerBrands={manufacturerBrands}
+        franchiseBrands={franchiseBrands}
+        conditions={conditions}
+        priceRange={priceRange}
+        filters={filters}
+        initialResult={initialResult}
+      />
       <Footer />
     </>
   );
 }
-
-export default function ProductPage() {
-  const { slug } = useParams();
-  return (
-    <Suspense fallback={
-      <div>
-        <Header />
-        <main className={styles.main}>
-          <div className={styles.container}>
-            <div style={{ textAlign: 'center', padding: '40px' }}>
-              Cargando producto...
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    }>
-      <ProductData slug={slug} />
-    </Suspense>
-  );
-} 

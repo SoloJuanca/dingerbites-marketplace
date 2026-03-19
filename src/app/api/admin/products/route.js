@@ -3,6 +3,8 @@ import { authenticateAdmin } from '../../../../lib/auth';
 import { db } from '../../../../lib/firebaseAdmin';
 import { createCategory, CATEGORIES_COLLECTION, findBySlug } from '../../../../lib/firebaseCatalog';
 import { isValidProductCondition, normalizeProductCondition } from '../../../../lib/productCondition';
+import { searchProducts } from '../../../../lib/search/typesenseSearch';
+import { indexProductToTypesense } from '../../../../lib/search/typesenseSync';
 
 const PRODUCTS_COLLECTION = 'products';
 const BRANDS_COLLECTION = 'product_brands';
@@ -55,6 +57,38 @@ export async function GET(request) {
     const brand = searchParams.get('brand') || '';
     const status = searchParams.get('status') || 'all';
     
+    const hasAdvancedSearchFilters = Boolean(search) || status !== 'all';
+
+    if (hasAdvancedSearchFilters) {
+      const searchResult = await searchProducts(
+        {
+          page,
+          limit,
+          q: search,
+          status,
+          includeInactive: 'true'
+        },
+        { allowFallback: true }
+      );
+
+      const products = (searchResult.products || []).map((item) => ({
+        ...item,
+        image_url: item.image || '',
+        stock_quantity: Number(item.stock_quantity || 0)
+      }));
+
+      return NextResponse.json({
+        success: true,
+        products,
+        pagination: {
+          page: Number(searchResult.currentPage || page),
+          limit,
+          total: Number(searchResult.total || 0),
+          totalPages: Number(searchResult.totalPages || 0)
+        }
+      });
+    }
+
     const productSnapshot = await db.collection(PRODUCTS_COLLECTION).get();
     let products = productSnapshot.docs.map((doc) => ({
       id: doc.id,
@@ -364,6 +398,7 @@ export async function POST(request) {
     };
 
     await docRef.set(newProduct);
+    await indexProductToTypesense(newProduct);
 
     return NextResponse.json({
       success: true,

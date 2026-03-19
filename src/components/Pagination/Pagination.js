@@ -1,16 +1,17 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import styles from './Pagination.module.css';
 
 export default function Pagination({ currentPage, totalPages, hasNextPage, hasPrevPage }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
 
   const updatePage = (newPage) => {
     const params = new URLSearchParams(searchParams);
     params.set('page', newPage.toString());
-    router.push(`/catalog?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`);
     
     // Scroll to top when pagination is clicked
     window.scrollTo({ top: 0, behavior: 'smooth' });

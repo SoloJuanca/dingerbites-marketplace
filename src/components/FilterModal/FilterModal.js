@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Icon from '../Icon/Icon';
 import styles from './FilterModal.module.css';
 
@@ -24,6 +24,7 @@ export default function FilterModal({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const [minPrice, setMinPrice] = useState(currentMinPrice || '');
   const [maxPrice, setMaxPrice] = useState(currentMaxPrice || '');
   
@@ -91,7 +92,7 @@ export default function FilterModal({
       }
     });
 
-    router.push(`/catalog?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`);
     onClose();
   };
 
