@@ -44,7 +44,7 @@ export default function ImageCarousel({ images, productName, isTcgProduct = fals
           alt={`${productName} - Imagen ${currentIndex + 1}`}
           width={600}
           height={400}
-          className={`${styles.mainImage} ${isTcgProduct ? styles.mainImageContain : ''}`}
+          className={styles.mainImage}
           priority={currentIndex === 0}
         />
         
