@@ -5,7 +5,6 @@ import ProductGrid from '../ProductGrid/ProductGrid';
 import FilterSidebar from '../FilterSidebar/FilterSidebar';
 import FilterModal from '../FilterModal/FilterModal';
 import SortOptions from '../SortOptions/SortOptions';
-import SearchBar from '../SearchBar/SearchBar';
 import Icon from '../Icon/Icon';
 import styles from '../../app/catalog/catalog.module.css';
 
@@ -45,8 +44,6 @@ export default function CatalogClient({
           </aside>
 
           <div className={styles.mainContent}>
-            <SearchBar />
-
             <div className={styles.sortSection}>
               <button className={styles.filterButton} onClick={openFilterModal}>
                 <Icon name="tune" size={20} />

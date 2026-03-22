@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Icon from '../Icon/Icon';
@@ -161,6 +160,9 @@ export default function Header() {
 
       {/* Mobile Navigation */}
       <nav className={`${styles.mobileNav} ${isMenuOpen ? styles.mobileNavOpen : ''}`}>
+        <Link href="/catalog" className={styles.mobileNavLink} onClick={closeMenu}>
+          Catálogo
+        </Link>
         {isClient ? (
           <>
             {isAuthenticated ? (

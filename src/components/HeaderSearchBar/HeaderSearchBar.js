@@ -1,15 +1,20 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import Icon from '../Icon/Icon';
 import styles from './HeaderSearchBar.module.css';
 
 export default function HeaderSearchBar() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [categories, setCategories] = useState([]);
   const [categorySlug, setCategorySlug] = useState('');
   const [query, setQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,7 +37,49 @@ export default function HeaderSearchBar() {
     };
   }, []);
 
-  const goToCatalog = useCallback(() => {
+  useEffect(() => {
+    if (!pathname?.startsWith('/catalog')) return;
+    const q = searchParams.get('q') || searchParams.get('search') || '';
+    setQuery(q);
+    if (pathname === '/catalog') {
+      const cat = searchParams.get('category') || '';
+      setCategorySlug(cat);
+    }
+  }, [pathname, searchParams]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSuggestions() {
+      const q = query.trim();
+      if (q.length < 2) {
+        setSuggestions([]);
+        setActiveIndex(-1);
+        return;
+      }
+      try {
+        setIsLoadingSuggestions(true);
+        const response = await fetch(`/api/search/suggestions?q=${encodeURIComponent(q)}`);
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!cancelled) {
+          setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
+          setActiveIndex(-1);
+        }
+      } catch {
+        if (!cancelled) setSuggestions([]);
+      } finally {
+        if (!cancelled) setIsLoadingSuggestions(false);
+      }
+    }
+
+    const timer = setTimeout(loadSuggestions, 200);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  const buildCatalogUrl = useCallback(() => {
     const params = new URLSearchParams();
     params.set('page', '1');
     if (categorySlug) {
@@ -43,55 +90,138 @@ export default function HeaderSearchBar() {
       params.set('q', trimmed);
     }
     const qs = params.toString();
-    router.push(qs ? `/catalog?${qs}` : '/catalog');
-  }, [router, categorySlug, query]);
+    return qs ? `/catalog?${qs}` : '/catalog';
+  }, [categorySlug, query]);
+
+  const goToCatalog = useCallback(() => {
+    router.push(buildCatalogUrl());
+    setSuggestions([]);
+  }, [router, buildCatalogUrl]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     goToCatalog();
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'ArrowDown' && suggestions.length > 0) {
+      e.preventDefault();
+      setActiveIndex((prev) => (prev + 1) % suggestions.length);
+      return;
+    }
+    if (e.key === 'ArrowUp' && suggestions.length > 0) {
+      e.preventDefault();
+      setActiveIndex((prev) => (prev <= 0 ? suggestions.length - 1 : prev - 1));
+      return;
+    }
+    if (e.key === 'Escape') {
+      setSuggestions([]);
+      setActiveIndex(-1);
+      return;
+    }
+    if (e.key === 'Enter') {
+      if (activeIndex >= 0 && suggestions[activeIndex]) {
+        e.preventDefault();
+        const selected = suggestions[activeIndex];
+        setQuery(selected.label);
+        const params = new URLSearchParams();
+        params.set('page', '1');
+        if (categorySlug) params.set('category', categorySlug);
+        params.set('q', selected.label);
+        router.push(`/catalog?${params.toString()}`);
+        setSuggestions([]);
+        return;
+      }
+      handleSubmit(e);
+    }
+  };
+
+  const showSuggestions = suggestions.length > 0 || isLoadingSuggestions;
+  const wrapperClass = `${styles.wrapper}${showSuggestions ? ` ${styles.wrapperOpen}` : ''}`;
+
   return (
-    <form
-      className={styles.wrapper}
-      onSubmit={handleSubmit}
-      role="search"
-      aria-label="Buscar en el catálogo"
-    >
-      <div className={styles.bar}>
-        <label className={styles.categoryLabel} htmlFor="header-search-category">
-          <span className={styles.visuallyHidden}>Categoría</span>
-          <select
-            id="header-search-category"
-            className={styles.categorySelect}
-            value={categorySlug}
-            onChange={(e) => setCategorySlug(e.target.value)}
-            aria-label="Filtrar por categoría"
-          >
-            <option value="">Todos</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.slug}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-        </label>
+    <div className={wrapperClass}>
+      <form
+        className={styles.form}
+        onSubmit={handleSubmit}
+        role="search"
+        aria-label="Buscar en el catálogo"
+      >
+        <div className={styles.bar}>
+          <label className={styles.categoryLabel} htmlFor="header-search-category">
+            <span className={styles.visuallyHidden}>Categoría</span>
+            <select
+              id="header-search-category"
+              className={styles.categorySelect}
+              value={categorySlug}
+              onChange={(e) => setCategorySlug(e.target.value)}
+              aria-label="Filtrar por categoría"
+            >
+              <option value="">Todos</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.slug}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <input
-          type="search"
-          className={styles.input}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar productos..."
-          autoComplete="off"
-          enterKeyHint="search"
-          aria-label="Buscar productos"
-        />
+          <input
+            type="search"
+            className={styles.input}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Buscar productos..."
+            autoComplete="off"
+            enterKeyHint="search"
+            aria-label="Buscar productos"
+            aria-autocomplete="list"
+            aria-expanded={showSuggestions}
+            aria-controls="header-search-suggestions"
+          />
 
-        <button type="submit" className={styles.submitBtn} aria-label="Buscar">
-          <Icon name="search" size={22} />
-        </button>
-      </div>
-    </form>
+          <button type="submit" className={styles.submitBtn} aria-label="Buscar">
+            <Icon name="search" size={22} />
+          </button>
+        </div>
+      </form>
+
+      {showSuggestions && (
+        <div
+          id="header-search-suggestions"
+          className={styles.suggestionsList}
+          role="listbox"
+          aria-label="Sugerencias de búsqueda"
+        >
+          {isLoadingSuggestions ? (
+            <div className={styles.suggestionItemMuted}>Buscando...</div>
+          ) : (
+            suggestions.map((suggestion, index) => (
+              <button
+                key={`${suggestion.slug}-${suggestion.label}`}
+                type="button"
+                role="option"
+                aria-selected={index === activeIndex}
+                className={`${styles.suggestionItem} ${index === activeIndex ? styles.suggestionActive : ''}`}
+                onMouseDown={(ev) => {
+                  ev.preventDefault();
+                  setQuery(suggestion.label);
+                  const params = new URLSearchParams();
+                  params.set('page', '1');
+                  if (categorySlug) params.set('category', categorySlug);
+                  params.set('q', suggestion.label);
+                  router.push(`/catalog?${params.toString()}`);
+                  setSuggestions([]);
+                }}
+              >
+                <span>{suggestion.label}</span>
+                {suggestion.category ? <small>{suggestion.category}</small> : null}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
   );
 }

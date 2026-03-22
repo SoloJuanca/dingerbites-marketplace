@@ -3,6 +3,17 @@
   min-width: 0;
   max-width: 720px;
   margin: 0 24px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Por encima de acciones del header (carrito, menú) cuando hay dropdown */
+.wrapperOpen {
+  z-index: 1102;
+}
+
+.form {
+  width: 100%;
 }
 
 .bar {
@@ -12,7 +23,8 @@
   min-height: 48px;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  overflow: hidden;
+  /* visible: el menú de sugerencias va fuera de .bar */
+  overflow: visible;
   background: #ffffff;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -35,6 +47,7 @@
   padding: 0 32px 0 16px;
   border: none;
   border-right: 1px solid #e2e8f0;
+  border-radius: 12px 0 0 12px;
   background: #f7fafc;
   color: var(--brand-muted);
   font-size: 14px;
@@ -80,6 +93,7 @@
   align-items: center;
   justify-content: center;
   border: none;
+  border-radius: 0 12px 12px 0;
   background: var(--brand-primary);
   color: #ffffff;
   cursor: pointer;
@@ -107,6 +121,52 @@
   border: 0;
 }
 
+.suggestionsList {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 1103;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
+  max-height: min(320px, 50vh);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.suggestionItem {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  padding: 12px 16px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+  color: #2d3748;
+}
+
+.suggestionItem:hover,
+.suggestionActive {
+  background: rgba(107, 33, 168, 0.08);
+}
+
+.suggestionItem small {
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.suggestionItemMuted {
+  padding: 12px 16px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
 @media (max-width: 768px) {
   .wrapper {
     order: 3;
@@ -129,6 +189,10 @@
 
   .submitBtn {
     flex: 0 0 44px;
+  }
+
+  .suggestionsList {
+    max-height: min(280px, 45vh);
   }
 }
 

@@ -53,7 +53,7 @@ If you still see “Firebase credentials are missing”, check that **either** `
 
 ## 6) UI integration
 
-- SearchBar now uses instant suggestions and `q` parameter.
+- Header search uses instant suggestions and the `q` parameter on `/catalog`.
 - Catalog and ProductGrid consume Typesense-backed endpoints.
 - Admin products endpoint uses Typesense for text/status search and Firestore fallback.
 
