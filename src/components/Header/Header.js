@@ -58,7 +58,9 @@ export default function Header() {
           </Link>
         </div>
 
-        <HeaderSearchBar />
+        <Suspense fallback={<div className={styles.searchBarFallback} aria-hidden="true" />}>
+          <HeaderSearchBar />
+        </Suspense>
 
         <div className={styles.actions}>
           {isClient ? (

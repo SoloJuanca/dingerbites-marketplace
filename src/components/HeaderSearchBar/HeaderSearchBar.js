@@ -177,8 +177,6 @@ export default function HeaderSearchBar() {
             enterKeyHint="search"
             aria-label="Buscar productos"
             aria-autocomplete="list"
-            aria-expanded={showSuggestions}
-            aria-controls="header-search-suggestions"
           />
 
           <button type="submit" className={styles.submitBtn} aria-label="Buscar">
