@@ -495,6 +495,29 @@
   border-radius: 6px;
 }
 
+.imageFieldDescription {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.fileInput {
+  margin-top: 8px;
+  font-size: 0.875rem;
+  max-width: 100%;
+}
+
+.uploadStatus {
+  margin: 8px 0 0;
+  font-size: 0.875rem;
+  color: var(--brand-primary);
+}
+
+.imageUrlOptional {
+  margin-top: 16px;
+}
+
 .cancelButton {
   background: white;
   color: #374151;

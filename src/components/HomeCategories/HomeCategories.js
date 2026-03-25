@@ -5,10 +5,19 @@ import Image from 'next/image';
 import Link from 'next/link';
 import styles from './HomeCategories.module.css';
 
+const FALLBACK_IMAGE =
+  'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=600&fit=crop';
+
+function categoryImageSrc(category) {
+  const url = category?.image_url || category?.image;
+  return typeof url === 'string' && url.trim() ? url.trim() : FALLBACK_IMAGE;
+}
+
 export default function HomeCategories({ categories = [] }) {
   const trackRef = useRef(null);
+  /** Solo categorías raíz: getCategories() expone `image`, no `image_url`. */
   const filteredCategories = (Array.isArray(categories) ? categories : [])
-    .filter((category) => category?.slug)
+    .filter((category) => category?.slug && !category.parent_id)
     .slice(0, 8);
 
   const handleScroll = (direction) => {
@@ -28,7 +37,7 @@ export default function HomeCategories({ categories = [] }) {
           <div className={styles.stateBox}>No hay categorías disponibles.</div>
         ) : (
           <div className={styles.carouselTrack} ref={trackRef}>
-            {filteredCategories.map((category) => (
+            {filteredCategories.map((category, index) => (
               <Link
                 href={`/catalog/${encodeURIComponent(category.slug)}`}
                 key={category.id || category.slug}
@@ -36,15 +45,17 @@ export default function HomeCategories({ categories = [] }) {
               >
                 <div className={styles.imageWrap}>
                   <Image
-                    src={category.image_url || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=280&fit=crop'}
-                    alt={category.name || 'Categoría'}
-                    width={400}
-                    height={280}
+                    src={categoryImageSrc(category)}
+                    alt={category.name ? `Imagen de ${category.name}` : 'Categoría'}
+                    fill
+                    sizes="(max-width: 640px) 72vw, 280px"
                     className={styles.image}
-                    unoptimized
+                    priority={index < 3}
                   />
                 </div>
-                <h3 className={styles.cardTitle}>{category.name}</h3>
+                <div className={styles.cardBody}>
+                  <h3 className={styles.cardTitle}>{category.name}</h3>
+                </div>
               </Link>
             ))}
           </div>

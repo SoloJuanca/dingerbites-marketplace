@@ -22,6 +22,7 @@ export default function CreateCategoryPage() {
   });
   const [loading, setLoading] = useState(false);
   const [tcgApiCategories, setTcgApiCategories] = useState([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -98,6 +99,40 @@ export default function CreateCategoryPage() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+  };
+
+  const handleCategoryImageUpload = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Selecciona un archivo de imagen válido');
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+      uploadFormData.append('folder', 'categories');
+
+      const response = await apiRequest('/api/admin/upload', {
+        method: 'POST',
+        body: uploadFormData
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'No se pudo subir la imagen');
+      }
+
+      const data = await response.json();
+      setFormData((prev) => ({ ...prev, image_url: data.url || '' }));
+      toast.success('Imagen subida y guardada en almacenamiento');
+    } catch (error) {
+      console.error('Error uploading category image:', error);
+      toast.error(error.message || 'Error al subir imagen');
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   return (
@@ -180,8 +215,32 @@ export default function CreateCategoryPage() {
             )}
 
             <div className={styles.formGroup}>
-              <label className={styles.formLabel}>URL de Imagen</label>
+              <span className={styles.formLabel}>Imagen</span>
+              <p className={styles.imageFieldDescription}>
+                Sube un archivo (se guarda en el servidor) o pega una URL externa opcional.
+              </p>
               <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className={styles.fileInput}
+                disabled={uploadingImage}
+                aria-label="Subir imagen de categoría desde archivo"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleCategoryImageUpload(file);
+                  e.target.value = '';
+                }}
+              />
+              {uploadingImage && (
+                <p className={styles.uploadStatus} role="status">
+                  Subiendo imagen…
+                </p>
+              )}
+              <label className={`${styles.formLabel} ${styles.imageUrlOptional}`} htmlFor="category-image-url">
+                URL de imagen (opcional)
+              </label>
+              <input
+                id="category-image-url"
                 type="url"
                 name="image_url"
                 value={formData.image_url}
@@ -191,9 +250,9 @@ export default function CreateCategoryPage() {
               />
               {formData.image_url && (
                 <div className={styles.imagePreview}>
-                  <img 
-                    src={formData.image_url} 
-                    alt="Vista previa" 
+                  <img
+                    src={formData.image_url}
+                    alt="Vista previa"
                     className={styles.previewImage}
                     onError={(e) => {
                       e.target.style.display = 'none';
@@ -223,7 +282,7 @@ export default function CreateCategoryPage() {
               <button
                 type="submit"
                 className={styles.saveButton}
-                disabled={loading}
+                disabled={loading || uploadingImage}
               >
                 {loading ? 'Creando...' : 'Crear Categoría'}
               </button>

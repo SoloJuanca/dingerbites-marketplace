@@ -42,6 +42,7 @@ export async function getCategories() {
             slug: c.slug,
             description: c.description || null,
             image: c.image_url || DEFAULT_IMAGE,
+            image_url: c.image_url || null,
             parent_id: c.parent_id || null
           },
           ...flattenTree(c.id, list)
