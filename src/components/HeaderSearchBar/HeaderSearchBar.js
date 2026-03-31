@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import Icon from '../Icon/Icon';
 import styles from './HeaderSearchBar.module.css';
@@ -9,12 +9,14 @@ export default function HeaderSearchBar() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const inputRef = useRef(null);
   const [categories, setCategories] = useState([]);
   const [categorySlug, setCategorySlug] = useState('');
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,6 +98,10 @@ export default function HeaderSearchBar() {
   const goToCatalog = useCallback(() => {
     router.push(buildCatalogUrl());
     setSuggestions([]);
+    setActiveIndex(-1);
+    setIsLoadingSuggestions(false);
+    setIsFocused(false);
+    inputRef.current?.blur?.();
   }, [router, buildCatalogUrl]);
 
   const handleSubmit = (e) => {
@@ -136,7 +142,7 @@ export default function HeaderSearchBar() {
     }
   };
 
-  const showSuggestions = suggestions.length > 0 || isLoadingSuggestions;
+  const showSuggestions = isFocused && (suggestions.length > 0 || isLoadingSuggestions);
   const wrapperClass = `${styles.wrapper}${showSuggestions ? ` ${styles.wrapperOpen}` : ''}`;
 
   return (
@@ -169,9 +175,12 @@ export default function HeaderSearchBar() {
           <input
             type="search"
             className={styles.input}
+            ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
             placeholder="Buscar productos..."
             autoComplete="off"
             enterKeyHint="search"
@@ -211,6 +220,9 @@ export default function HeaderSearchBar() {
                   params.set('q', suggestion.label);
                   router.push(`/catalog?${params.toString()}`);
                   setSuggestions([]);
+                  setActiveIndex(-1);
+                  setIsFocused(false);
+                  inputRef.current?.blur?.();
                 }}
               >
                 <span>{suggestion.label}</span>
