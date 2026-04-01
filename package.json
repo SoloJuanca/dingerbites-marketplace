@@ -14,6 +14,8 @@
     "typesense:backfill": "node scripts/search/backfillProductsToTypesense.mjs"
   },
   "dependencies": {
+    "@stripe/react-stripe-js": "^6.1.0",
+    "@stripe/stripe-js": "^9.0.1",
     "@vercel/blob": "^1.1.1",
     "bcryptjs": "^2.4.3",
     "csv-parser": "^3.2.0",
@@ -26,6 +28,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-hot-toast": "^2.5.2",
+    "stripe": "^17.7.0",
     "typesense": "^3.0.3"
   },
   "devDependencies": {

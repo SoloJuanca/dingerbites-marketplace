@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { useCart } from '../../lib/CartContext';
 import { useAuth } from '../../lib/AuthContext';
 import OrderConfirmation from '../OrderConfirmation/OrderConfirmation';
 import AddressManager from '../AddressManager/AddressManager';
+import StripeEmbeddedPayment from '../StripeEmbeddedPayment/StripeEmbeddedPayment';
 import styles from './SimpleCheckout.module.css';
 
 const PICKUP_POINTS = [
@@ -43,6 +45,13 @@ export default function SimpleCheckout() {
   const [couponCode, setCouponCode] = useState('');
   const [couponData, setCouponData] = useState(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
+
+  const [checkoutStep, setCheckoutStep] = useState(1);
+  const [stripeClientSecret, setStripeClientSecret] = useState(null);
+  const [stripePublishableKey, setStripePublishableKey] = useState(null);
+  const [stripeLoading, setStripeLoading] = useState(false);
+  const [stripeError, setStripeError] = useState(null);
+  const prevPaymentIntentIdRef = useRef(null);
 
   const { items, clearCart, getTotalPrice } = useCart();
   const { user, isAuthenticated, apiRequest } = useAuth();
@@ -308,9 +317,119 @@ export default function SimpleCheckout() {
       .filter(Boolean);
   };
 
+  const buildCheckoutOrderPayload = () => ({
+    user_id: isAuthenticated ? user.id : null,
+    items: items.map((item) => ({
+      product_id: item.id,
+      quantity: item.quantity,
+      price: item.price
+    })),
+    customer_email: formData.email,
+    customer_phone: formData.phone,
+    customer_name: formData.name,
+    shipping_method:
+      formData.deliveryType === 'delivery' ? 'Envío a domicilio' : 'Recoger en punto',
+    notes: formData.notes || '',
+    address:
+      formData.deliveryType === 'delivery' ? formatAddress() : formData.pickupPoint || null,
+    pickup_point: formData.deliveryType === 'pickup' ? formData.pickupPoint : null,
+    coupon_code: couponData?.code || null
+  });
+
+  const goToStep2 = () => {
+    if (!validateForm()) {
+      toast.error('Por favor completa todos los campos obligatorios');
+      return;
+    }
+    setCheckoutStep(2);
+  };
+
+  useEffect(() => {
+    if (checkoutStep !== 2 || formData.paymentMethod !== 'stripe') {
+      prevPaymentIntentIdRef.current = null;
+      setStripeClientSecret(null);
+      setStripePublishableKey(null);
+      setStripeError(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function createIntent() {
+      setStripeLoading(true);
+      setStripeError(null);
+      try {
+        const payload = {
+          ...buildCheckoutOrderPayload(),
+          cancel_previous_payment_intent_id: prevPaymentIntentIdRef.current || undefined
+        };
+        const res = isAuthenticated
+          ? await apiRequest('/api/checkout/payment-intent', {
+              method: 'POST',
+              body: JSON.stringify(payload)
+            })
+          : await fetch('/api/checkout/payment-intent', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!res.ok) {
+          setStripeClientSecret(null);
+          setStripePublishableKey(null);
+          setStripeError(data.error || 'No se pudo preparar el pago');
+          return;
+        }
+        if (data.payment_intent_id) {
+          prevPaymentIntentIdRef.current = data.payment_intent_id;
+        }
+        setStripeClientSecret(data.clientSecret);
+        setStripePublishableKey(data.publishableKey);
+      } catch (err) {
+        if (!cancelled) {
+          setStripeError(err.message || 'Error de red');
+        }
+      } finally {
+        if (!cancelled) {
+          setStripeLoading(false);
+        }
+      }
+    }
+
+    createIntent();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    checkoutStep,
+    formData.paymentMethod,
+    couponData,
+    formData.deliveryType,
+    formData.pickupPoint,
+    formData.email,
+    formData.name,
+    formData.phone,
+    formData.street,
+    formData.number,
+    formData.neighborhood,
+    formData.city,
+    formData.postalCode,
+    formData.notes,
+    selectedAddress,
+    useNewAddress,
+    items,
+    isAuthenticated,
+    user?.id
+  ]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    if (checkoutStep !== 2 || formData.paymentMethod === 'stripe') {
+      return;
+    }
+
     // Verificar que hay productos en el carrito
     if (!items || items.length === 0) {
       toast.error('No hay productos en el carrito');
@@ -323,8 +442,7 @@ export default function SimpleCheckout() {
       toast.error(`Stock insuficiente para ${firstConflict.name}. Disponible: ${firstConflict.available}`);
       return;
     }
-    
-    // Validar formulario
+
     if (!validateForm()) {
       toast.error('Por favor completa todos los campos obligatorios');
       return;
@@ -335,28 +453,15 @@ export default function SimpleCheckout() {
     try {
       const subtotal = getSubtotal();
       const shippingAmount = getShippingCost();
-      const discount = getDiscount();
       const totalAmount = getTotal();
 
       const orderData = {
-        user_id: isAuthenticated ? user.id : null,
-        items: items.map(item => ({
-          product_id: item.id,
-          quantity: item.quantity,
-          price: item.price
-        })),
-        customer_email: formData.email,
-        customer_phone: formData.phone,
-        customer_name: formData.name,
-        payment_method: formData.paymentMethod === 'cash' ? 'Pago contra entrega' : 'Transferencia bancaria',
-        shipping_method: formData.deliveryType === 'delivery' ? 'Envío a domicilio' : 'Recoger en punto',
+        ...buildCheckoutOrderPayload(),
+        payment_method:
+          formData.paymentMethod === 'cash' ? 'Pago contra entrega' : 'Transferencia bancaria',
         subtotal,
         shipping_amount: shippingAmount,
-        total_amount: totalAmount,
-        notes: formData.notes || '',
-        address: formData.deliveryType === 'delivery' ? formatAddress() : formData.pickupPoint || null,
-        pickup_point: formData.deliveryType === 'pickup' ? formData.pickupPoint : null,
-        coupon_code: couponData?.code || null
+        total_amount: totalAmount
       };
 
       // Crear orden en la base de datos
@@ -435,21 +540,42 @@ export default function SimpleCheckout() {
       {/* Header del Checkout */}
       <div className={styles.checkoutHeader}>
         <Link href="/" className={styles.logo}>
-          <span className={styles.logoText}>🦆 Dingerbites</span>
+          <Image src="/logo-wildshot.png" alt="Logo" width={64} height={64} />
         </Link>
         <Link href="/cart" className={styles.backToCart}>
           ← Volver al Carrito
         </Link>
       </div>
 
-      <div className={styles.header}>
-        <h1>Finalizar Compra</h1>
-        <p>Completa tus datos para procesar tu pedido</p>
+      <div className={styles.stepBar} role="navigation" aria-label="Pasos del checkout">
+        <div
+          className={`${styles.stepItem} ${checkoutStep === 1 ? styles.stepItemActive : styles.stepItemDone}`}
+        >
+          <span className={styles.stepNum}>1</span>
+          <span>Datos y envío</span>
+        </div>
+        <div className={styles.stepDivider} aria-hidden />
+        <div
+          className={`${styles.stepItem} ${checkoutStep === 2 ? styles.stepItemActive : styles.stepItemPending}`}
+        >
+          <span className={styles.stepNum}>2</span>
+          <span>Resumen y pago</span>
+        </div>
       </div>
 
-      <div className={styles.content}>
+      <div className={styles.header}>
+        <h1>Finalizar compra</h1>
+        <p>
+          {checkoutStep === 1
+            ? 'Ingresa tus datos y el tipo de entrega'
+            : 'Revisa tu pedido y elige cómo pagar'}
+        </p>
+      </div>
+
+      <div className={`${styles.content} ${checkoutStep === 1 ? styles.contentStep1 : ''}`}>
         <div className={styles.formSection}>
-          <form onSubmit={handleSubmit} className={styles.form}>
+          {checkoutStep === 1 && (
+            <div className={styles.form}>
             {/* Información Personal */}
             <div className={styles.section}>
               <h2>Información Personal</h2>
@@ -711,62 +837,41 @@ export default function SimpleCheckout() {
               )}
             </div>
 
-            {/* Método de Pago */}
             <div className={styles.section}>
-              <h2>Método de Pago</h2>
-              
-              {formData.deliveryType === 'delivery' && (
-                <div className={styles.paymentNotice}>
-                  <p>Para envíos a domicilio, el pago debe ser por transferencia bancaria.</p>
-                </div>
-              )}
-              
-              <div className={styles.radioGroup}>
-                <label className={`${styles.radioOption} ${formData.deliveryType === 'delivery' ? styles.disabled : ''}`}>
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="cash"
-                    checked={formData.paymentMethod === 'cash'}
-                    onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
-                    disabled={formData.deliveryType === 'delivery'}
-                  />
-                  <span className={styles.radioLabel}>
-                    <strong>Pago Contra Entrega</strong>
-                    <small>{formData.deliveryType === 'delivery' ? 'No disponible para envíos' : 'Paga cuando recibas tu pedido'}</small>
-                  </span>
-                </label>
-
-                <label className={styles.radioOption}>
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="transfer"
-                    checked={formData.paymentMethod === 'transfer'}
-                    onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
-                  />
-                  <span className={styles.radioLabel}>
-                    <strong>Transferencia Bancaria</strong>
-                    <small>Banco BBVA</small>
-                    {formData.deliveryType === 'delivery' && (
-                      <small className={styles.required}>* Requerido para envíos</small>
-                    )}
-                  </span>
-                </label>
+              <h2>Notas adicionales (opcional)</h2>
+              <div className={styles.inputGroup}>
+                <label htmlFor="notes">Instrucciones o referencias</label>
+                <textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => handleInputChange('notes', e.target.value)}
+                  placeholder="Instrucciones especiales, referencias, etc."
+                  rows={2}
+                />
               </div>
-
-              {formData.paymentMethod === 'cash' && formData.deliveryType === 'pickup' && (
-                <div className={styles.cashOnDeliveryRules}>
-                  {getTotal() < 50 ? (
-                    <p>El pedido deberá pagarse en su totalidad al momento de la entrega.</p>
-                  ) : (
-                    <p>El pedido se pagará en dos transacciones del 50% cada una (50% al recibir, 50% en la siguiente transacción).</p>
-                  )}
-                </div>
-              )}
             </div>
 
-            {/* Notas Adicionales */}
+            <button
+              type="button"
+              onClick={goToStep2}
+              className={styles.submitButton}
+              disabled={!items || items.length === 0}
+            >
+              Continuar al resumen y pago
+            </button>
+            </div>
+          )}
+
+          {checkoutStep === 2 && (
+            <div className={styles.form}>
+            <button
+              type="button"
+              className={styles.backStep}
+              onClick={() => setCheckoutStep(1)}
+            >
+              ← Volver a datos y envío
+            </button>
+
             <div className={styles.section}>
               <h2>Cupón</h2>
               {couponData ? (
@@ -810,29 +915,117 @@ export default function SimpleCheckout() {
             </div>
 
             <div className={styles.section}>
-              <div className={styles.inputGroup}>
-                <label htmlFor="notes">Notas Adicionales (Opcional)</label>
-                <textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => handleInputChange('notes', e.target.value)}
-                  placeholder="Instrucciones especiales, referencias, etc."
-                  rows={2}
-                />
+              <h2>Método de pago</h2>
+
+              {formData.deliveryType === 'delivery' && (
+                <div className={styles.paymentNotice}>
+                  <p>Para envíos a domicilio puedes pagar con transferencia o tarjeta.</p>
+                </div>
+              )}
+
+              <div className={styles.radioGroup}>
+                <label className={`${styles.radioOption} ${formData.deliveryType === 'delivery' ? styles.disabled : ''}`}>
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="cash"
+                    checked={formData.paymentMethod === 'cash'}
+                    onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
+                    disabled={formData.deliveryType === 'delivery'}
+                  />
+                  <span className={styles.radioLabel}>
+                    <strong>Pago contra entrega</strong>
+                    <small>
+                      {formData.deliveryType === 'delivery'
+                        ? 'No disponible para envíos'
+                        : 'Paga cuando recibas tu pedido'}
+                    </small>
+                  </span>
+                </label>
+
+                <label className={styles.radioOption}>
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="transfer"
+                    checked={formData.paymentMethod === 'transfer'}
+                    onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
+                  />
+                  <span className={styles.radioLabel}>
+                    <strong>Transferencia bancaria</strong>
+                    <small>Banco BBVA</small>
+                  </span>
+                </label>
+
+                <label className={styles.radioOption}>
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="stripe"
+                    checked={formData.paymentMethod === 'stripe'}
+                    onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
+                  />
+                  <span className={styles.radioLabel}>
+                    <strong>Tarjeta</strong>
+                    <small>Pago seguro en esta página</small>
+                  </span>
+                </label>
               </div>
+
+              {formData.paymentMethod === 'cash' && formData.deliveryType === 'pickup' && (
+                <div className={styles.cashOnDeliveryRules}>
+                  {getTotal() < 50 ? (
+                    <p>El pedido deberá pagarse en su totalidad al momento de la entrega.</p>
+                  ) : (
+                    <p>
+                      El pedido se pagará en dos transacciones del 50% cada una (50% al recibir, 50% en la
+                      siguiente transacción).
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
-            <button 
-              type="submit" 
-              className={styles.submitButton}
-              disabled={isSubmitting || !items || items.length === 0}
-            >
-              {isSubmitting ? 'Procesando...' : 'Confirmar Pedido'}
-            </button>
-          </form>
+            {formData.paymentMethod === 'stripe' && (
+              <div className={styles.section}>
+                <h2>Pago con tarjeta</h2>
+                {stripeLoading && (
+                  <p className={styles.stripeLoading}>Preparando formulario de pago…</p>
+                )}
+                {stripeError && (
+                  <p className={styles.stripeError} role="alert">
+                    {stripeError}
+                  </p>
+                )}
+                {!stripeLoading && stripeClientSecret && stripePublishableKey && (
+                  <StripeEmbeddedPayment
+                    key={stripeClientSecret}
+                    clientSecret={stripeClientSecret}
+                    publishableKey={stripePublishableKey}
+                    returnPath="/checkout/success"
+                  />
+                )}
+              </div>
+            )}
+
+            {formData.paymentMethod !== 'stripe' && (
+              <button
+                type="button"
+                className={styles.submitButton}
+                disabled={isSubmitting || !items || items.length === 0}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }}
+              >
+                {isSubmitting ? 'Procesando...' : 'Confirmar pedido'}
+              </button>
+            )}
+          </div>
+          )}
         </div>
 
-        {/* Resumen del Pedido */}
+        {checkoutStep === 2 && (
         <div className={styles.summarySection}>
           <div className={styles.orderSummary}>
             <h2>Resumen del Pedido</h2>
@@ -868,6 +1061,7 @@ export default function SimpleCheckout() {
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

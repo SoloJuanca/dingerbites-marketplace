@@ -84,7 +84,11 @@ export default function OrderConfirmation({
           <div className={styles.detailRow}>
             <span className={styles.label}>Método de Pago:</span>
             <span className={styles.value}>
-              {paymentMethod === 'cash' ? 'Pago contra entrega' : 'Transferencia bancaria'}
+              {paymentMethod === 'cash'
+                ? 'Pago contra entrega'
+                : paymentMethod === 'stripe'
+                  ? 'Tarjeta (Stripe)'
+                  : 'Transferencia bancaria'}
             </span>
           </div>
 
@@ -95,6 +99,14 @@ export default function OrderConfirmation({
             </div>
           )}
         </div>
+
+        {paymentMethod === 'stripe' && (
+          <div className={styles.transferSection}>
+            <p className={styles.transferNotice}>
+              Tu pago con tarjeta fue procesado de forma segura. Recibirás la confirmación por correo.
+            </p>
+          </div>
+        )}
 
         {paymentMethod === 'transfer' && (
           <div className={styles.transferSection}>

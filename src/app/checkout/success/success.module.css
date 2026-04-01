@@ -1,0 +1,33 @@
+.page {
+  min-height: 40vh;
+  padding: 24px 16px 48px;
+}
+
+.stateWrap {
+  max-width: 480px;
+  margin: 48px auto;
+  padding: 24px;
+  text-align: center;
+}
+
+.stateTitle {
+  font-size: 1.25rem;
+  margin: 0 0 8px;
+}
+
+.stateText {
+  margin: 0 0 16px;
+  color: var(--color-text-muted, #64748b);
+  line-height: 1.5;
+}
+
+.link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--color-primary, #2563eb);
+  text-decoration: underline;
+}
+
+.link:hover {
+  text-decoration: none;
+}

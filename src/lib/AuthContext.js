@@ -262,6 +262,9 @@ export function AuthProvider({ children }) {
 
   // Save auth state to localStorage when it changes
   useEffect(() => {
+    // While init runs, state is unauthenticated — do not clear storage yet or a full
+    // navigation (e.g. checkout success) would wipe the token before initializeAuth reads it.
+    if (state.isLoading) return;
     if (state.isAuthenticated && state.token && state.user) {
       localStorage.setItem('auth_token', state.token);
       localStorage.setItem('auth_user', JSON.stringify(state.user));
@@ -269,7 +272,7 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
     }
-  }, [state.isAuthenticated, state.token, state.user]);
+  }, [state.isAuthenticated, state.token, state.user, state.isLoading]);
 
   // Auth functions
   const login = async (email, password) => {
