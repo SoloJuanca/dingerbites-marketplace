@@ -225,7 +225,7 @@ export default function ContactForm({
                       ].filter(part => part && part.trim()).join(', ')}
                     </p>
                     {selectedAddress.phone && (
-                      <p className={styles.phoneText}>📞 {selectedAddress.phone}</p>
+                      <p className={styles.phoneText}><span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: 'middle' }}>call</span> {selectedAddress.phone}</p>
                     )}
                   </div>
                 ) : (
@@ -283,11 +283,10 @@ export default function ContactForm({
 
         {deliveryType === 'delivery' && (
           <div className={styles.deliveryNote}>
-            <div className={styles.noteIcon}>ℹ️</div>
+            <div className={styles.noteIcon}><span className="material-symbols-outlined">info</span></div>
             <div className={styles.noteContent}>
               <strong>Información de Envío:</strong>
               <p>• Costo: $120 MXN</p>
-              <p>• Tiempo estimado: 1-2 días hábiles</p>
               <p>• Horario de entrega: 9:00 AM - 8:00 PM</p>
             </div>
           </div>
@@ -295,7 +294,7 @@ export default function ContactForm({
 
         {deliveryType === 'pickup' && (
           <div className={styles.pickupNote}>
-            <div className={styles.noteIcon}>🏪</div>
+            <div className={styles.noteIcon}><span className="material-symbols-outlined">storefront</span></div>
             <div className={styles.noteContent}>
               <strong>Recoger en Tienda:</strong>
               <p>• Dirección: Av. Principal #123, Centro Histórico</p>

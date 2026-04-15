@@ -22,6 +22,7 @@ function buildOrderReadyJson(order, paymentIntentStatus) {
       order_number: order.order_number,
       total_amount: order.total_amount,
       customer_email: order.customer_email,
+      customer_phone: order.customer_phone || null,
       customer_name: order.customer_name || null,
       payment_method: 'stripe',
       delivery_type: deliveryType,
@@ -71,6 +72,19 @@ export async function GET(request) {
         });
         if (finalized.status === 'exists' || finalized.status === 'created') {
           return NextResponse.json(buildOrderReadyJson(finalized.order, status));
+        }
+        if (finalized.status === 'error' && finalized.reason === 'insufficient_stock') {
+          return NextResponse.json({
+            paid: true,
+            order_ready: false,
+            payment_intent_status: status,
+            keep_polling: false,
+            fatal: true,
+            reason: 'insufficient_stock',
+            message:
+              finalized.message ||
+              'El stock se agotó antes de registrar tu pedido. Si el cargo ya apareció, contacta a soporte.'
+          });
         }
       } catch (finalizeErr) {
         console.error('payment-status finalize error:', finalizeErr);

@@ -32,9 +32,9 @@ export async function sendEmail({ to, subject, htmlContent, sender = DEFAULT_SEN
       htmlContent: htmlContent
     };
 
-    console.log('📤 Enviando correo vía API REST de Brevo...');
-    console.log('📧 Destinatarios:', to.map(t => t.email).join(', '));
-    console.log('📋 Asunto:', subject);
+    console.log('[Send] Enviando correo vía API REST de Brevo...');
+    console.log('[Email] Destinatarios:', to.map(t => t.email).join(', '));
+    console.log('[Info] Asunto:', subject);
 
     const response = await fetch(`${BREVO_API_URL}/smtp/email`, {
       method: 'POST',
@@ -49,19 +49,19 @@ export async function sendEmail({ to, subject, htmlContent, sender = DEFAULT_SEN
     const responseData = await response.json();
 
     if (response.ok) {
-      console.log('✅ Correo enviado exitosamente:', responseData);
+      console.log('[OK] Correo enviado exitosamente:', responseData);
       return { 
         success: true, 
         data: responseData,
         method: 'rest_api'
       };
     } else {
-      console.error('❌ Error de la API de Brevo:', responseData);
+      console.error('[Error] Error de la API de Brevo:', responseData);
       throw new Error(`API Error: ${responseData.message || 'Error desconocido'} (${response.status})`);
     }
 
   } catch (error) {
-    console.error('❌ Error enviando correo:', error);
+    console.error('[Error] Error enviando correo:', error);
     return { 
       success: false, 
       error: error.message
@@ -188,13 +188,13 @@ export function generateAdminEmailContent(orderData) {
         
         <!-- Header -->
         <div style="text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #e2e8f0;">
-          <h1 style="color: #2d3748; margin: 0; font-size: 28px;">🛍️ Nuevo Pedido Recibido</h1>
+          <h1 style="color: #2d3748; margin: 0; font-size: 28px;">Nuevo Pedido Recibido</h1>
           <p style="color: #718096; margin: 8px 0 0 0; font-size: 16px;">Dingerbites</p>
         </div>
 
         <!-- Información del Pedido -->
         <div style="background-color: #f7fafc; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
-          <h2 style="color: #2d3748; margin: 0 0 16px 0; font-size: 20px;">📋 Información del Pedido</h2>
+          <h2 style="color: #2d3748; margin: 0 0 16px 0; font-size: 20px;">Información del Pedido</h2>
           <table style="width: 100%; border-collapse: collapse;">
             <tr>
               <td style="padding: 8px 0; font-weight: bold; color: #4a5568;">Número de Pedido:</td>
@@ -213,7 +213,7 @@ export function generateAdminEmailContent(orderData) {
 
         <!-- Información del Cliente -->
         <div style="margin-bottom: 32px;">
-          <h2 style="color: #2d3748; margin: 0 0 16px 0; font-size: 20px;">👤 Información del Cliente</h2>
+          <h2 style="color: #2d3748; margin: 0 0 16px 0; font-size: 20px;">Información del Cliente</h2>
           <table style="width: 100%; border-collapse: collapse;">
             <tr>
               <td style="padding: 8px 0; font-weight: bold; color: #4a5568;">Nombre:</td>
@@ -232,13 +232,13 @@ export function generateAdminEmailContent(orderData) {
 
         <!-- Detalles del Pedido -->
         <div style="margin-bottom: 32px;">
-          <h2 style="color: #2d3748; margin: 0 0 16px 0; font-size: 20px;">📦 Detalles del Pedido</h2>
+          <h2 style="color: #2d3748; margin: 0 0 16px 0; font-size: 20px;">Detalles del Pedido</h2>
           ${itemsHtml}
         </div>
 
         <!-- Información de Entrega -->
         <div style="margin-bottom: 32px;">
-          <h2 style="color: #2d3748; margin: 0 0 16px 0; font-size: 20px;">🚚 Información de Entrega</h2>
+          <h2 style="color: #2d3748; margin: 0 0 16px 0; font-size: 20px;">Información de Entrega</h2>
           <table style="width: 100%; border-collapse: collapse;">
             <tr>
               <td style="padding: 8px 0; font-weight: bold; color: #4a5568;">Método de Entrega:</td>
@@ -373,7 +373,7 @@ export function generateCustomerEmailContent(orderData) {
         
         <!-- Header -->
         <div style="text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #e2e8f0;">
-          <h1 style="color: #2d3748; margin: 0; font-size: 28px;">✅ Pedido Confirmado</h1>
+          <h1 style="color: #2d3748; margin: 0; font-size: 28px;">Pedido Confirmado</h1>
           <p style="color: #718096; margin: 8px 0 0 0; font-size: 16px;">Dingerbites</p>
         </div>
 
@@ -387,7 +387,7 @@ export function generateCustomerEmailContent(orderData) {
 
         <!-- Información del Pedido -->
         <div style="background-color: #f7fafc; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
-          <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 16px;">📋 Resumen de tu Pedido</h3>
+          <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 16px;">Resumen de tu Pedido</h3>
           <table style="width: 100%; border-collapse: collapse;">
             <tr>
               <td style="padding: 8px 0; font-weight: bold; color: #4a5568;">Número de Pedido:</td>
@@ -406,7 +406,7 @@ export function generateCustomerEmailContent(orderData) {
 
         <!-- Detalles del Pedido -->
         <div style="margin-bottom: 32px;">
-          <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 16px;">📦 Detalles de tu Pedido</h3>
+          <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 16px;">Detalles de tu Pedido</h3>
           ${itemsHtml}
         </div>
 
@@ -417,7 +417,7 @@ export function generateCustomerEmailContent(orderData) {
 
         <!-- Información de Entrega -->
         <div style="margin-bottom: 32px;">
-          <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 16px;">🚚 Información de Entrega</h3>
+          <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 16px;">Información de Entrega</h3>
           <div style="background-color: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
             <p style="margin: 0 0 12px 0; color: #2d3748;"><strong>Método de Entrega:</strong> ${shipping_method || 'No especificado'}</p>
             <p style="margin: 0 0 12px 0; color: #2d3748;"><strong>Método de Pago:</strong> ${payment_method || 'No especificado'}</p>
@@ -431,7 +431,7 @@ export function generateCustomerEmailContent(orderData) {
         <!-- Datos de Transferencia BBVA -->
         <div style="margin-bottom: 32px;">
           <div style="background-color: #fef3c7; padding: 20px; border-radius: 8px; border: 2px solid #f59e0b; margin-bottom: 16px;">
-            <p style="margin: 0 0 8px 0; color: #92400e; font-size: 16px; font-weight: 700;">⚠️ IMPORTANTE: Agrega el número de pedido <strong>${order_number}</strong> en el concepto o referencia de tu transferencia.</p>
+            <p style="margin: 0 0 8px 0; color: #92400e; font-size: 16px; font-weight: 700;">IMPORTANTE: Agrega el número de pedido <strong>${order_number}</strong> en el concepto o referencia de tu transferencia.</p>
           </div>
           <div style="background-color: #fee2e2; padding: 16px; border-radius: 8px; border: 2px solid #ef4444; margin-bottom: 24px;">
             <p style="margin: 0; color: #991b1b; font-weight: 600;">Si no se recibe el comprobante de pago o el número de pedido no se agrega en la transferencia, el pedido será cancelado.</p>
@@ -448,7 +448,7 @@ export function generateCustomerEmailContent(orderData) {
 
         <!-- Estado del Pedido -->
         <div style="background: linear-gradient(135deg, #fef5e7 0%, #fed7aa 100%); padding: 24px; border-radius: 12px; margin-bottom: 32px; border: 1px solid #f6ad55;">
-          <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 16px;">📊 Estado de tu Pedido</h3>
+          <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 16px;">Estado de tu Pedido</h3>
           <p style="color: #4a5568; margin: 0 0 16px 0;">
             Tu pedido está actualmente <strong style="color: #c05621;">en proceso</strong>. Nuestro equipo está revisando los detalles y preparando tu orden.
           </p>
@@ -459,13 +459,13 @@ export function generateCustomerEmailContent(orderData) {
 
         <!-- Contacto -->
         <div style="background-color: #f7fafc; padding: 24px; border-radius: 8px; margin-bottom: 32px;">
-          <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 16px;">📞 ¿Necesitas Ayuda?</h3>
+          <h3 style="color: #2d3748; margin: 0 0 16px 0; font-size: 16px;">¿Necesitas Ayuda?</h3>
           <p style="color: #4a5568; margin: 0 0 16px 0;">
             Si tienes alguna pregunta sobre tu pedido o necesitas hacer algún cambio, no dudes en contactarnos:
           </p>
           <p style="color: #4a5568; margin: 0;">
-            📧 <a href="mailto:admin@patitomontenegro.com" style="color: #3182ce; text-decoration: none;">admin@patitomontenegro.com</a><br>
-            📱 WhatsApp: Pronto te enviaremos un mensaje
+            <a href="mailto:admin@patitomontenegro.com" style="color: #3182ce; text-decoration: none;">admin@patitomontenegro.com</a><br>
+            WhatsApp: Pronto te enviaremos un mensaje
           </p>
         </div>
 
@@ -500,7 +500,7 @@ export async function sendOrderNotifications(orderData) {
     // Enviar correo al administrador
     const adminEmailResult = await sendEmail({
       to: [{ email: ADMIN_EMAIL, name: 'Administrador' }],
-      subject: `🛍️ Nuevo Pedido Recibido - ${orderData.order_number}`,
+      subject: `Nuevo Pedido Recibido - ${orderData.order_number}`,
       htmlContent: generateAdminEmailContent(orderData)
     });
     results.adminEmail = adminEmailResult;
@@ -509,7 +509,7 @@ export async function sendOrderNotifications(orderData) {
     if (orderData.customer_email) {
       const customerEmailResult = await sendEmail({
         to: [{ email: orderData.customer_email, name: orderData.customer_name || 'Cliente' }],
-        subject: `✅ Confirmación de Pedido - ${orderData.order_number}`,
+        subject: `Confirmación de Pedido - ${orderData.order_number}`,
         htmlContent: generateCustomerEmailContent(orderData)
       });
       results.customerEmail = customerEmailResult;

@@ -252,7 +252,7 @@ export default function CategoriesPage() {
                   className={styles.image}
                 />
               ) : (
-                <div className={styles.imagePlaceholder}>🏷️</div>
+                <div className={styles.imagePlaceholder}><span className="material-symbols-outlined">label</span></div>
               )}
             </div>
             <div className={styles.cardContent}>
@@ -271,8 +271,8 @@ export default function CategoriesPage() {
               </div>
             </div>
             <div className={styles.cardActions}>
-              <button onClick={() => handleEdit(cat)} className={styles.editButton}>✏️ Editar</button>
-              <button onClick={() => handleDelete(cat.id, cat.name)} className={styles.deleteButton}>🗑️ Eliminar</button>
+              <button onClick={() => handleEdit(cat)} className={styles.editButton}><span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span> Editar</button>
+              <button onClick={() => handleDelete(cat.id, cat.name)} className={styles.deleteButton}><span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span> Eliminar</button>
             </div>
           </div>
           {cat.children?.length > 0 && renderCategoryTree(cat.children, depth + 1)}
@@ -294,7 +294,7 @@ export default function CategoriesPage() {
           </div>
           <div className={styles.headerRight}>
             <Link href="/admin/categories/create" className={styles.createButton}>
-              ➕ Agregar Categoría
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span> Agregar Categoría
             </Link>
           </div>
         </div>
@@ -311,7 +311,7 @@ export default function CategoriesPage() {
 
             {categories.length === 0 && (
               <div className={styles.emptyState}>
-                <div className={styles.emptyIcon}>🏷️</div>
+                <div className={styles.emptyIcon}><span className="material-symbols-outlined">label</span></div>
                 <h3>No hay categorías</h3>
                 <p>Comienza agregando tu primera categoría.</p>
                 <Link href="/admin/categories/create" className={styles.createButton}>
@@ -330,7 +330,7 @@ export default function CategoriesPage() {
                 <h3 className={styles.modalTitle}>
                   {editingCategory ? 'Editar Categoría' : 'Nueva Categoría'}
                 </h3>
-                <button onClick={closeModal} className={styles.closeButton}>✕</button>
+                <button onClick={closeModal} className={styles.closeButton}><span className="material-symbols-outlined">close</span></button>
               </div>
               
               <form onSubmit={handleSubmit} className={styles.modalForm}>

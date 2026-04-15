@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import styles from './test-email-simple.module.css';
 
+const iconStyle = { fontSize: 18, verticalAlign: 'middle' };
+
 export default function TestEmailSimplePage() {
   const [testEmail, setTestEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -59,14 +61,18 @@ export default function TestEmailSimplePage() {
   return (
     <div className={styles.container}>
       <div className={styles.card}>
-        <h1 className={styles.title}>✅ Prueba API REST Simple</h1>
+        <h1 className={styles.title}>
+          <span className="material-symbols-outlined" style={iconStyle}>verified</span> Prueba API REST Simple
+        </h1>
         <p className={styles.description}>
           Prueba simplificada usando únicamente la API REST de Brevo. 
           Sin librerías externas, sin complicaciones.
         </p>
 
         <div className={styles.apiInfo}>
-          <h3>🔗 API Endpoint</h3>
+          <h3>
+            <span className="material-symbols-outlined" style={iconStyle}>link</span> API Endpoint
+          </h3>
           <code>POST https://api.brevo.com/v3/smtp/email</code>
           <p>
             <a 
@@ -75,7 +81,7 @@ export default function TestEmailSimplePage() {
               rel="noopener noreferrer"
               className={styles.link}
             >
-              📚 Ver documentación oficial
+              <span className="material-symbols-outlined" style={iconStyle}>menu_book</span> Ver documentación oficial
             </a>
           </p>
         </div>
@@ -83,7 +89,7 @@ export default function TestEmailSimplePage() {
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.inputGroup}>
             <label htmlFor="testEmail" className={styles.label}>
-              📧 Email de prueba:
+              <span className="material-symbols-outlined" style={iconStyle}>mail</span> Email de prueba:
             </label>
             <input
               type="email"
@@ -105,18 +111,30 @@ export default function TestEmailSimplePage() {
             disabled={isLoading || !testEmail}
             className={styles.button}
           >
-            {isLoading ? '📤 Enviando...' : '🚀 Enviar Correo'}
+            {isLoading ? (
+              <>
+                <span className="material-symbols-outlined" style={iconStyle}>send</span> Enviando...
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined" style={iconStyle}>rocket_launch</span> Enviar Correo
+              </>
+            )}
           </button>
         </form>
 
         {error && (
           <div className={styles.error}>
-            <h3>❌ Error en: {error.step}</h3>
+            <h3>
+              <span className="material-symbols-outlined" style={iconStyle}>error</span> Error en: {error.step}
+            </h3>
             <p>{error.message}</p>
             
             {error.details && (
               <details className={styles.details}>
-                <summary>🔍 Detalles del error</summary>
+                <summary>
+                  <span className="material-symbols-outlined" style={iconStyle}>search</span> Detalles del error
+                </summary>
                 <div className={styles.errorDetails}>
                   
                   {error.details.envCheck && (
@@ -125,7 +143,7 @@ export default function TestEmailSimplePage() {
                       <ul>
                         {Object.entries(error.details.envCheck).map(([key, value]) => (
                           <li key={key} className={value ? styles.success : styles.failure}>
-                            {key}: {value ? '✅' : '❌'}
+                            {key}: {value ? 'OK' : 'Error'}
                           </li>
                         ))}
                       </ul>
@@ -145,7 +163,9 @@ export default function TestEmailSimplePage() {
             )}
 
             <div className={styles.solutions}>
-              <h4>💡 Posibles soluciones:</h4>
+              <h4>
+                <span className="material-symbols-outlined" style={iconStyle}>lightbulb</span> Posibles soluciones:
+              </h4>
               <ul>
                 <li>Verifica que BREVO_API_KEY esté configurada correctamente</li>
                 <li>Asegúrate de que la API key sea válida en tu cuenta de Brevo</li>
@@ -158,20 +178,41 @@ export default function TestEmailSimplePage() {
 
         {results && (
           <div className={styles.results}>
-            <h3>🎉 ¡Correo Enviado Exitosamente!</h3>
+            <h3>
+              <span className="material-symbols-outlined" style={iconStyle}>celebration</span> ¡Correo Enviado Exitosamente!
+            </h3>
             
             <div className={styles.successInfo}>
-              <p><strong>📧 Destinatario:</strong> {results.data.testEmail}</p>
-              <p><strong>📨 ID del Mensaje:</strong> {results.data.messageId}</p>
-              <p><strong>🕐 Hora:</strong> {new Date(results.data.timestamp).toLocaleString()}</p>
-              <p><strong>📬 Remitente:</strong> {results.data.sender.name} &lt;{results.data.sender.email}&gt;</p>
-              <p><strong>📋 Asunto:</strong> {results.data.subject}</p>
-              <p><strong>🔧 Método:</strong> API REST Directa</p>
+              <p>
+                <strong><span className="material-symbols-outlined" style={iconStyle}>mail</span> Destinatario:</strong>{' '}
+                {results.data.testEmail}
+              </p>
+              <p>
+                <strong><span className="material-symbols-outlined" style={iconStyle}>mark_email_read</span> ID del Mensaje:</strong>{' '}
+                {results.data.messageId}
+              </p>
+              <p>
+                <strong><span className="material-symbols-outlined" style={iconStyle}>schedule</span> Hora:</strong>{' '}
+                {new Date(results.data.timestamp).toLocaleString()}
+              </p>
+              <p>
+                <strong><span className="material-symbols-outlined" style={iconStyle}>outgoing_mail</span> Remitente:</strong>{' '}
+                {results.data.sender.name} &lt;{results.data.sender.email}&gt;
+              </p>
+              <p>
+                <strong><span className="material-symbols-outlined" style={iconStyle}>subject</span> Asunto:</strong>{' '}
+                {results.data.subject}
+              </p>
+              <p>
+                <strong><span className="material-symbols-outlined" style={iconStyle}>build</span> Método:</strong> API REST Directa
+              </p>
             </div>
 
             {results.account && (
               <div className={styles.accountInfo}>
-                <h4>📊 Información de la Cuenta Brevo</h4>
+                <h4>
+                  <span className="material-symbols-outlined" style={iconStyle}>bar_chart</span> Información de la Cuenta Brevo
+                </h4>
                 <p><strong>Email:</strong> {results.account.email}</p>
                 <p><strong>Nombre:</strong> {results.account.name}</p>
                 {results.account.company && <p><strong>Empresa:</strong> {results.account.company}</p>}
@@ -181,17 +222,21 @@ export default function TestEmailSimplePage() {
             )}
 
             <div className={styles.checkSection}>
-              <h4>✅ Verificaciones:</h4>
+              <h4>
+                <span className="material-symbols-outlined" style={iconStyle}>check_circle</span> Verificaciones:
+              </h4>
               <ul>
-                <li className={styles.success}>Variables de entorno: ✅</li>
-                <li className={styles.success}>Conexión con Brevo: ✅</li>
-                <li className={styles.success}>Envío de correo: ✅</li>
-                <li className={styles.success}>API REST funcionando: ✅</li>
+                <li className={styles.success}>Variables de entorno: OK</li>
+                <li className={styles.success}>Conexión con Brevo: OK</li>
+                <li className={styles.success}>Envío de correo: OK</li>
+                <li className={styles.success}>API REST funcionando: OK</li>
               </ul>
             </div>
 
             <div className={styles.nextSteps}>
-              <h4>🚀 Sistema Listo</h4>
+              <h4>
+                <span className="material-symbols-outlined" style={iconStyle}>rocket_launch</span> Sistema Listo
+              </h4>
               <p>El sistema de correos está funcionando perfectamente. Ahora:</p>
               <ul>
                 <li>Los correos se enviarán automáticamente cuando los clientes hagan pedidos</li>
@@ -204,7 +249,9 @@ export default function TestEmailSimplePage() {
         )}
 
         <div className={styles.info}>
-          <h3>ℹ️ Ventajas de esta implementación</h3>
+          <h3>
+            <span className="material-symbols-outlined" style={iconStyle}>info</span> Ventajas de esta implementación
+          </h3>
           <ul>
             <li><strong>Simple:</strong> Solo usa fetch() y la API REST</li>
             <li><strong>Confiable:</strong> Sin dependencias externas</li>

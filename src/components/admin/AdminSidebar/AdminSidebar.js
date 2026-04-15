@@ -13,14 +13,14 @@ export default function AdminSidebar({ isOpen, onToggle, collapsed = false, onCo
     {
       id: 'dashboard',
       label: 'Dashboard',
-      icon: '📊',
+      icon: 'dashboard',
       href: '/admin',
       exact: true
     },
     {
       id: 'products',
       label: 'Productos',
-      icon: '📦',
+      icon: 'inventory_2',
       href: '/admin/products',
       submenu: [
         { label: 'Todos los Productos', href: '/admin/products' },
@@ -31,7 +31,7 @@ export default function AdminSidebar({ isOpen, onToggle, collapsed = false, onCo
     {
       id: 'categories',
       label: 'Categorías',
-      icon: '🏷️',
+      icon: 'label',
       href: '/admin/categories',
       submenu: [
         { label: 'Todas las Categorías', href: '/admin/categories' },
@@ -41,7 +41,7 @@ export default function AdminSidebar({ isOpen, onToggle, collapsed = false, onCo
     {
       id: 'brands',
       label: 'Marcas',
-      icon: '🏢',
+      icon: 'business',
       href: '/admin/brands',
       submenu: [
         { label: 'Todas las Marcas', href: '/admin/brands' },
@@ -51,37 +51,37 @@ export default function AdminSidebar({ isOpen, onToggle, collapsed = false, onCo
     {
       id: 'orders',
       label: 'Pedidos',
-      icon: '🛒',
+      icon: 'shopping_cart',
       href: '/admin/orders'
     },
     {
       id: 'coupons',
       label: 'Cupones',
-      icon: '🎟️',
+      icon: 'confirmation_number',
       href: '/admin/coupons'
     },
     {
       id: 'reports-payments',
       label: 'Reporte de pagos',
-      icon: '💰',
+      icon: 'payments',
       href: '/admin/reports/payment-methods'
     },
     {
       id: 'pos',
       label: 'Punto de venta',
-      icon: '🧾',
+      icon: 'point_of_sale',
       href: '/admin/pos'
     },
     {
       id: 'users',
       label: 'Usuarios',
-      icon: '👥',
+      icon: 'group',
       href: '/admin/users'
     },
     {
       id: 'reviews',
       label: 'Reseñas',
-      icon: '⭐',
+      icon: 'star',
       href: '/admin/reviews',
       submenu: [
         { label: 'Todas las Reseñas', href: '/admin/reviews' },
@@ -91,25 +91,25 @@ export default function AdminSidebar({ isOpen, onToggle, collapsed = false, onCo
     {
       id: 'banners',
       label: 'Banners',
-      icon: '🖼️',
+      icon: 'image',
       href: '/admin/banners'
     },
     {
       id: 'questions',
       label: 'Preguntas',
-      icon: '❓',
+      icon: 'help',
       href: '/admin/questions'
     },
     {
       id: 'analytics',
       label: 'Analíticas',
-      icon: '📈',
+      icon: 'trending_up',
       href: '/admin/analytics'
     },
     {
       id: 'settings',
       label: 'Configuración',
-      icon: '⚙️',
+      icon: 'settings',
       href: '/admin/settings'
     }
   ];
@@ -162,7 +162,7 @@ export default function AdminSidebar({ isOpen, onToggle, collapsed = false, onCo
             onClick={onToggle}
             aria-label="Cerrar menú"
           >
-            ✕
+            <span className="material-symbols-outlined">close</span>
           </button>
           {onCollapseToggle && (
             <button
@@ -172,7 +172,7 @@ export default function AdminSidebar({ isOpen, onToggle, collapsed = false, onCo
               aria-label={collapsed ? 'Expandir menú' : 'Contraer menú'}
               title={collapsed ? 'Expandir menú' : 'Contraer menú'}
             >
-              {collapsed ? '»' : '«'}
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{collapsed ? 'chevron_right' : 'chevron_left'}</span>
             </button>
           )}
         </div>
@@ -190,12 +190,12 @@ export default function AdminSidebar({ isOpen, onToggle, collapsed = false, onCo
                       } ${flyoutOpen === item.id ? styles.flyoutActive : ''}`}
                       onClick={() => toggleSubmenu(item.id)}
                     >
-                      <span className={styles.menuIcon}>{item.icon}</span>
+                      <span className={`${styles.menuIcon} material-symbols-outlined`}>{item.icon}</span>
                       <span className={styles.menuLabel}>{item.label}</span>
-                      <span className={`${styles.expandIcon} ${
+                      <span className={`${styles.expandIcon} material-symbols-outlined ${
                         (expandedMenu === item.id || flyoutOpen === item.id) ? styles.expanded : ''
                       }`}>
-                        ▼
+                        expand_more
                       </span>
                     </button>
                     {collapsed && flyoutOpen === item.id && (
@@ -243,7 +243,7 @@ export default function AdminSidebar({ isOpen, onToggle, collapsed = false, onCo
                       isActiveLink(item.href, item.exact) ? styles.active : ''
                     }`}
                   >
-                    <span className={styles.menuIcon}>{item.icon}</span>
+                    <span className={`${styles.menuIcon} material-symbols-outlined`}>{item.icon}</span>
                     <span className={styles.menuLabel}>{item.label}</span>
                   </Link>
                 )}

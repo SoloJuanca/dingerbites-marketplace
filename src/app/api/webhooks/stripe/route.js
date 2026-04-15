@@ -127,6 +127,10 @@ async function handlePaymentIntentSucceeded(event, stripe) {
     console.error('Amount mismatch for PaymentIntent', piId);
     return NextResponse.json({ received: true, amount_mismatch: true });
   }
+  if (result.status === 'error' && result.reason === 'insufficient_stock') {
+    console.error('Order not created: insufficient stock', piId, result.message);
+    return NextResponse.json({ received: true, insufficient_stock: true });
+  }
   console.error('ensureOrderForPaymentIntent failed', piId, result);
   return NextResponse.json({ received: true, error: result.reason || 'finalize_failed' });
 }

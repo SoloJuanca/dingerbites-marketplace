@@ -87,8 +87,8 @@ export default function AdminReviewsPage() {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
       stars.push(
-        <span key={i} className={i <= rating ? styles.starFilled : styles.starEmpty}>
-          ★
+        <span key={i} className={`material-symbols-outlined ${i <= rating ? styles.starFilled : styles.starEmpty}`} style={{ fontSize: 18 }}>
+          star
         </span>
       );
     }

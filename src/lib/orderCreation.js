@@ -13,6 +13,7 @@ import {
 } from './orderPricing';
 import { normalizeEmail } from './security';
 import { logSecurityEvent } from './auditLog';
+import { deductProductStockInTransaction } from './orderStock';
 
 /**
  * Create order in Firestore with the same rules as POST /api/orders.
@@ -151,6 +152,8 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
       shippingMethod: shipping_method || null,
       discountAmount: couponApplication?.discount_amount || 0
     });
+
+    await deductProductStockInTransaction(transaction, orderItems, now);
 
     const orderPayload = {
       id: orderRef.id,

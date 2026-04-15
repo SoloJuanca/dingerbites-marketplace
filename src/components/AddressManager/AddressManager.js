@@ -246,10 +246,10 @@ export default function AddressManager({
                 </div>
                 <p className={styles.addressText}>{formatAddress(address)}</p>
                 {address.phone && (
-                  <p className={styles.phoneText}>📞 {address.phone}</p>
+                  <p className={styles.phoneText}><span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: 'middle' }}>call</span> {address.phone}</p>
                 )}
                 {address.company && (
-                  <p className={styles.companyText}>🏢 {address.company}</p>
+                  <p className={styles.companyText}><span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: 'middle' }}>business</span> {address.company}</p>
                 )}
               </div>
               <div className={styles.addressActions}>
@@ -291,7 +291,7 @@ export default function AddressManager({
               }}
               className={styles.closeButton}
             >
-              ✕
+              <span className="material-symbols-outlined">close</span>
             </button>
           </div>
 

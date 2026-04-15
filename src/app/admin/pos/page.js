@@ -901,7 +901,7 @@ export default function AdminPOS() {
             <div className={styles.modalHeader}>
               <h3>Agregar artículo manual</h3>
               <button type="button" onClick={closeManualModal} className={styles.modalClose}>
-                ✕
+                <span className="material-symbols-outlined">close</span>
               </button>
             </div>
             <div className={styles.modalBody}>

@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import Icon from '../Icon/Icon';
 import styles from './HomeCategories.module.css';
 
 const FALLBACK_IMAGE =
@@ -36,28 +37,46 @@ export default function HomeCategories({ categories = [] }) {
         {filteredCategories.length === 0 ? (
           <div className={styles.stateBox}>No hay categorías disponibles.</div>
         ) : (
-          <div className={styles.carouselTrack} ref={trackRef}>
-            {filteredCategories.map((category, index) => (
-              <Link
-                href={`/catalog/${encodeURIComponent(category.slug)}`}
-                key={category.id || category.slug}
-                className={styles.card}
-              >
-                <div className={styles.imageWrap}>
-                  <Image
-                    src={categoryImageSrc(category)}
-                    alt={category.name ? `Imagen de ${category.name}` : 'Categoría'}
-                    fill
-                    sizes="(max-width: 640px) 72vw, 280px"
-                    className={styles.image}
-                    priority={index < 3}
-                  />
-                </div>
-                <div className={styles.cardBody}>
-                  <h3 className={styles.cardTitle}>{category.name}</h3>
-                </div>
-              </Link>
-            ))}
+          <div className={styles.carouselViewport}>
+            <button
+              type="button"
+              className={`${styles.navButton} ${styles.navButtonDesktop}`}
+              aria-label="Categorías anteriores"
+              onClick={() => handleScroll('prev')}
+            >
+              <Icon name="chevron_left" size={24} aria-hidden />
+            </button>
+            <div className={styles.carouselTrack} ref={trackRef}>
+              {filteredCategories.map((category, index) => (
+                <Link
+                  href={`/catalog/${encodeURIComponent(category.slug)}`}
+                  key={category.id || category.slug}
+                  className={styles.card}
+                >
+                  <div className={styles.cardBody}>
+                    <h3 className={styles.cardTitle}>{category.name}</h3>
+                  </div>
+                  <div className={styles.imageWrap}>
+                    <Image
+                      src={categoryImageSrc(category)}
+                      alt={category.name ? `Imagen de ${category.name}` : 'Categoría'}
+                      fill
+                      sizes="96px"
+                      className={styles.image}
+                      priority={index < 3}
+                    />
+                  </div>
+                </Link>
+              ))}
+            </div>
+            <button
+              type="button"
+              className={`${styles.navButton} ${styles.navButtonDesktop}`}
+              aria-label="Siguientes categorías"
+              onClick={() => handleScroll('next')}
+            >
+              <Icon name="chevron_right" size={24} aria-hidden />
+            </button>
           </div>
         )}
       </div>

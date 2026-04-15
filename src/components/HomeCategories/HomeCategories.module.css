@@ -26,10 +26,14 @@
   font-weight: 600;
 }
 
+.carouselViewport {
+  position: relative;
+}
+
 .carouselTrack {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(200px, 280px);
+  grid-auto-columns: max-content;
   gap: 16px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
@@ -50,9 +54,16 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   scroll-snap-align: start;
   display: flex;
-  flex-direction: column;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 12px;
+  width: fit-content;
+  max-width: min(400px, 85vw);
+  min-width: 200px;
+  padding: 12px 16px;
   text-decoration: none;
   min-height: 0;
+  box-sizing: border-box;
 }
 
 .card:hover {
@@ -62,10 +73,14 @@
 
 .imageWrap {
   position: relative;
-  width: 100%;
-  aspect-ratio: 4 / 3;
+  flex: 3 0 0;
+  min-width: 0;
+  max-width: 104px;
+  aspect-ratio: 1;
+  border-radius: 50%;
   background: linear-gradient(145deg, #f5f3ff 0%, #ede9fe 100%);
-  flex-shrink: 0;
+  align-self: center;
+  overflow: hidden;
 }
 
 .image {
@@ -74,11 +89,11 @@
 }
 
 .cardBody {
-  padding: 16px;
-  flex: 1;
+  flex: 7 1 0;
+  padding: 0;
+  min-width: 0;
   display: flex;
   align-items: center;
-  min-height: 64px;
 }
 
 .cardTitle {
@@ -99,8 +114,8 @@
 }
 
 .navButton {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border: none;
   border-radius: 999px;
   background: #ede9fe;
@@ -108,31 +123,62 @@
   font-size: 22px;
   line-height: 1;
   cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
 }
 
 .navButton:hover {
   background: #ddd6fe;
 }
 
+.navButtonDesktop {
+  display: none;
+}
+
 .card:focus-visible,
-.link:focus-visible,
 .navButton:focus-visible {
   outline: 2px solid #6b21a8;
   outline-offset: 2px;
 }
 
-@media (max-width: 640px) {
-  .carouselTrack {
-    grid-auto-columns: minmax(168px, 220px);
+@media (min-width: 641px) {
+  .carouselViewport {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
-  .cardBody {
+  .carouselTrack {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .navButtonDesktop {
+    display: flex;
+  }
+}
+
+@media (max-width: 640px) {
+  .carouselTrack {
+    grid-auto-columns: max-content;
+  }
+
+  .card {
+    column-gap: 8px;
     padding: 12px;
-    min-height: 56px;
+    max-width: min(360px, 88vw);
+    min-width: 168px;
   }
 
   .cardTitle {
     font-size: 15px;
+  }
+
+  .imageWrap {
+    max-width: 72px;
   }
 
   .header {

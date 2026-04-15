@@ -24,7 +24,7 @@ export default function TopProducts({ products }) {
           <p className={styles.subtitle}>Últimos 30 días</p>
         </div>
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>📊</div>
+          <div className={styles.emptyIcon}><span className="material-symbols-outlined">bar_chart</span></div>
           <p className={styles.emptyText}>No hay datos de ventas disponibles</p>
         </div>
       </div>
@@ -57,7 +57,7 @@ export default function TopProducts({ products }) {
                   />
                 ) : (
                   <div className={styles.imagePlaceholder}>
-                    📦
+                    <span className="material-symbols-outlined">inventory_2</span>
                   </div>
                 )}
               </div>

@@ -25,7 +25,7 @@ export default function SalesByLocation({ locations }) {
           <p className={styles.subtitle}>Últimos 30 días</p>
         </div>
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>🗺️</div>
+          <div className={styles.emptyIcon}><span className="material-symbols-outlined">map</span></div>
           <p className={styles.emptyText}>No hay datos de ubicación disponibles</p>
         </div>
       </div>

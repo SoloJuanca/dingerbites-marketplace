@@ -182,7 +182,7 @@ export default function BrandsPage() {
               Franquicia
             </button>
             <Link href="/admin/brands/create" className={styles.createButton}>
-              ➕ Agregar Marca
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span> Agregar Marca
             </Link>
           </div>
         </div>
@@ -207,7 +207,7 @@ export default function BrandsPage() {
                       className={styles.image}
                     />
                   ) : (
-                    <div className={styles.imagePlaceholder}>🏢</div>
+                    <div className={styles.imagePlaceholder}><span className="material-symbols-outlined">business</span></div>
                   )}
                 </div>
                 
@@ -228,7 +228,7 @@ export default function BrandsPage() {
                         rel="noopener noreferrer"
                         className={styles.websiteLink}
                       >
-                        🌐 Sitio Web
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>language</span> Sitio Web
                       </a>
                     )}
                     <span className={`${styles.statusBadge} ${
@@ -244,13 +244,13 @@ export default function BrandsPage() {
                     onClick={() => handleEdit(brand)}
                     className={styles.editButton}
                   >
-                    ✏️ Editar
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span> Editar
                   </button>
                   <button
                     onClick={() => handleDelete(brand.id, brand.name)}
                     className={styles.deleteButton}
                   >
-                    🗑️ Eliminar
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span> Eliminar
                   </button>
                 </div>
               </div>
@@ -258,7 +258,7 @@ export default function BrandsPage() {
 
             {brands.length === 0 && (
               <div className={styles.emptyState}>
-                <div className={styles.emptyIcon}>🏢</div>
+                <div className={styles.emptyIcon}><span className="material-symbols-outlined">business</span></div>
                 <h3>No hay marcas</h3>
                 <p>Comienza agregando tu primera marca.</p>
                 <Link href="/admin/brands/create" className={styles.createButton}>
@@ -277,7 +277,7 @@ export default function BrandsPage() {
                 <h3 className={styles.modalTitle}>
                   {editingBrand ? 'Editar Marca' : 'Nueva Marca'}
                 </h3>
-                <button onClick={closeModal} className={styles.closeButton}>✕</button>
+                <button onClick={closeModal} className={styles.closeButton}><span className="material-symbols-outlined">close</span></button>
               </div>
               
               <form onSubmit={handleSubmit} className={styles.modalForm}>

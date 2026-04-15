@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import styles from './test-email.module.css';
 
+const iconStyle = { fontSize: 18, verticalAlign: 'middle' };
+
 export default function TestEmailPage() {
   const [testEmail, setTestEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -51,7 +53,10 @@ export default function TestEmailPage() {
   return (
     <div className={styles.container}>
       <div className={styles.card}>
-        <h1 className={styles.title}>🧪 Prueba de Correos Electrónicos</h1>
+        <h1 className={styles.title}>
+          <span className="material-symbols-outlined" style={iconStyle}>science</span>{' '}
+          Prueba de Correos Electrónicos
+        </h1>
         <p className={styles.description}>
           Esta herramienta te permite probar el sistema de notificaciones por correo 
           electrónico usando datos de un pedido simulado.
@@ -60,7 +65,8 @@ export default function TestEmailPage() {
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.inputGroup}>
             <label htmlFor="testEmail" className={styles.label}>
-              📧 Email de prueba:
+              <span className="material-symbols-outlined" style={iconStyle}>mail</span>{' '}
+              Email de prueba:
             </label>
             <input
               type="email"
@@ -82,16 +88,31 @@ export default function TestEmailPage() {
             disabled={isLoading || !testEmail}
             className={styles.button}
           >
-            {isLoading ? '📤 Enviando...' : '🚀 Enviar Correos de Prueba'}
+            {isLoading ? (
+              <>
+                <span className="material-symbols-outlined" style={iconStyle}>send</span>
+                {' '}Enviando...
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined" style={iconStyle}>rocket_launch</span>
+                {' '}Enviar Correos de Prueba
+              </>
+            )}
           </button>
         </form>
 
         {error && (
           <div className={styles.error}>
-            <h3>❌ Error</h3>
+            <h3>
+              <span className="material-symbols-outlined" style={iconStyle}>error</span> Error
+            </h3>
             <p>{error}</p>
             <details className={styles.details}>
-              <summary>💡 Posibles soluciones:</summary>
+              <summary>
+                <span className="material-symbols-outlined" style={iconStyle}>lightbulb</span>{' '}
+                Posibles soluciones:
+              </summary>
               <ul>
                 <li>Verifica que las variables de entorno de Brevo estén configuradas</li>
                 <li>Asegúrate de que la API key de Brevo sea válida</li>
@@ -104,12 +125,16 @@ export default function TestEmailPage() {
 
         {results && (
           <div className={styles.results}>
-            <h3>📊 Resultados del Envío</h3>
+            <h3>
+              <span className="material-symbols-outlined" style={iconStyle}>bar_chart</span> Resultados del Envío
+            </h3>
             
             <div className={styles.resultItem}>
-              <strong>📧 Correo al Cliente:</strong>
+              <strong>
+                <span className="material-symbols-outlined" style={iconStyle}>mail</span> Correo al Cliente:
+              </strong>
               <span className={results.results.customerEmail.sent ? styles.success : styles.failure}>
-                {results.results.customerEmail.sent ? '✅ Enviado' : '❌ Error'}
+                {results.results.customerEmail.sent ? 'Enviado' : 'Error'}
               </span>
               {results.results.customerEmail.error && (
                 <p className={styles.errorDetail}>{results.results.customerEmail.error}</p>
@@ -117,9 +142,11 @@ export default function TestEmailPage() {
             </div>
 
             <div className={styles.resultItem}>
-              <strong>📧 Correo al Administrador:</strong>
+              <strong>
+                <span className="material-symbols-outlined" style={iconStyle}>mail</span> Correo al Administrador:
+              </strong>
               <span className={results.results.adminEmail.sent ? styles.success : styles.failure}>
-                {results.results.adminEmail.sent ? '✅ Enviado' : '❌ Error'}
+                {results.results.adminEmail.sent ? 'Enviado' : 'Error'}
               </span>
               {results.results.adminEmail.error && (
                 <p className={styles.errorDetail}>{results.results.adminEmail.error}</p>
@@ -127,22 +154,39 @@ export default function TestEmailPage() {
             </div>
 
             <div className={styles.summary}>
-              <p><strong>📋 Número de pedido de prueba:</strong> {results.orderNumber}</p>
-              <p><strong>📈 Total enviados:</strong> {results.summary.totalSent} de 2</p>
-              <p><strong>📧 Email de prueba:</strong> {results.testEmail}</p>
+              <p>
+                <strong>
+                  <span className="material-symbols-outlined" style={iconStyle}>assignment</span> Número de pedido de prueba:
+                </strong>{' '}
+                {results.orderNumber}
+              </p>
+              <p>
+                <strong>
+                  <span className="material-symbols-outlined" style={iconStyle}>trending_up</span> Total enviados:
+                </strong>{' '}
+                {results.summary.totalSent} de 2
+              </p>
+              <p>
+                <strong>
+                  <span className="material-symbols-outlined" style={iconStyle}>mail</span> Email de prueba:
+                </strong>{' '}
+                {results.testEmail}
+              </p>
             </div>
 
             {results.summary.totalSent === 2 && (
               <div className={styles.successMessage}>
-                🎉 ¡Todos los correos se enviaron correctamente! 
-                Revisa las bandejas de entrada.
+                <span className="material-symbols-outlined" style={iconStyle}>celebration</span>{' '}
+                ¡Todos los correos se enviaron correctamente! Revisa las bandejas de entrada.
               </div>
             )}
           </div>
         )}
 
         <div className={styles.info}>
-          <h3>ℹ️ Información</h3>
+          <h3>
+            <span className="material-symbols-outlined" style={iconStyle}>info</span> Información
+          </h3>
           <ul>
             <li>Esta prueba simula un pedido completo con productos y servicios</li>
             <li>Se envían dos correos: uno al cliente y otro al administrador</li>

@@ -79,7 +79,7 @@ export default function CartSummary() {
 
       {/* Nota sobre envío */}
       <div className={styles.shippingNote}>
-        <p>💡 El costo de envío se calculará en el checkout según tu ubicación y tipo de entrega.</p>
+        <p><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle' }}>info</span> El costo de envío se calculará en el checkout según tu ubicación y tipo de entrega.</p>
       </div>
 
       {/* Botón para ir al checkout */}
@@ -93,14 +93,14 @@ export default function CartSummary() {
         disabled={isClearing}
         className={styles.clearCartButton}
       >
-        {isClearing ? 'Vaciando...' : '🗑️ Vaciar Carrito'}
+        {isClearing ? 'Vaciando...' : 'Vaciar Carrito'}
       </button>
 
       {/* Información adicional */}
       <div className={styles.additionalInfo}>
-        <p>✅ Envío seguro y rastreado</p>
-        <p>💳 Múltiples métodos de pago</p>
-        <p>🔄 Devoluciones fáciles</p>
+        <p><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#48bb78' }}>check_circle</span> Envío seguro y rastreado</p>
+        <p><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#48bb78' }}>credit_card</span> Múltiples métodos de pago</p>
+        <p><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#48bb78' }}>sync</span> Devoluciones fáciles</p>
       </div>
     </div>
   );

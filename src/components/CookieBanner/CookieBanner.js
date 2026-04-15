@@ -60,7 +60,7 @@ export default function CookieBanner() {
           </div>
           
           <div className={styles.textSection}>
-            <h3 className={styles.title}>🍪 Uso de Cookies</h3>
+            <h3 className={styles.title}>Uso de Cookies</h3>
             <p className={styles.description}>
               Utilizamos cookies para mejorar tu experiencia de navegación, analizar el tráfico del sitio 
               y personalizar el contenido. Al continuar navegando, aceptas nuestro uso de cookies.

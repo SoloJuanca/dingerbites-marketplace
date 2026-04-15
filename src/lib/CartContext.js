@@ -105,22 +105,22 @@ export function CartProvider({ children }) {
     localStorage.setItem('cart', JSON.stringify(state.items));
   }, [state.items]);
 
-  // Funciones del carrito
-  const addToCart = (product) => {
+  // Funciones del carrito (useCallback evita que efectos que dependen de clearCart se re-ejecuten en bucle)
+  const addToCart = useCallback((product) => {
     dispatch({ type: 'ADD_TO_CART', payload: product });
-  };
+  }, []);
 
-  const removeFromCart = (productId) => {
+  const removeFromCart = useCallback((productId) => {
     dispatch({ type: 'REMOVE_FROM_CART', payload: { id: productId } });
-  };
+  }, []);
 
-  const updateQuantity = (productId, quantity) => {
+  const updateQuantity = useCallback((productId, quantity) => {
     dispatch({ type: 'UPDATE_QUANTITY', payload: { id: productId, quantity } });
-  };
+  }, []);
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     dispatch({ type: 'CLEAR_CART' });
-  };
+  }, []);
 
   // Calcular totales
   const getTotalItems = () => {

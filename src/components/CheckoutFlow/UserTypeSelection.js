@@ -20,14 +20,14 @@ export default function UserTypeSelection({ userType, onUserTypeSelect, onNext }
           className={`${styles.option} ${userType === 'guest' ? styles.selected : ''}`}
           onClick={() => handleUserTypeSelect('guest')}
         >
-          <div className={styles.optionIcon}>👤</div>
+          <div className={styles.optionIcon}><span className="material-symbols-outlined">person</span></div>
           <div className={styles.optionContent}>
             <h3>Continuar como Invitado</h3>
             <p>Completa tu pedido sin crear una cuenta</p>
             <ul>
-              <li>✓ Proceso rápido y simple</li>
-              <li>✓ Sin contraseñas que recordar</li>
-              <li>✓ Recibirás confirmación por WhatsApp</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> Proceso rápido y simple</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> Sin contraseñas que recordar</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> Recibirás confirmación por WhatsApp</li>
             </ul>
           </div>
         </div>
@@ -36,15 +36,15 @@ export default function UserTypeSelection({ userType, onUserTypeSelect, onNext }
           className={`${styles.option} ${userType === 'account' ? styles.selected : ''}`}
           onClick={() => handleUserTypeSelect('account')}
         >
-          <div className={styles.optionIcon}>🔐</div>
+          <div className={styles.optionIcon}><span className="material-symbols-outlined">lock</span></div>
           <div className={styles.optionContent}>
             <h3>Crear una Cuenta</h3>
             <p>Regístrate para beneficios adicionales</p>
             <ul>
-              <li>✓ Historial de pedidos</li>
-              <li>✓ Direcciones guardadas</li>
-              <li>✓ Seguimiento de envíos</li>
-              <li>✓ Ofertas exclusivas</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> Historial de pedidos</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> Direcciones guardadas</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> Seguimiento de envíos</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> Ofertas exclusivas</li>
             </ul>
           </div>
         </div>

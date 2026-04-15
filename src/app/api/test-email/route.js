@@ -70,7 +70,7 @@ export async function POST(request) {
       created_at: new Date()
     };
 
-    console.log('🧪 Enviando correos de prueba...');
+    console.log('[Test] Enviando correos de prueba...');
     
     const results = await sendOrderNotifications(sampleOrderData);
     
@@ -121,10 +121,10 @@ export async function GET() {
     }
 
     const envVars = {
-      BREVO_API_KEY: process.env.BREVO_API_KEY ? '✅ Configurada' : '❌ No configurada',
-      BREVO_SENDER_EMAIL: process.env.BREVO_SENDER_EMAIL || '❌ No configurada',
-      BREVO_SENDER_NAME: process.env.BREVO_SENDER_NAME || '❌ No configurada',
-      ADMIN_EMAIL: process.env.ADMIN_EMAIL || '❌ No configurada'
+      BREVO_API_KEY: process.env.BREVO_API_KEY ? 'OK' : 'Error (not configured)',
+      BREVO_SENDER_EMAIL: process.env.BREVO_SENDER_EMAIL || 'Error (not configured)',
+      BREVO_SENDER_NAME: process.env.BREVO_SENDER_NAME || 'Error (not configured)',
+      ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'Error (not configured)'
     };
 
     return NextResponse.json({

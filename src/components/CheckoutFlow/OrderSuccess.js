@@ -25,7 +25,7 @@ export default function OrderSuccess({
   return (
     <div className={styles.orderSuccess}>
       <div className={styles.successIcon}>
-        🎉
+        <span className="material-symbols-outlined" style={{ fontSize: 48 }}>celebration</span>
       </div>
       
       <div className={styles.header}>
@@ -39,31 +39,26 @@ export default function OrderSuccess({
 
       <div className={styles.successMessage}>
         <div className={styles.messageBox}>
-          <h3>✅ ¿Qué sigue ahora?</h3>
+          <h3><span className="material-symbols-outlined" style={{ fontSize: 20, verticalAlign: 'middle' }}>check_circle</span> ¿Qué sigue ahora?</h3>
           <ul className={styles.nextSteps}>
             <li>
-              <strong>📱 WhatsApp:</strong> Recibirás confirmación de tu pedido por WhatsApp
+              <strong><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle' }}>smartphone</span> WhatsApp:</strong> Recibirás confirmación de tu pedido por WhatsApp
             </li>
             {checkoutData.paymentMethod === 'transfer' && (
               <li>
-                <strong>💳 Transferencia:</strong> Agrega el número de pedido ({orderNumber}) en el concepto. Banco BBVA. Envía el comprobante por WhatsApp.
+                <strong><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle' }}>credit_card</span> Transferencia:</strong> Agrega el número de pedido ({orderNumber}) en el concepto. Banco BBVA. Envía el comprobante por WhatsApp.
               </li>
             )}
             <li>
-              <strong>📧 Confirmación:</strong> Se enviará mensaje por correo y teléfono para confirmar el día de entrega
+              <strong><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle' }}>mail</span> Confirmación:</strong> Se enviará mensaje por correo y teléfono para confirmar el día de entrega
             </li>
-            {checkoutData.deliveryType === 'delivery' && (
-              <li>
-                <strong>🚚 Envío:</strong> Tiempo estimado de 1-2 días hábiles
-              </li>
-            )}
             {checkoutData.deliveryType === 'pickup' && (
               <li>
-                <strong>🏪 Recoger en punto:</strong> Te notificaremos cuando esté listo
+                <strong><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle' }}>storefront</span> Recoger en punto:</strong> Te notificaremos cuando esté listo
               </li>
             )}
             <li>
-              <strong>📞 Contacto:</strong> Cualquier duda al (55) 1234-5678
+              <strong><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle' }}>call</span> Contacto:</strong> Cualquier duda al (55) 1234-5678
             </li>
           </ul>
         </div>
@@ -78,13 +73,13 @@ export default function OrderSuccess({
               className={styles.primaryButton} 
               onClick={handleContinueShopping}
             >
-              🛍️ Seguir Comprando
+              <span className="material-symbols-outlined" style={{ fontSize: 18, verticalAlign: 'middle' }}>shopping_bag</span> Seguir Comprando
             </button>
             <button 
               className={styles.secondaryButton} 
               onClick={handleGoToHome}
             >
-              🏠 Ir al Inicio
+              <span className="material-symbols-outlined" style={{ fontSize: 18, verticalAlign: 'middle' }}>home</span> Ir al Inicio
             </button>
           </div>
         )}
@@ -98,19 +93,19 @@ export default function OrderSuccess({
                 className={styles.primaryButton} 
                 onClick={handleContinueShopping}
               >
-                🛍️ Seguir Comprando
+                <span className="material-symbols-outlined" style={{ fontSize: 18, verticalAlign: 'middle' }}>shopping_bag</span> Seguir Comprando
               </button>
               <button 
                 className={styles.secondaryButton} 
                 onClick={handleGoToProfile}
               >
-                👤 Ver Mi Perfil
+                <span className="material-symbols-outlined" style={{ fontSize: 18, verticalAlign: 'middle' }}>person</span> Ver Mi Perfil
               </button>
               <button 
                 className={styles.tertiaryButton} 
                 onClick={handleGoToHome}
               >
-                🏠 Ir al Inicio
+                <span className="material-symbols-outlined" style={{ fontSize: 18, verticalAlign: 'middle' }}>home</span> Ir al Inicio
               </button>
             </div>
           </div>

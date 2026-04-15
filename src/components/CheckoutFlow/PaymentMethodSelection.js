@@ -24,7 +24,7 @@ export default function PaymentMethodSelection({
           className={`${styles.option} ${paymentMethod === 'cash' ? styles.selected : ''}`}
           onClick={() => handlePaymentMethodSelect('cash')}
         >
-          <div className={styles.optionIcon}>💵</div>
+          <div className={styles.optionIcon}><span className="material-symbols-outlined">payments</span></div>
           <div className={styles.optionContent}>
             <h3>Pago Contra Entrega</h3>
             <p>Paga cuando recibas tu pedido</p>
@@ -43,10 +43,10 @@ export default function PaymentMethodSelection({
               </div>
             </div>
             <ul>
-              <li>✓ Paga solo cuando recibas tu pedido</li>
-              <li>✓ Sin cargos adicionales</li>
-              <li>✓ Método más seguro para compras online</li>
-              <li>✓ Puedes revisar antes de pagar</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> Paga solo cuando recibas tu pedido</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> Sin cargos adicionales</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> Método más seguro para compras online</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> Puedes revisar antes de pagar</li>
             </ul>
           </div>
         </div>
@@ -55,7 +55,7 @@ export default function PaymentMethodSelection({
           className={`${styles.option} ${paymentMethod === 'transfer' ? styles.selected : ''}`}
           onClick={() => handlePaymentMethodSelect('transfer')}
         >
-          <div className={styles.optionIcon}>🏦</div>
+          <div className={styles.optionIcon}><span className="material-symbols-outlined">account_balance</span></div>
           <div className={styles.optionContent}>
             <h3>Transferencia Bancaria</h3>
             <p>Paga por adelantado con descuento</p>
@@ -74,17 +74,17 @@ export default function PaymentMethodSelection({
               </div>
             </div>
             <ul>
-              <li>✓ 5% de descuento en tu pedido</li>
-              <li>✓ Procesamiento inmediato</li>
-              <li>✓ Sin esperas para confirmación</li>
-              <li>✓ Ideal para pedidos grandes</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> 5% de descuento en tu pedido</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> Procesamiento inmediato</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> Sin esperas para confirmación</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> Ideal para pedidos grandes</li>
             </ul>
           </div>
         </div>
       </div>
 
       <div className={styles.bankInfo}>
-        <h4>🏦 Información Bancaria</h4>
+        <h4><span className="material-symbols-outlined" style={{ fontSize: 18, verticalAlign: 'middle' }}>account_balance</span> Información Bancaria</h4>
         <div className={styles.bankDetails}>
           <div className={styles.bankRow}>
             <span className={styles.bankLabel}>Banco:</span>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../../lib/AuthContext';
@@ -12,6 +12,8 @@ export default function AdminOrders() {
   const { apiRequest, isAuthenticated } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const menuRef = useRef(null);
   const [filters, setFilters] = useState({
     status: '',
     search: '',
@@ -124,6 +126,20 @@ export default function AdminOrders() {
     return statusColors[statusName] || '#6b7280';
   };
 
+  const toggleMenu = (orderId) => {
+    setOpenMenuId(prev => prev === orderId ? null : orderId);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <AdminLayout title="Gestión de Pedidos">
       <div className={styles.container}>
@@ -189,7 +205,7 @@ export default function AdminOrders() {
             className={styles.refreshButton}
             disabled={loading}
           >
-            {loading ? '🔄' : '🔄'} Actualizar
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>refresh</span> Actualizar
           </button>
         </div>
 
@@ -215,7 +231,7 @@ export default function AdminOrders() {
                     <th>Total</th>
                     <th>Fecha</th>
                     <th>Método de Pago</th>
-                    <th>Acciones</th>
+                    <th className={styles.actionsHeader}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -254,13 +270,14 @@ export default function AdminOrders() {
                       <td className={styles.paymentMethod}>
                         {order.payment_method || 'No especificado'}
                       </td>
-                      <td className={styles.actions}>
+                      {/* Desktop actions */}
+                      <td className={styles.actionsDesktop}>
                         <button
                           onClick={() => router.push(`/admin/orders/${order.id}`)}
                           className={styles.viewButton}
                           title="Ver detalles"
                         >
-                          👁️
+                          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>visibility</span>
                         </button>
                         <select
                           value={order.status_id}
@@ -276,6 +293,55 @@ export default function AdminOrders() {
                           <option value="refunded">Reembolsado</option>
                         </select>
                       </td>
+                      {/* Mobile actions - 3-dot menu */}
+                      <td className={styles.actionsMobile}>
+                        <div className={styles.actionMenuWrapper} ref={openMenuId === order.id ? menuRef : null}>
+                          <button
+                            className={styles.menuToggle}
+                            onClick={() => toggleMenu(order.id)}
+                            aria-label="Acciones"
+                          >
+                            <span className="material-symbols-outlined">more_vert</span>
+                          </button>
+                          {openMenuId === order.id && (
+                            <div className={styles.actionMenu}>
+                              <button
+                                className={styles.menuItem}
+                                onClick={() => {
+                                  router.push(`/admin/orders/${order.id}`);
+                                  setOpenMenuId(null);
+                                }}
+                              >
+                                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>visibility</span>
+                                Ver detalles
+                              </button>
+                              <div className={styles.menuDivider} />
+                              <span className={styles.menuLabel}>Cambiar estado:</span>
+                              {['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'].map((status) => (
+                                <button
+                                  key={status}
+                                  className={`${styles.menuItem} ${order.status_id === status ? styles.menuItemActive : ''}`}
+                                  onClick={() => {
+                                    handleStatusChange(order.id, status);
+                                    setOpenMenuId(null);
+                                  }}
+                                >
+                                  <span
+                                    className={styles.statusDot}
+                                    style={{ backgroundColor: getStatusColor(status) }}
+                                  />
+                                  {status === 'pending' ? 'Pendiente' :
+                                   status === 'confirmed' ? 'Confirmado' :
+                                   status === 'processing' ? 'En proceso' :
+                                   status === 'shipped' ? 'Enviado' :
+                                   status === 'delivered' ? 'Entregado' :
+                                   status === 'cancelled' ? 'Cancelado' : 'Reembolsado'}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -289,7 +355,7 @@ export default function AdminOrders() {
                     disabled={pagination.page === 1}
                     className={styles.paginationButton}
                   >
-                    ← Anterior
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span> Anterior
                   </button>
                   
                   <span className={styles.paginationInfo}>
@@ -301,7 +367,7 @@ export default function AdminOrders() {
                     disabled={pagination.page === pagination.totalPages}
                     className={styles.paginationButton}
                   >
-                    Siguiente →
+                    Siguiente <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_right</span>
                   </button>
                 </div>
               )}

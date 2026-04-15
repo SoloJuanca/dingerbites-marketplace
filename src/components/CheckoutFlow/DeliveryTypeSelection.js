@@ -32,7 +32,7 @@ export default function DeliveryTypeSelection({ deliveryType, pickupPoint, onDel
           className={`${styles.option} ${deliveryType === 'delivery' ? styles.selected : ''}`}
           onClick={() => handleDeliveryTypeSelect('delivery')}
         >
-          <div className={styles.optionIcon}>🚚</div>
+          <div className={styles.optionIcon}><span className="material-symbols-outlined">local_shipping</span></div>
           <div className={styles.optionContent}>
             <h3>Envío a Domicilio</h3>
             <p>Recibe tu pedido en la puerta de tu casa</p>
@@ -51,9 +51,9 @@ export default function DeliveryTypeSelection({ deliveryType, pickupPoint, onDel
               </div>
             </div>
             <ul>
-              <li>✓ Envío seguro y rastreado</li>
-              <li>✓ Entrega en horario de tu preferencia</li>
-              <li>✓ Notificaciones de estado</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> Envío seguro y rastreado</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> Entrega en horario de tu preferencia</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> Notificaciones de estado</li>
             </ul>
           </div>
         </div>
@@ -62,7 +62,7 @@ export default function DeliveryTypeSelection({ deliveryType, pickupPoint, onDel
           className={`${styles.option} ${deliveryType === 'pickup' ? styles.selected : ''}`}
           onClick={() => handleDeliveryTypeSelect('pickup')}
         >
-          <div className={styles.optionIcon}>🏪</div>
+          <div className={styles.optionIcon}><span className="material-symbols-outlined">storefront</span></div>
           <div className={styles.optionContent}>
             <h3>Recoger en Punto</h3>
             <p>Elige el punto de recolección más cercano</p>
@@ -81,9 +81,9 @@ export default function DeliveryTypeSelection({ deliveryType, pickupPoint, onDel
               </div>
             </div>
             <ul>
-              <li>✓ Sin costo adicional</li>
-              <li>✓ Recogida rápida</li>
-              <li>✓ Puedes revisar tu pedido</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> Sin costo adicional</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> Recogida rápida</li>
+              <li><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', color: '#10b981' }}>check</span> Puedes revisar tu pedido</li>
             </ul>
           </div>
         </div>
@@ -107,7 +107,7 @@ export default function DeliveryTypeSelection({ deliveryType, pickupPoint, onDel
       )}
 
       <div className={styles.storeInfo}>
-        <h4>📍 Puntos de recolección</h4>
+        <h4><span className="material-symbols-outlined" style={{ fontSize: 18, verticalAlign: 'middle' }}>location_on</span> Puntos de recolección</h4>
         <p>Galerías Valle Oriente • Walmart Las Torres • Mercado de la Y Griega</p>
         <p>Monterrey, Nuevo León</p>
       </div>

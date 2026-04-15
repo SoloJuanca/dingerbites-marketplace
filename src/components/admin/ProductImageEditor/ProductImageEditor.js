@@ -349,7 +349,7 @@ export default function ProductImageEditor({ images = [], onImagesChange, onUplo
                 title="Mover antes"
                 aria-label="Mover imagen antes"
               >
-                ↑
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_upward</span>
               </button>
               <button
                 type="button"
@@ -359,7 +359,7 @@ export default function ProductImageEditor({ images = [], onImagesChange, onUplo
                 title="Mover después"
                 aria-label="Mover imagen después"
               >
-                ↓
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_downward</span>
               </button>
               {onUploadCrop && (
                 <button
@@ -370,7 +370,7 @@ export default function ProductImageEditor({ images = [], onImagesChange, onUplo
                   title="Recortar"
                   aria-label="Recortar imagen"
                 >
-                  ✂
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>crop</span>
                 </button>
               )}
               <button
@@ -381,7 +381,7 @@ export default function ProductImageEditor({ images = [], onImagesChange, onUplo
                 title="Eliminar"
                 aria-label="Eliminar imagen"
               >
-                ✕
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
               </button>
             </div>
           </div>

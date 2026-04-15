@@ -46,7 +46,7 @@ export default function StockAlerts({ alerts }) {
           <h3 className={styles.title}>Alertas de Stock</h3>
         </div>
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>✅</div>
+          <div className={styles.emptyIcon}><span className="material-symbols-outlined">check_circle</span></div>
           <p className={styles.emptyText}>No hay alertas de stock pendientes</p>
         </div>
       </div>
@@ -75,7 +75,7 @@ export default function StockAlerts({ alerts }) {
                   />
                 ) : (
                   <div className={styles.imagePlaceholder}>
-                    📦
+                    <span className="material-symbols-outlined">inventory_2</span>
                   </div>
                 )}
               </div>

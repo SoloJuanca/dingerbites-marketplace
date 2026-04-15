@@ -205,22 +205,22 @@ export default function CheckoutFlow() {
 
       const finalOrderNumber = orderResult?.order_number || `TEMP-${Date.now()}`;
       
-                        const message = `🛍️ *Nueva Orden - Dingerbites*\n` +
-                    `📋 *Número de Orden:* ${finalOrderNumber}\n\n` +
-                    `👤 *Información de Contacto:*\n` +
+                        const message = `*Nueva Orden - Dingerbites*\n` +
+                    `*Numero de Orden:* ${finalOrderNumber}\n\n` +
+                    `*Informacion de Contacto:*\n` +
                     `Nombre: ${checkoutData.contactInfo.name}\n` +
                     `Email: ${checkoutData.contactInfo.email}\n` +
-                    `Teléfono: ${checkoutData.contactInfo.phone}\n\n` +
-                    `📦 *Productos:*\n${orderSummary}\n\n` +
-                    `💰 *Resumen de Precios:*\n` +
+                    `Telefono: ${checkoutData.contactInfo.phone}\n\n` +
+                    `*Productos:*\n${orderSummary}\n\n` +
+                    `*Resumen de Precios:*\n` +
                     `Subtotal: ${formatPrice(subtotal)}\n` +
-                    `${checkoutData.deliveryType === 'delivery' ? `Envío: ${formatPrice(shippingAmount)}\n` : 'Recoger en punto: Sin costo\n'}` +
+                    `${checkoutData.deliveryType === 'delivery' ? `Envio: ${formatPrice(shippingAmount)}\n` : 'Recoger en punto: Sin costo\n'}` +
                     `${discount > 0 ? `Descuento: -${formatPrice(discount)}\n` : ''}` +
                     `*Total: ${formatPrice(totalAmount)}*\n\n` +
-                    `🚚 *Tipo de Entrega:* ${checkoutData.deliveryType === 'delivery' ? 'Envío a domicilio' : 'Recoger en punto'}\n` +
-                    `${checkoutData.deliveryType === 'delivery' ? `📍 Dirección: ${checkoutData.contactInfo.address}\n` : checkoutData.pickupPoint ? `📍 Punto: ${checkoutData.pickupPoint}\n` : ''}` +
-                    `💳 *Método de Pago:* ${checkoutData.paymentMethod === 'cash' ? 'Pago contra entrega' : 'Transferencia bancaria'}\n` +
-                    `${checkoutData.contactInfo.notes ? `📝 Notas adicionales: ${checkoutData.contactInfo.notes}` : ''}`;
+                    `*Tipo de Entrega:* ${checkoutData.deliveryType === 'delivery' ? 'Envio a domicilio' : 'Recoger en punto'}\n` +
+                    `${checkoutData.deliveryType === 'delivery' ? `Direccion: ${checkoutData.contactInfo.address}\n` : checkoutData.pickupPoint ? `Punto: ${checkoutData.pickupPoint}\n` : ''}` +
+                    `*Metodo de Pago:* ${checkoutData.paymentMethod === 'cash' ? 'Pago contra entrega' : 'Transferencia bancaria'}\n` +
+                    `${checkoutData.contactInfo.notes ? `Notas adicionales: ${checkoutData.contactInfo.notes}` : ''}`;
 
       const whatsappUrl = `https://wa.me/573123456789?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');

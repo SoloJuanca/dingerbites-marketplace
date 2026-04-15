@@ -54,7 +54,7 @@ export default function Header() {
       <div className={styles.container}>
         <div className={styles.logo}>
           <Link href="/" className={styles.logoText} onClick={closeMenu}>
-            <Image src="/logo-wildshot.png" alt="Dingerbites" width={64} height={64} priority />
+            <Image src="/logo-wildshot.png" alt="Dingerbites" width={40} height={40} priority />
           </Link>
         </div>
 

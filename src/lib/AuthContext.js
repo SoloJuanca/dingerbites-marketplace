@@ -117,7 +117,7 @@ export function AuthProvider({ children }) {
 
   // Validate token with server
   const validateTokenWithServer = useCallback(async (token) => {
-    console.log('🔍 Validating token with server...');
+    console.log('[Auth] Validating token with server...');
     try {
       const response = await fetch('/api/auth/validate', {
         method: 'POST',
@@ -128,7 +128,7 @@ export function AuthProvider({ children }) {
       });
 
       const data = await response.json();
-      console.log('📋 Server validation response:', {
+      console.log('[Auth] Server validation response:', {
         status: response.status,
         valid: data.valid,
         error: data.error
@@ -138,7 +138,7 @@ export function AuthProvider({ children }) {
         user: data.user || null
       };
     } catch (error) {
-      console.error('❌ Error validating token with server:', error);
+      console.error('[Auth] Error validating token with server:', error);
       return {
         valid: false,
         user: null
@@ -337,6 +337,34 @@ export function AuthProvider({ children }) {
 
 
 
+  const claimGuestAccount = async (userData) => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+
+    try {
+      const response = await fetch('/api/auth/claim-guest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to claim guest account');
+      }
+
+      dispatch({
+        type: 'LOGIN',
+        payload: { user: data.user, token: data.token }
+      });
+
+      return { success: true, message: data.message };
+    } catch (error) {
+      dispatch({ type: 'SET_LOADING', payload: false });
+      return { success: false, error: error.message };
+    }
+  };
+
   const updateUser = (userData) => {
     dispatch({ type: 'UPDATE_USER', payload: userData });
   };
@@ -410,6 +438,7 @@ export function AuthProvider({ children }) {
     isLoading: state.isLoading,
     login,
     register,
+    claimGuestAccount,
     logout,
     updateUser,
     apiRequest,

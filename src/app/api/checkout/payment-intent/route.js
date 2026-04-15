@@ -15,6 +15,7 @@ import {
   PENDING_STRIPE_CHECKOUTS_COLLECTION,
   PENDING_STRIPE_CHECKOUT_TTL_MS
 } from '../../../../lib/pendingStripeCheckout';
+import { assertStockAvailableForOrderItems } from '../../../../lib/orderStock';
 
 /**
  * POST /api/checkout/payment-intent
@@ -116,6 +117,19 @@ export async function POST(request) {
       shippingMethod: shipping_method || null,
       discountAmount
     });
+
+    try {
+      await assertStockAvailableForOrderItems(orderItems);
+    } catch (stockErr) {
+      if (stockErr?.code === 'INSUFFICIENT_STOCK' || stockErr?.code === 'PRODUCT_NOT_FOUND') {
+        return jsonError(
+          stockErr.message || 'No hay stock suficiente para uno o más productos.',
+          400,
+          stockErr.code || 'INSUFFICIENT_STOCK'
+        );
+      }
+      throw stockErr;
+    }
 
     const expectedAmountCents = Math.round(totals.total_amount * 100);
 

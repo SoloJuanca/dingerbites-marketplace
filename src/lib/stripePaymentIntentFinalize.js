@@ -86,15 +86,29 @@ export async function ensureOrderForPaymentIntent(stripe, piId, requestMeta = {}
     requestId: requestMeta.requestId || piId
   };
 
-  await createOrderFromPayload({
-    body: orderBody,
-    authUser,
-    requestMeta: meta,
-    options: {
-      skipEmail: false,
-      stripePaymentIntentId: piId
+  try {
+    await createOrderFromPayload({
+      body: orderBody,
+      authUser,
+      requestMeta: meta,
+      options: {
+        skipEmail: false,
+        stripePaymentIntentId: piId
+      }
+    });
+  } catch (err) {
+    const code = err?.code;
+    if (code === 'INSUFFICIENT_STOCK' || code === 'PRODUCT_NOT_FOUND') {
+      return {
+        status: 'error',
+        reason: 'insufficient_stock',
+        message:
+          err?.message ||
+          'El stock se agotó antes de registrar tu pedido. Si el cargo ya apareció, contacta a soporte.'
+      };
     }
-  });
+    throw err;
+  }
 
   await pendingRef.delete().catch(() => {});
 

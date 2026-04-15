@@ -960,7 +960,7 @@ export default function CreateProductPage() {
                   <h4>Tips para imágenes</h4>
                   <ul>
                     <li>La primera imagen es la principal en listados y ficha.</li>
-                    <li>Puedes reordenar (↑↓), recortar (✂) o eliminar.</li>
+                    <li>Puedes reordenar, recortar o eliminar.</li>
                   </ul>
                 </div>
               </>

@@ -247,7 +247,7 @@ export default function BulkUpload() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h2>📦 Carga Masiva TCG (Riftbound)</h2>
+        <h2><span className="material-symbols-outlined" style={{ fontSize: 24, verticalAlign: 'middle' }}>inventory_2</span> Carga Masiva TCG (Riftbound)</h2>
         <p>Selecciona categoría y grupo TCG para importar stock Normal/Foil</p>
       </div>
 
@@ -306,7 +306,7 @@ export default function BulkUpload() {
 
         <div className={styles.fileInput}>
           <label htmlFor="csv-file" className={styles.fileLabel}>
-            <span className={styles.fileIcon}>📁</span>
+            <span className={styles.fileIcon}><span className="material-symbols-outlined">folder_open</span></span>
             <span className={styles.fileText}>
               {file ? file.name : 'Seleccionar archivo CSV'}
             </span>
@@ -322,8 +322,8 @@ export default function BulkUpload() {
 
         {file && (
           <div className={styles.fileInfo}>
-            <p>📄 Archivo seleccionado: <strong>{file.name}</strong></p>
-            <p>📊 Tamaño: {(file.size / 1024).toFixed(2)} KB</p>
+            <p><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle' }}>description</span> Archivo seleccionado: <strong>{file.name}</strong></p>
+            <p><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle' }}>bar_chart</span> Tamaño: {(file.size / 1024).toFixed(2)} KB</p>
           </div>
         )}
 
@@ -343,10 +343,10 @@ export default function BulkUpload() {
             className={styles.uploadButton}
           >
             {uploading
-              ? '⏳ Procesando...'
+              ? 'Procesando...'
               : dryRun
-                ? '🧪 Validar CSV'
-                : '🚀 Importar Stock'}
+                ? 'Validar CSV'
+                : 'Importar Stock'}
           </button>
 
           <button
@@ -354,28 +354,28 @@ export default function BulkUpload() {
             disabled={!selectedCategoryId || !selectedGroupId}
             className={styles.templateButton}
           >
-            📥 Descargar Template
+            <span className="material-symbols-outlined" style={{ fontSize: 18, verticalAlign: 'middle' }}>download</span> Descargar Template
           </button>
         </div>
       </div>
 
       {selectorError && (
         <div className={styles.error}>
-          <h3>❌ Error de integración TCG</h3>
+          <h3><span className="material-symbols-outlined" style={{ fontSize: 20, verticalAlign: 'middle', color: '#ef4444' }}>error</span> Error de integración TCG</h3>
           <p>{selectorError}</p>
         </div>
       )}
 
       {error && (
         <div className={styles.error}>
-          <h3>❌ Error</h3>
+          <h3><span className="material-symbols-outlined" style={{ fontSize: 20, verticalAlign: 'middle', color: '#ef4444' }}>error</span> Error</h3>
           <p>{error}</p>
         </div>
       )}
 
       {results && (
         <div className={styles.results}>
-          <h3>✅ Resultado del Proceso</h3>
+          <h3><span className="material-symbols-outlined" style={{ fontSize: 20, verticalAlign: 'middle', color: '#10b981' }}>check_circle</span> Resultado del Proceso</h3>
           
           <div className={styles.summary}>
             <div className={styles.summaryItem}>
@@ -406,7 +406,7 @@ export default function BulkUpload() {
 
           {Array.isArray(results.report?.created) && results.report.created.length > 0 && (
             <div className={styles.successSection}>
-              <h4>✅ Productos Creados</h4>
+              <h4><span className="material-symbols-outlined" style={{ fontSize: 18, verticalAlign: 'middle', color: '#10b981' }}>check_circle</span> Productos Creados</h4>
               <div className={styles.productList}>
                 {results.report.created.map((product, index) => (
                   <div key={index} className={styles.productItem}>
@@ -420,7 +420,7 @@ export default function BulkUpload() {
 
           {Array.isArray(results.report?.updated) && results.report.updated.length > 0 && (
             <div className={styles.successSection}>
-              <h4>🔄 Productos Actualizados</h4>
+              <h4><span className="material-symbols-outlined" style={{ fontSize: 18, verticalAlign: 'middle', color: '#3b82f6' }}>sync</span> Productos Actualizados</h4>
               <div className={styles.productList}>
                 {results.report.updated.map((product, index) => (
                   <div key={index} className={styles.productItem}>
@@ -434,7 +434,7 @@ export default function BulkUpload() {
 
           {Array.isArray(results.report?.unmatched) && results.report.unmatched.length > 0 && (
             <div className={styles.errorSection}>
-              <h4>❌ Cartas No Encontradas en TCG</h4>
+              <h4><span className="material-symbols-outlined" style={{ fontSize: 18, verticalAlign: 'middle', color: '#ef4444' }}>error</span> Cartas No Encontradas en TCG</h4>
               <div className={styles.errorList}>
                 {results.report.unmatched.map((entry, index) => (
                   <div key={index} className={styles.errorItem}>
@@ -448,7 +448,7 @@ export default function BulkUpload() {
 
           {Array.isArray(results.report?.warnings) && results.report.warnings.length > 0 && (
             <div className={styles.errorSection}>
-              <h4>⚠️ Warnings</h4>
+              <h4><span className="material-symbols-outlined" style={{ fontSize: 18, verticalAlign: 'middle', color: '#f59e0b' }}>warning</span> Warnings</h4>
               <div className={styles.errorList}>
                 {results.report.warnings.map((warning, index) => (
                   <div key={index} className={styles.errorItem}>
@@ -463,7 +463,7 @@ export default function BulkUpload() {
       )}
 
       <div className={styles.instructions}>
-        <h3>📋 Instrucciones</h3>
+        <h3><span className="material-symbols-outlined" style={{ fontSize: 20, verticalAlign: 'middle' }}>list_alt</span> Instrucciones</h3>
         <ul>
           <li>Usa el template dinámico (Nombre, Variante, Stock, TCG Product ID)</li>
           <li>Primero selecciona categoría y grupo TCG para habilitar template/importación</li>

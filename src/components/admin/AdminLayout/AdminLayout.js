@@ -75,7 +75,7 @@ export default function AdminLayout({ children, title = 'Panel de Administració
                 className={styles.menuToggle}
                 onClick={toggleSidebar}
               >
-                ☰
+                <span className="material-symbols-outlined">menu</span>
               </button>
               <h1 className={styles.pageTitle}>{title}</h1>
             </div>

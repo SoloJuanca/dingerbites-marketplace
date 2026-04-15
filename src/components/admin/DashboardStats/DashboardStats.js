@@ -20,7 +20,7 @@ export default function DashboardStats({ stats }) {
       title: 'Ventas Hoy',
       value: formatCurrency(stats?.revenue_today),
       subtitle: `${formatNumber(stats?.orders_today)} pedidos`,
-      icon: '💰',
+      icon: 'payments',
       color: 'green',
       trend: '+12%'
     },
@@ -28,7 +28,7 @@ export default function DashboardStats({ stats }) {
       title: 'Ventas Esta Semana',
       value: formatCurrency(stats?.revenue_week),
       subtitle: `${formatNumber(stats?.orders_week)} pedidos`,
-      icon: '📈',
+      icon: 'trending_up',
       color: 'blue',
       trend: '+8%'
     },
@@ -36,7 +36,7 @@ export default function DashboardStats({ stats }) {
       title: 'Ventas Este Mes',
       value: formatCurrency(stats?.revenue_month),
       subtitle: `${formatNumber(stats?.orders_month)} pedidos`,
-      icon: '📊',
+      icon: 'bar_chart',
       color: 'purple',
       trend: '+15%'
     },
@@ -44,7 +44,7 @@ export default function DashboardStats({ stats }) {
       title: 'Nuevos Usuarios',
       value: formatNumber(stats?.new_users_month),
       subtitle: `${formatNumber(stats?.new_users_week)} esta semana`,
-      icon: '👥',
+      icon: 'group',
       color: 'orange',
       trend: '+5%'
     },
@@ -52,7 +52,7 @@ export default function DashboardStats({ stats }) {
       title: 'Stock Bajo',
       value: formatNumber(stats?.low_stock_products),
       subtitle: 'Productos con stock bajo',
-      icon: '⚠️',
+      icon: 'warning',
       color: 'yellow',
       alert: true
     },
@@ -60,7 +60,7 @@ export default function DashboardStats({ stats }) {
       title: 'Sin Stock',
       value: formatNumber(stats?.out_of_stock_products),
       subtitle: 'Productos agotados',
-      icon: '🚫',
+      icon: 'block',
       color: 'red',
       alert: true
     }
@@ -74,7 +74,7 @@ export default function DashboardStats({ stats }) {
           className={`${styles.statCard} ${styles[card.color]} ${card.alert ? styles.alert : ''}`}
         >
           <div className={styles.cardHeader}>
-            <div className={styles.cardIcon}>{card.icon}</div>
+            <div className={styles.cardIcon}><span className="material-symbols-outlined">{card.icon}</span></div>
             <div className={styles.cardTitle}>{card.title}</div>
           </div>
           

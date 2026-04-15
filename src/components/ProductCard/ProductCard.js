@@ -160,8 +160,8 @@ export default function ProductCard({ product }) {
         </Link>
         <div className={styles.footer}>
           <span className={styles.price}>
-            {(product.tcg_product_id && (product.price == null || product.price === 0))
-              ? 'Consultar precio'
+            {(product.tcg_product_id)
+              ? ''
               : formatPrice(displayPrice)}
           </span>
           <button 
@@ -169,7 +169,7 @@ export default function ProductCard({ product }) {
             onClick={handleAddToCart}
             disabled={disableAddButton}
           >
-            {isOutOfStock ? 'Sin stock' : isCartAtStockLimit ? 'Máximo en carrito' : isAdding ? '✓ Agregado' : '+ Agregar'}
+            {isOutOfStock ? 'Sin stock' : isCartAtStockLimit ? 'Máximo en carrito' : isAdding ? 'Agregado' : '+ Agregar'}
           </button>
         </div>
       </div>

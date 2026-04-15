@@ -230,7 +230,7 @@ export default function AdminUsers() {
             className={styles.refreshButton}
             disabled={loading}
           >
-            {loading ? '🔄' : '🔄'} Actualizar
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>refresh</span> Actualizar
           </button>
         </div>
 
@@ -270,23 +270,23 @@ export default function AdminUsers() {
                         </div>
                         <div className={styles.userDetails}>
                           {user.date_of_birth && (
-                            <span>📅 {new Date(user.date_of_birth).toLocaleDateString('es-MX')}</span>
+                            <span><span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: 'middle' }}>calendar_today</span> {new Date(user.date_of_birth).toLocaleDateString('es-MX')}</span>
                           )}
                           {user.gender && (
-                            <span>👤 {getGenderText(user.gender)}</span>
+                            <span><span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: 'middle' }}>person</span> {getGenderText(user.gender)}</span>
                           )}
                         </div>
                       </td>
                       <td className={styles.contactInfo}>
                         <div className={styles.phone}>
-                          📱 {formatPhone(user.phone)}
+                          <span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: 'middle' }}>smartphone</span> {formatPhone(user.phone)}
                         </div>
                         <div className={styles.verification}>
                           {user.email_verified_at && (
-                            <span className={styles.verified}>✓ Email verificado</span>
+                            <span className={styles.verified}><span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: 'middle' }}>check_circle</span> Email verificado</span>
                           )}
                           {user.phone_verified_at && (
-                            <span className={styles.verified}>✓ Teléfono verificado</span>
+                            <span className={styles.verified}><span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: 'middle' }}>check_circle</span> Teléfono verificado</span>
                           )}
                         </div>
                       </td>

@@ -60,7 +60,7 @@ export default function ProductInfo({ product, marketPriceMxn = null, isTcgProdu
         </div>
         <div className={styles.badgeSection}>
           <span className={styles.categoryBadge}>
-            {getCategoryLabel(product.category)}
+            {getCategoryLabel(product)}
           </span>
           <span className={styles.brandBadge}>
             {product.brand}
@@ -98,7 +98,7 @@ export default function ProductInfo({ product, marketPriceMxn = null, isTcgProdu
           </div>
           <div className={styles.detailItem}>
             <span className={styles.detailLabel}>Categoría:</span>
-            <span className={styles.detailValue}>{getCategoryLabel(product.category)}</span>
+            <span className={styles.detailValue}>{getCategoryLabel(product)}</span>
           </div>
           <div className={styles.detailItem}>
             <span className={styles.detailLabel}>Fecha de agregado:</span>
@@ -110,14 +110,13 @@ export default function ProductInfo({ product, marketPriceMxn = null, isTcgProdu
   );
 }
 
-function getCategoryLabel(category) {
-  const categoryLabels = {
-    'esmaltes': 'Esmaltes',
-    'herramientas': 'Herramientas',
-    'productos-artificiales': 'Productos para Uñas Artificiales',
-    'cuidado-unas': 'Cuidado de Uñas'
-  };
-  return categoryLabels[category] || category;
+function getCategoryLabel(product) {
+  if (!product) return '';
+  const label =
+    product.subcategory_name ||
+    product.category_name ||
+    product.category;
+  return label || '';
 }
 
 function getDefaultFeatures(category) {

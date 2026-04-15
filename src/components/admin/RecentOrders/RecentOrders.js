@@ -31,7 +31,7 @@ export default function RecentOrders({ orders }) {
           <h3 className={styles.title}>Pedidos Recientes</h3>
         </div>
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>📦</div>
+          <div className={styles.emptyIcon}><span className="material-symbols-outlined">inventory_2</span></div>
           <p className={styles.emptyText}>No hay pedidos recientes</p>
         </div>
       </div>

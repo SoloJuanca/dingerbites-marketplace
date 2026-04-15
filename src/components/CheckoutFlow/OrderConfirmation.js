@@ -101,7 +101,7 @@ export default function OrderConfirmation({
       <div className={styles.confirmationContent}>
         {/* Resumen de Productos */}
         <div className={styles.section}>
-          <h3>🛍️ Productos en tu Pedido</h3>
+          <h3><span className="material-symbols-outlined" style={{ fontSize: 20, verticalAlign: 'middle' }}>shopping_bag</span> Productos en tu Pedido</h3>
           <div className={styles.productsList}>
             {items.map((item, index) => (
               <div key={index} className={styles.productItem}>
@@ -119,7 +119,7 @@ export default function OrderConfirmation({
 
         {/* Información de Contacto */}
         <div className={styles.section}>
-          <h3>👤 Información de Contacto</h3>
+          <h3><span className="material-symbols-outlined" style={{ fontSize: 20, verticalAlign: 'middle' }}>person</span> Información de Contacto</h3>
           <div className={styles.infoGrid}>
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>Nombre:</span>
@@ -156,7 +156,7 @@ export default function OrderConfirmation({
 
         {/* Detalles de Entrega y Pago */}
         <div className={styles.section}>
-          <h3>🚚 Detalles de Entrega y Pago</h3>
+          <h3><span className="material-symbols-outlined" style={{ fontSize: 20, verticalAlign: 'middle' }}>local_shipping</span> Detalles de Entrega y Pago</h3>
           <div className={styles.infoGrid}>
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>Tipo de Usuario:</span>
@@ -176,7 +176,7 @@ export default function OrderConfirmation({
         {/* Cupón (solo usuarios autenticados) */}
         {isAuthenticated && (
           <div className={styles.section}>
-            <h3>🎟️ Cupón de descuento</h3>
+            <h3><span className="material-symbols-outlined" style={{ fontSize: 20, verticalAlign: 'middle' }}>confirmation_number</span> Cupón de descuento</h3>
             {checkoutData.couponData ? (
               <div className={styles.couponApplied}>
                 <span className={styles.couponCode}>{checkoutData.couponData.code}</span>
@@ -210,7 +210,7 @@ export default function OrderConfirmation({
 
         {/* Resumen de Precios */}
         <div className={styles.section}>
-          <h3>💰 Resumen de Precios</h3>
+          <h3><span className="material-symbols-outlined" style={{ fontSize: 20, verticalAlign: 'middle' }}>payments</span> Resumen de Precios</h3>
           <div className={styles.priceSummary}>
             <div className={styles.priceRow}>
               <span>Subtotal ({items.length} productos):</span>
@@ -241,7 +241,7 @@ export default function OrderConfirmation({
 
         {/* Información Importante */}
         <div className={styles.importantInfo}>
-          <h4>⚠️ Información Importante</h4>
+          <h4><span className="material-symbols-outlined" style={{ fontSize: 20, verticalAlign: 'middle' }}>warning</span> Información Importante</h4>
           <ul>
             {checkoutData.paymentMethod === 'transfer' && (
               <>
@@ -258,11 +258,6 @@ export default function OrderConfirmation({
                 <strong>Pago contra entrega:</strong> {getTotal() < 50
                   ? 'El pedido deberá pagarse en su totalidad al momento de la entrega.'
                   : 'El pedido se pagará en dos transacciones del 50% cada una (50% al recibir, 50% en la siguiente transacción).'}
-              </li>
-            )}
-            {checkoutData.deliveryType === 'delivery' && (
-              <li>
-                <strong>Envío:</strong> Tiempo estimado de 1-2 días hábiles
               </li>
             )}
             {checkoutData.deliveryType === 'pickup' && (
@@ -285,7 +280,7 @@ export default function OrderConfirmation({
           Atrás
         </button>
         <button className={styles.confirmButton} onClick={onConfirm}>
-          🎉 Confirmar Orden
+          Confirmar Orden
         </button>
       </div>
     </div>

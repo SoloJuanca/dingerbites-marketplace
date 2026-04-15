@@ -39,7 +39,7 @@ export default function RevenueChart({ data, monthlyData }) {
       </div>
 
       <div className={styles.chartPlaceholder}>
-        <div className={styles.chartIcon}>📈</div>
+        <div className={styles.chartIcon}><span className="material-symbols-outlined">trending_up</span></div>
         <p className={styles.chartText}>Gráfico de ingresos</p>
         <p className={styles.chartSubtext}>
           {Array.isArray(data) && data.length > 0 

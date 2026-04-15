@@ -32,7 +32,7 @@ export async function POST(request) {
       ADMIN_EMAIL: !!process.env.ADMIN_EMAIL
     };
 
-    console.log('🔧 Variables de entorno:', envCheck);
+    console.log('[Info] Variables de entorno:', envCheck);
 
     if (!process.env.BREVO_API_KEY) {
       return NextResponse.json({
@@ -43,7 +43,7 @@ export async function POST(request) {
     }
 
     // Probar conexión con la API de Brevo
-    console.log('🔍 Probando conexión con API de Brevo...');
+    console.log('[Test] Probando conexión con API de Brevo...');
     
     try {
       const accountResponse = await fetch(`${BREVO_API_URL}/account`, {
@@ -66,7 +66,7 @@ export async function POST(request) {
         }, { status: 500 });
       }
 
-      console.log('✅ Conexión exitosa con Brevo:', {
+      console.log('[OK] Conexión exitosa con Brevo:', {
         email: accountData.email,
         firstName: accountData.firstName,
         lastName: accountData.lastName
@@ -79,7 +79,7 @@ export async function POST(request) {
           name: process.env.BREVO_SENDER_NAME || 'Dingerbites'
         },
         to: [{ email: testEmail, name: 'Destinatario de Prueba' }],
-        subject: '✅ Prueba API REST - Dingerbites',
+        subject: 'Prueba API REST - Dingerbites',
         htmlContent: `
           <!DOCTYPE html>
           <html>
@@ -89,12 +89,12 @@ export async function POST(request) {
           </head>
           <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #2d3748;">✅ API REST Funcionando</h1>
+              <h1 style="color: #2d3748;">API REST Funcionando</h1>
               <p style="color: #718096;">Sistema de correos de Dingerbites</p>
             </div>
             
             <div style="background: #f0fff4; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #38a169;">
-              <h2 style="color: #2d3748; margin-top: 0;">🎉 ¡Correo Enviado Exitosamente!</h2>
+              <h2 style="color: #2d3748; margin-top: 0;">¡Correo Enviado Exitosamente!</h2>
               <ul style="color: #4a5568;">
                 <li>API REST de Brevo funcionando correctamente</li>
                 <li>Sin dependencias de librerías externas</li>
@@ -103,7 +103,7 @@ export async function POST(request) {
             </div>
             
             <div style="background: #e6fffa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-              <h3 style="color: #2d3748; margin-top: 0;">📊 Información de la Cuenta</h3>
+              <h3 style="color: #2d3748; margin-top: 0;">Información de la Cuenta</h3>
               <p style="color: #4a5568; margin: 0;">
                 <strong>Email:</strong> ${accountData.email}<br>
                 <strong>Nombre:</strong> ${accountData.firstName} ${accountData.lastName}<br>
@@ -115,10 +115,10 @@ export async function POST(request) {
             
             <div style="background: #fff5e6; padding: 20px; border-radius: 8px; border-left: 4px solid #f6ad55;">
               <p style="margin: 0; color: #2d3748;">
-                <strong>🚀 Método:</strong> API REST Directa<br>
-                <strong>📅 Fecha:</strong> ${new Date().toLocaleString('es-MX')}<br>
-                <strong>📧 Destinatario:</strong> ${testEmail}<br>
-                <strong>🔗 Endpoint:</strong> https://api.brevo.com/v3/smtp/email
+                <strong>Método:</strong> API REST Directa<br>
+                <strong>Fecha:</strong> ${new Date().toLocaleString('es-MX')}<br>
+                <strong>Destinatario:</strong> ${testEmail}<br>
+                <strong>Endpoint:</strong> https://api.brevo.com/v3/smtp/email
               </p>
             </div>
             
@@ -133,7 +133,7 @@ export async function POST(request) {
       };
 
       // Enviar correo
-      console.log('📤 Enviando correo de prueba...');
+      console.log('[Send] Enviando correo de prueba...');
       
       const emailResponse = await fetch(`${BREVO_API_URL}/smtp/email`, {
         method: 'POST',
@@ -148,7 +148,7 @@ export async function POST(request) {
       const emailResult = await emailResponse.json();
 
       if (emailResponse.ok) {
-        console.log('✅ Correo enviado exitosamente:', emailResult);
+        console.log('[OK] Correo enviado exitosamente:', emailResult);
         
         return NextResponse.json({
           success: true,
@@ -175,7 +175,7 @@ export async function POST(request) {
           }
         });
       } else {
-        console.error('❌ Error enviando correo:', emailResult);
+        console.error('[Error] Error enviando correo:', emailResult);
         return NextResponse.json({
           success: false,
           error: `Error enviando correo: ${emailResult.message || 'Error desconocido'} (${emailResponse.status})`,
@@ -190,7 +190,7 @@ export async function POST(request) {
       }
 
     } catch (connectionError) {
-      console.error('❌ Error de conexión:', connectionError);
+      console.error('[Error] Error de conexión:', connectionError);
       return NextResponse.json({
         success: false,
         error: 'Error de conexión con la API de Brevo: ' + connectionError.message,
@@ -200,7 +200,7 @@ export async function POST(request) {
     }
 
   } catch (error) {
-    console.error('❌ Error general:', error);
+    console.error('[Error] Error general:', error);
     return NextResponse.json({
       success: false,
       error: 'Error general: ' + error.message,
@@ -221,10 +221,10 @@ export async function GET() {
     }
 
     const envStatus = {
-      BREVO_API_KEY: process.env.BREVO_API_KEY ? '✅ Configurada' : '❌ No configurada',
-      BREVO_SENDER_EMAIL: process.env.BREVO_SENDER_EMAIL || '❌ No configurada',
-      BREVO_SENDER_NAME: process.env.BREVO_SENDER_NAME || '❌ No configurada',
-      ADMIN_EMAIL: process.env.ADMIN_EMAIL || '❌ No configurada',
+      BREVO_API_KEY: process.env.BREVO_API_KEY ? 'OK' : 'Error (not configured)',
+      BREVO_SENDER_EMAIL: process.env.BREVO_SENDER_EMAIL || 'Error (not configured)',
+      BREVO_SENDER_NAME: process.env.BREVO_SENDER_NAME || 'Error (not configured)',
+      ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'Error (not configured)',
       NODE_ENV: process.env.NODE_ENV || 'development'
     };
 

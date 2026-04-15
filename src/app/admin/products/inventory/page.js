@@ -255,7 +255,7 @@ export default function InventoryPage() {
         {/* Stats Cards */}
         <div className={styles.statsGrid}>
           <div className={styles.statCard}>
-            <div className={styles.statIcon}>💰</div>
+            <div className={styles.statIcon}><span className="material-symbols-outlined">payments</span></div>
             <div className={styles.statContent}>
               <h3>Inversión Total en Stock</h3>
               <p className={styles.statValue}>
@@ -265,7 +265,7 @@ export default function InventoryPage() {
           </div>
           
           <div className={styles.statCard}>
-            <div className={styles.statIcon}>📦</div>
+            <div className={styles.statIcon}><span className="material-symbols-outlined">inventory_2</span></div>
             <div className={styles.statContent}>
               <h3>Total de Productos</h3>
               <p className={styles.statValue}>
@@ -275,7 +275,7 @@ export default function InventoryPage() {
           </div>
           
           <div className={styles.statCard}>
-            <div className={styles.statIcon}>⚠️</div>
+            <div className={styles.statIcon}><span className="material-symbols-outlined">warning</span></div>
             <div className={styles.statContent}>
               <h3>Stock Bajo</h3>
               <p className={styles.statValue}>
@@ -285,7 +285,7 @@ export default function InventoryPage() {
           </div>
           
           <div className={styles.statCard}>
-            <div className={styles.statIcon}>🚫</div>
+            <div className={styles.statIcon}><span className="material-symbols-outlined">block</span></div>
             <div className={styles.statContent}>
               <h3>Sin Stock</h3>
               <p className={styles.statValue}>
@@ -431,7 +431,7 @@ export default function InventoryPage() {
                                 className={styles.image}
                               />
                             ) : (
-                              <div className={styles.imagePlaceholder}>📦</div>
+                              <div className={styles.imagePlaceholder}><span className="material-symbols-outlined">inventory_2</span></div>
                             )}
                           </div>
                           <div className={styles.productDetails}>
@@ -473,7 +473,7 @@ export default function InventoryPage() {
                             disabled={updatingStock.has(product.id)}
                           />
                           {updatingStock.has(product.id) && (
-                            <div className={styles.stockSpinner}>⏳</div>
+                            <div className={styles.stockSpinner}><span className="material-symbols-outlined">hourglass_top</span></div>
                           )}
                         </div>
                       </td>
@@ -502,7 +502,7 @@ export default function InventoryPage() {
                             className={styles.editButton}
                             title="Editar producto"
                           >
-                            ✏️
+                            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>edit</span>
                           </Link>
                         </div>
                       </td>
@@ -514,7 +514,7 @@ export default function InventoryPage() {
 
             {Array.isArray(products) && products.length === 0 && (
               <div className={styles.emptyState}>
-                <div className={styles.emptyIcon}>📦</div>
+                <div className={styles.emptyIcon}><span className="material-symbols-outlined">inventory_2</span></div>
                 <h3>No hay productos en inventario</h3>
                 <p>Los productos aparecerán aquí cuando tengas stock disponible.</p>
               </div>

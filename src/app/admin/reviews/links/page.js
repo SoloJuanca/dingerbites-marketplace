@@ -155,7 +155,7 @@ export default function AdminReviewLinksPage() {
                       className={styles.copyButton}
                       onClick={() => handleCopy(link)}
                     >
-                      {copiedId === link.id ? '✓ Copiado' : 'Copiar enlace'}
+                      {copiedId === link.id ? 'Copiado' : 'Copiar enlace'}
                     </button>
                   </div>
                 );

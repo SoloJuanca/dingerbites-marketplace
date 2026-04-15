@@ -785,7 +785,7 @@ export default function EditProductPage() {
                   <h4>Tips para imágenes</h4>
                   <ul>
                     <li>La primera imagen es la principal.</li>
-                    <li>Puedes reordenar (↑↓), recortar (✂) o eliminar.</li>
+                    <li>Puedes reordenar, recortar o eliminar.</li>
                   </ul>
                 </div>
               </>

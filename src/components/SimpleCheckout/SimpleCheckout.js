@@ -497,6 +497,8 @@ export default function SimpleCheckout() {
       setOrderData({
         orderNumber,
         customerName: formData.name,
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
         total: totalAmount,
         deliveryType: formData.deliveryType,
         pickupPoint: formData.pickupPoint || null,
@@ -526,6 +528,8 @@ export default function SimpleCheckout() {
       <OrderConfirmation 
         orderNumber={orderData.orderNumber}
         customerName={orderData.customerName}
+        customerEmail={orderData.customerEmail}
+        customerPhone={orderData.customerPhone}
         total={orderData.total}
         deliveryType={orderData.deliveryType}
         pickupPoint={orderData.pickupPoint}
@@ -540,7 +544,7 @@ export default function SimpleCheckout() {
       {/* Header del Checkout */}
       <div className={styles.checkoutHeader}>
         <Link href="/" className={styles.logo}>
-          <Image src="/logo-wildshot.png" alt="Logo" width={64} height={64} />
+          <Image src="/logo-wildshot.png" alt="Logo" width={40} height={40} />
         </Link>
         <Link href="/cart" className={styles.backToCart}>
           ← Volver al Carrito
@@ -641,7 +645,6 @@ export default function SimpleCheckout() {
                   />
                   <span className={styles.radioLabel}>
                     <strong>Envío a Domicilio</strong> - $120 MXN
-                    <small>Tiempo estimado: 1-2 días hábiles</small>
                   </span>
                 </label>
 
@@ -715,7 +718,7 @@ export default function SimpleCheckout() {
                         <p>{selectedAddress.address_line_1}</p>
                         {selectedAddress.address_line_2 && <p>{selectedAddress.address_line_2}</p>}
                         <p>{selectedAddress.city}, {selectedAddress.state} {selectedAddress.postal_code}</p>
-                        {selectedAddress.phone && <p>📞 {selectedAddress.phone}</p>}
+                        {selectedAddress.phone && <p><span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: 'middle' }}>call</span> {selectedAddress.phone}</p>}
                       </div>
                       <div className={styles.selectedAddressActions}>
                         <button
@@ -903,7 +906,7 @@ export default function SimpleCheckout() {
                     <label>&nbsp;</label>
                     <button
                       type="button"
-                      className={styles.manageAddressButton}
+                      className={styles.applyCouponButton}
                       onClick={validateCoupon}
                       disabled={validatingCoupon || !couponCode.trim()}
                     >
@@ -1029,11 +1032,12 @@ export default function SimpleCheckout() {
         <div className={styles.summarySection}>
           <div className={styles.orderSummary}>
             <h2>Resumen del Pedido</h2>
-            
+            {console.log(items)}
             <div className={styles.items}>
               {items.map((item, index) => (
                 <div key={index} className={styles.item}>
-                  <span className={styles.itemName}>{item.name} x{item.quantity}</span>
+                  <Image src={item.image} className={styles.itemImage} alt={item.name} width={50} height={50} />
+                  <span className={styles.itemName}>{item.name.slice(0, 30)}{item.name.length > 30 ? '...' : ''} x{item.quantity}</span>
                   <span className={styles.itemPrice}>{formatPrice(item.price * item.quantity)}</span>
                 </div>
               ))}

@@ -61,6 +61,7 @@ export async function GET(request) {
         order_number: order.order_number,
         total_amount: order.total_amount,
         customer_email: order.customer_email,
+        customer_phone: order.customer_phone || null,
         customer_name: order.customer_name || null,
         payment_method: 'stripe',
         delivery_type: deliveryType,

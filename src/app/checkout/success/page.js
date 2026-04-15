@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -14,6 +14,7 @@ function StripeSuccessContent() {
   const paymentIntentId = searchParams.get('payment_intent');
   const redirectStatus = searchParams.get('redirect_status');
   const { clearCart } = useCart();
+  const successToastShownRef = useRef(false);
   const [state, setState] = useState({
     loading: true,
     error: null,
@@ -77,14 +78,19 @@ function StripeSuccessContent() {
           if (data.order_ready && data.order) {
             clearCart();
             setState({ loading: false, error: null, order: data.order, hint: '' });
-            toast.success('¡Pedido registrado correctamente!');
+            if (!successToastShownRef.current) {
+              successToastShownRef.current = true;
+              toast.success('¡Pedido registrado correctamente!');
+            }
             return;
           }
 
           if (data.fatal) {
+            const errKey =
+              data.reason === 'insufficient_stock' ? 'insufficient_stock' : 'payment_failed';
             setState({
               loading: false,
-              error: 'payment_failed',
+              error: errKey,
               order: null,
               hint: data.message || ''
             });
@@ -161,6 +167,21 @@ function StripeSuccessContent() {
     );
   }
 
+  if (state.error === 'insufficient_stock') {
+    return (
+      <div className={styles.stateWrap}>
+        <p className={styles.stateTitle}>Sin stock disponible</p>
+        {state.hint && <p className={styles.stateText}>{state.hint}</p>}
+        <p className={styles.stateText}>
+          Si el pago ya se cargó, contacta a soporte para revisar tu caso o reembolso.
+        </p>
+        <Link href="/checkout" className={styles.link}>
+          Volver al checkout
+        </Link>
+      </div>
+    );
+  }
+
   if (state.error === 'redirect_failed' || state.error === 'payment_failed') {
     return (
       <div className={styles.stateWrap}>
@@ -223,6 +244,8 @@ function StripeSuccessContent() {
       <OrderConfirmation
         orderNumber={o.order_number}
         customerName={displayName}
+        customerEmail={o.customer_email || ''}
+        customerPhone={o.customer_phone || ''}
         total={o.total_amount}
         deliveryType={o.delivery_type}
         pickupPoint={o.pickup_point}

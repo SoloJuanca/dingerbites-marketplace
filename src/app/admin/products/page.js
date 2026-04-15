@@ -190,10 +190,10 @@ export default function ProductsPage() {
               className={styles.secondaryButton}
               onClick={() => setShowBulkUpload((prev) => !prev)}
             >
-              {showBulkUpload ? '✖️ Cerrar Carga Bulk' : '📦 Carga Bulk TCG'}
+              {showBulkUpload ? 'Cerrar Carga Bulk' : 'Carga Bulk TCG'}
             </button>
             <Link href="/admin/products/create" className={styles.createButton}>
-              ➕ Agregar Producto
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span> Agregar Producto
             </Link>
           </div>
         </div>
@@ -333,7 +333,7 @@ export default function ProductsPage() {
                                 className={styles.image}
                               />
                             ) : (
-                              <div className={styles.imagePlaceholder}>📦</div>
+                              <div className={styles.imagePlaceholder}><span className="material-symbols-outlined">inventory_2</span></div>
                             )}
                           </div>
                           <div className={styles.productDetails}>
@@ -397,13 +397,13 @@ export default function ProductsPage() {
                             href={`/admin/products/${product.id}/edit`}
                             className={styles.editButton}
                           >
-                            ✏️
+                            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>edit</span>
                           </Link>
                           <button
                             onClick={() => handleDelete(product.id, product.name)}
                             className={styles.deleteButton}
                           >
-                            🗑️
+                            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
                           </button>
                         </div>
                       </td>
@@ -415,7 +415,7 @@ export default function ProductsPage() {
 
             {Array.isArray(products) && products.length === 0 && (
               <div className={styles.emptyState}>
-                <div className={styles.emptyIcon}>📦</div>
+                <div className={styles.emptyIcon}><span className="material-symbols-outlined">inventory_2</span></div>
                 <h3>No hay productos</h3>
                 <p>Comienza agregando tu primer producto.</p>
                 <Link href="/admin/products/create" className={styles.createButton}>
