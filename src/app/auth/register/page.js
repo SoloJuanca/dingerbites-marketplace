@@ -15,7 +15,8 @@ export default function RegisterPage() {
     email: '',
     phone: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    termsAccepted: false
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,10 +29,10 @@ export default function RegisterPage() {
   }, [isAuthenticated, isLoading, router]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
     // Clear error when user starts typing
     if (errors[name]) {
@@ -73,6 +74,10 @@ export default function RegisterPage() {
 
     if (formData.phone && !/^[+]?[\d\s-()]{8,}$/.test(formData.phone)) {
       newErrors.phone = 'Formato de teléfono inválido';
+    }
+
+    if (!formData.termsAccepted) {
+      newErrors.termsAccepted = 'Debes aceptar los términos y el aviso de privacidad';
     }
 
     setErrors(newErrors);
@@ -246,6 +251,32 @@ export default function RegisterPage() {
               {errors.submit}
             </div>
           )}
+
+          <div className={styles.termsRow}>
+            <label className={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                name="termsAccepted"
+                checked={formData.termsAccepted}
+                onChange={handleChange}
+                className={styles.checkbox}
+              />
+              <span className={styles.checkboxText}>
+                Acepto los{' '}
+                <Link href="/terminos" className={styles.legalLink} target="_blank" rel="noreferrer">
+                  Términos y Condiciones
+                </Link>{' '}
+                y el{' '}
+                <Link href="/privacidad" className={styles.legalLink} target="_blank" rel="noreferrer">
+                  Aviso de Privacidad
+                </Link>
+                .
+              </span>
+            </label>
+            {errors.termsAccepted && (
+              <span className={styles.errorText}>{errors.termsAccepted}</span>
+            )}
+          </div>
 
           <button
             type="submit"

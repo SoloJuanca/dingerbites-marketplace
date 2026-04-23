@@ -6,12 +6,19 @@ import { createUser, getUserByEmail } from '../../../../lib/firebaseUsers';
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { email, password, firstName, lastName, phone } = body;
+    const { email, password, firstName, lastName, phone, termsAccepted } = body;
 
     // Validate required fields
     if (!email || !password || !firstName || !lastName) {
       return NextResponse.json(
         { error: 'Email, password, first name, and last name are required' },
+        { status: 400 }
+      );
+    }
+
+    if (termsAccepted !== true) {
+      return NextResponse.json(
+        { error: 'You must accept the terms and privacy policy to register' },
         { status: 400 }
       );
     }
@@ -52,6 +59,7 @@ export async function POST(request) {
       first_name: firstName,
       last_name: lastName,
       phone: phone || null,
+      terms_accepted_at: new Date().toISOString(),
       is_active: true,
       is_verified: false,
       is_admin: false,

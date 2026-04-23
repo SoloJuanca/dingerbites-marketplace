@@ -81,7 +81,7 @@ export async function getOrdersByUserId(userId, options = {}) {
     const status = statusById.get(String(o.status_id));
     return {
       ...o,
-      status_name: status?.name ?? null,
+      status_name: status?.name ?? o.status_id ?? null,
       status_color: status?.color ?? null
     };
   });
@@ -113,7 +113,7 @@ export async function getOrderById(orderId) {
 
   return {
     ...order,
-    status_name: status?.name ?? null,
+    status_name: status?.name ?? order.status_id ?? null,
     status_color: status?.color ?? null,
     customer_email: (order.customer_email || user?.email) ?? null,
     first_name: user?.first_name ?? null,
@@ -331,7 +331,7 @@ export async function listOrdersAdmin(options = {}) {
     const user = o.user_id ? userById.get(String(o.user_id)) : null;
     return {
       ...o,
-      status_name: status?.name ?? null,
+      status_name: status?.name ?? o.status_id ?? null,
       status_color: status?.color ?? null,
       first_name: user?.first_name ?? null,
       last_name: user?.last_name ?? null,
@@ -478,7 +478,7 @@ export async function getPaymentReportData(options = {}) {
     const cashierName = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email : null;
     return {
       ...o,
-      status_name: status?.name ?? null,
+      status_name: status?.name ?? o.status_id ?? null,
       status_color: status?.color ?? null,
       customer_name: user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : (o.customer_email || 'Invitado'),
       cashier_name: cashierName,

@@ -157,6 +157,46 @@
   background: #cbd5e0;
 }
 
+.termsRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.checkboxLabel {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  color: #4a5568;
+  font-size: 14px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--brand-primary);
+}
+
+.checkboxText {
+  color: #4a5568;
+}
+
+.legalLink {
+  color: var(--brand-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.legalLink:hover {
+  color: var(--brand-primary);
+}
+
 .footer {
   margin-top: 32px;
   padding-top: 24px;

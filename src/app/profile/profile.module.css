@@ -149,11 +149,33 @@
   border-radius: 12px;
   padding: 24px;
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .orderCard:hover {
   border-color: var(--brand-primary);
   box-shadow: 0 4px 16px rgba(107, 33, 168, 0.1);
+}
+
+.orderCardLink {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.orderArrow {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.orderCardLink:hover .orderArrow {
+  opacity: 1;
 }
 
 .orderHeader {

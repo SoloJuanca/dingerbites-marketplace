@@ -1,31 +1,81 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../../lib/AuthContext';
 import AdminLayout from '../../../components/admin/AdminLayout/AdminLayout';
+import OrdersToolbar from './OrdersToolbar';
+import OrdersTableView from './OrdersTableView';
+import OrdersKanbanView from './OrdersKanbanView';
 import styles from './orders.module.css';
 
+const FALLBACK_STATUS_OPTIONS = [
+  { id: 'pending', name: 'pending', label: 'Pendiente' },
+  { id: 'confirmed', name: 'confirmed', label: 'Confirmado' },
+  { id: 'processing', name: 'processing', label: 'En proceso' },
+  { id: 'shipped', name: 'shipped', label: 'Enviado' },
+  { id: 'delivered', name: 'delivered', label: 'Entregado' },
+  { id: 'cancelled', name: 'cancelled', label: 'Cancelado' },
+  { id: 'refunded', name: 'refunded', label: 'Reembolsado' },
+];
+
+const STATUS_LABELS = {
+  pending: 'Pendiente',
+  confirmed: 'Confirmado',
+  processing: 'En proceso',
+  shipped: 'Enviado',
+  delivered: 'Entregado',
+  cancelled: 'Cancelado',
+  refunded: 'Reembolsado',
+};
+
+const STATUS_COLORS = {
+  pending: '#fbbf24',
+  confirmed: '#6b21a8',
+  processing: '#8b5cf6',
+  shipped: '#10b981',
+  delivered: '#059669',
+  cancelled: '#ef4444',
+  refunded: '#6b7280',
+};
+
+function getStatusColor(statusName) {
+  return STATUS_COLORS[statusName] || '#6b7280';
+}
+
+function getStatusLabel(statusName) {
+  return STATUS_LABELS[statusName] || statusName;
+}
+
 export default function AdminOrders() {
-  const router = useRouter();
   const { apiRequest, isAuthenticated } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [openMenuId, setOpenMenuId] = useState(null);
-  const menuRef = useRef(null);
+  const [orderStatuses, setOrderStatuses] = useState([]);
+  const [statusModalOrder, setStatusModalOrder] = useState(null);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  const [viewMode, setViewMode] = useState('table');
+  const [sortBy, setSortBy] = useState('newest');
+
   const [filters, setFilters] = useState({
     status: '',
     search: '',
     dateFrom: '',
-    dateTo: ''
+    dateTo: '',
   });
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
     total: 0,
-    totalPages: 0
+    totalPages: 0,
   });
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadOrderStatuses();
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -33,12 +83,35 @@ export default function AdminOrders() {
     }
   }, [filters, pagination.page, isAuthenticated]);
 
+  const loadOrderStatuses = async () => {
+    try {
+      const response = await apiRequest('/api/order-statuses');
+      if (response.ok) {
+        const data = await response.json();
+        const fetched = (data.statuses || []).map((s) => ({
+          id: s.id,
+          name: s.name,
+          label: STATUS_LABELS[s.name] || s.description || s.name,
+          color: s.color || STATUS_COLORS[s.name] || '#6b7280',
+        }));
+        const fetchedNames = new Set(fetched.map((s) => s.name));
+        const merged = [
+          ...fetched,
+          ...FALLBACK_STATUS_OPTIONS.filter((f) => !fetchedNames.has(f.name)),
+        ];
+        setOrderStatuses(merged);
+      }
+    } catch (error) {
+      console.error('Error loading order statuses:', error);
+    }
+  };
+
   const loadOrders = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
         page: pagination.page,
-        limit: pagination.limit
+        limit: pagination.limit,
       });
 
       if (filters.status) params.append('status', filters.status);
@@ -47,14 +120,14 @@ export default function AdminOrders() {
       if (filters.dateTo) params.append('dateTo', filters.dateTo);
 
       const response = await apiRequest(`/api/admin/orders?${params.toString()}`);
-      
+
       if (response.ok) {
         const data = await response.json();
         setOrders(data.orders);
-        setPagination(prev => ({
+        setPagination((prev) => ({
           ...prev,
           total: data.pagination.total,
-          totalPages: data.pagination.totalPages
+          totalPages: data.pagination.totalPages,
         }));
       } else {
         toast.error('Error al cargar los pedidos');
@@ -68,38 +141,77 @@ export default function AdminOrders() {
   };
 
   const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setFilters((prev) => ({ ...prev, [key]: value }));
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   const handlePageChange = (newPage) => {
-    setPagination(prev => ({ ...prev, page: newPage }));
+    setPagination((prev) => ({ ...prev, page: newPage }));
   };
 
   const handleStatusChange = async (orderId, newStatusId) => {
     try {
+      setUpdatingStatus(true);
       const response = await apiRequest(`/api/admin/orders/${orderId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status_id: newStatusId })
+        body: JSON.stringify({ status_id: newStatusId }),
       });
 
       if (response.ok) {
         toast.success('Estado del pedido actualizado');
-        loadOrders(); // Reload orders to get updated data
+        setStatusModalOrder(null);
+        loadOrders();
       } else {
         toast.error('Error al actualizar el estado');
       }
     } catch (error) {
       console.error('Error updating order status:', error);
       toast.error('Error al conectar con el servidor');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const handleKanbanMove = async (orderId, targetStatus) => {
+    if (!targetStatus?.id) return;
+
+    let previousOrder = null;
+    setOrders((prev) =>
+      prev.map((o) => {
+        if (o.id !== orderId) return o;
+        previousOrder = o;
+        return {
+          ...o,
+          status_id: targetStatus.id,
+          status_name: targetStatus.name || o.status_name,
+        };
+      })
+    );
+
+    try {
+      const response = await apiRequest(`/api/admin/orders/${orderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status_id: targetStatus.id }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update status for order ${orderId}`);
+      }
+    } catch (error) {
+      console.error('Error moving order in kanban:', error);
+      if (previousOrder) {
+        setOrders((prev) => prev.map((o) => (o.id === orderId ? previousOrder : o)));
+      }
+      toast.error('No se pudo mover el pedido');
     }
   };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
-      currency: 'MXN'
+      currency: 'MXN',
     }).format(amount);
   };
 
@@ -109,288 +221,146 @@ export default function AdminOrders() {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
-  const getStatusColor = (statusName) => {
-    const statusColors = {
-      'pending': '#fbbf24',
-      'confirmed': '#6b21a8',
-      'processing': '#8b5cf6',
-      'shipped': '#10b981',
-      'delivered': '#059669',
-      'cancelled': '#ef4444',
-      'refunded': '#6b7280'
-    };
-    return statusColors[statusName] || '#6b7280';
-  };
+  const effectiveStatuses = orderStatuses.length > 0 ? orderStatuses : FALLBACK_STATUS_OPTIONS;
 
-  const toggleMenu = (orderId) => {
-    setOpenMenuId(prev => prev === orderId ? null : orderId);
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setOpenMenuId(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const sortedOrders = useMemo(() => {
+    const sorted = [...orders];
+    switch (sortBy) {
+      case 'oldest':
+        sorted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        break;
+      case 'highest':
+        sorted.sort((a, b) => (b.total_amount || 0) - (a.total_amount || 0));
+        break;
+      case 'lowest':
+        sorted.sort((a, b) => (a.total_amount || 0) - (b.total_amount || 0));
+        break;
+      default:
+        sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }
+    return sorted;
+  }, [orders, sortBy]);
 
   return (
-    <AdminLayout title="Gestión de Pedidos">
+    <AdminLayout title="Pedidos">
       <div className={styles.container}>
-        {/* Filters Section */}
-        <div className={styles.filtersSection}>
-          <div className={styles.filtersRow}>
-            <div className={styles.filterGroup}>
-              <label htmlFor="status">Estado:</label>
-              <select
-                id="status"
-                value={filters.status}
-                onChange={(e) => handleFilterChange('status', e.target.value)}
-                className={styles.filterSelect}
+        <OrdersToolbar
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          effectiveStatuses={effectiveStatuses}
+          orders={orders}
+          getStatusColor={getStatusColor}
+        />
+
+        {viewMode === 'table' ? (
+          <OrdersTableView
+            orders={sortedOrders}
+            loading={loading}
+            pagination={pagination}
+            onPageChange={handlePageChange}
+            onStatusModalOpen={setStatusModalOrder}
+            getStatusColor={getStatusColor}
+            getStatusLabel={getStatusLabel}
+            formatCurrency={formatCurrency}
+            formatDate={formatDate}
+          />
+        ) : (
+          <OrdersKanbanView
+            orders={sortedOrders}
+            loading={loading}
+            effectiveStatuses={effectiveStatuses}
+            onStatusModalOpen={setStatusModalOrder}
+            onMoveOrder={handleKanbanMove}
+            getStatusColor={getStatusColor}
+            formatCurrency={formatCurrency}
+            formatDate={formatDate}
+          />
+        )}
+      </div>
+
+      {/* Status Update Modal */}
+      {statusModalOrder && (
+        <div className={styles.modalOverlay} onClick={() => !updatingStatus && setStatusModalOrder(null)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3>Cambiar Estado</h3>
+              <button
+                className={styles.modalClose}
+                onClick={() => !updatingStatus && setStatusModalOrder(null)}
+                aria-label="Cerrar"
               >
-                <option value="">Todos los estados</option>
-                <option value="pending">Pendiente</option>
-                <option value="confirmed">Confirmado</option>
-                <option value="processing">En proceso</option>
-                <option value="shipped">Enviado</option>
-                <option value="delivered">Entregado</option>
-                <option value="cancelled">Cancelado</option>
-                <option value="refunded">Reembolsado</option>
-              </select>
+                <span className="material-symbols-outlined">close</span>
+              </button>
             </div>
 
-            <div className={styles.filterGroup}>
-              <label htmlFor="search">Buscar:</label>
-              <input
-                type="text"
-                id="search"
-                placeholder="Número de pedido, email, nombre..."
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-                className={styles.filterInput}
-              />
-            </div>
+            <div className={styles.modalBody}>
+              <p className={styles.modalOrderInfo}>
+                Pedido <strong>{statusModalOrder.order_number}</strong>
+              </p>
+              <p className={styles.modalCurrentStatus}>
+                Estado actual:{' '}
+                <span
+                  className={styles.statusBadge}
+                  style={{ backgroundColor: getStatusColor(statusModalOrder.status_name) }}
+                >
+                  {getStatusLabel(statusModalOrder.status_name)}
+                </span>
+              </p>
 
-            <div className={styles.filterGroup}>
-              <label htmlFor="dateFrom">Desde:</label>
-              <input
-                type="date"
-                id="dateFrom"
-                value={filters.dateFrom}
-                onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-                className={styles.filterInput}
-              />
-            </div>
+              <div className={styles.statusOptionsList}>
+                {effectiveStatuses.map((status) => {
+                  const isActive =
+                    statusModalOrder.status_id === status.id ||
+                    statusModalOrder.status_id === status.name ||
+                    statusModalOrder.status_name === status.name;
+                  return (
+                    <button
+                      key={status.id}
+                      className={`${styles.statusOption} ${isActive ? styles.statusOptionActive : ''}`}
+                      onClick={() => handleStatusChange(statusModalOrder.id, status.id)}
+                      disabled={updatingStatus || isActive}
+                    >
+                      <span
+                        className={styles.statusDot}
+                        style={{ backgroundColor: status.color || getStatusColor(status.name || status.id) }}
+                      />
+                      <span className={styles.statusOptionLabel}>{status.label}</span>
+                      {isActive && (
+                        <span className="material-symbols-outlined" style={{ fontSize: 16, marginLeft: 'auto' }}>check</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
 
-            <div className={styles.filterGroup}>
-              <label htmlFor="dateTo">Hasta:</label>
-              <input
-                type="date"
-                id="dateTo"
-                value={filters.dateTo}
-                onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-                className={styles.filterInput}
-              />
-            </div>
-          </div>
-
-          <button 
-            onClick={loadOrders}
-            className={styles.refreshButton}
-            disabled={loading}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>refresh</span> Actualizar
-          </button>
-        </div>
-
-        {/* Orders Table */}
-        <div className={styles.tableContainer}>
-          {loading ? (
-            <div className={styles.loading}>
-              <div className={styles.spinner}></div>
-              <p>Cargando pedidos...</p>
-            </div>
-          ) : orders.length === 0 ? (
-            <div className={styles.emptyState}>
-              <p>No se encontraron pedidos</p>
-            </div>
-          ) : (
-            <>
-              <table className={styles.ordersTable}>
-                <thead>
-                  <tr>
-                    <th>Número</th>
-                    <th>Cliente</th>
-                    <th>Estado</th>
-                    <th>Total</th>
-                    <th>Fecha</th>
-                    <th>Método de Pago</th>
-                    <th className={styles.actionsHeader}>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.map((order) => (
-                    <tr key={order.id} className={styles.orderRow}>
-                      <td className={styles.orderNumber}>
-                        <strong>{order.order_number}</strong>
-                      </td>
-                      <td className={styles.customerInfo}>
-                        <div className={styles.customerName}>
-                          {order.customer_name || 'Cliente invitado'}
-                        </div>
-                        <div className={styles.customerEmail}>
-                          {order.customer_email}
-                        </div>
-                        {order.customer_phone && (
-                          <div className={styles.customerPhone}>
-                            {order.customer_phone}
-                          </div>
-                        )}
-                      </td>
-                      <td className={styles.orderStatus}>
-                        <span 
-                          className={styles.statusBadge}
-                          style={{ backgroundColor: getStatusColor(order.status_name) }}
-                        >
-                          {order.status_name}
-                        </span>
-                      </td>
-                      <td className={styles.orderTotal}>
-                        <strong>{formatCurrency(order.total_amount)}</strong>
-                      </td>
-                      <td className={styles.orderDate}>
-                        {formatDate(order.created_at)}
-                      </td>
-                      <td className={styles.paymentMethod}>
-                        {order.payment_method || 'No especificado'}
-                      </td>
-                      {/* Desktop actions */}
-                      <td className={styles.actionsDesktop}>
-                        <button
-                          onClick={() => router.push(`/admin/orders/${order.id}`)}
-                          className={styles.viewButton}
-                          title="Ver detalles"
-                        >
-                          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>visibility</span>
-                        </button>
-                        <select
-                          value={order.status_id}
-                          onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                          className={styles.statusSelect}
-                        >
-                          <option value="pending">Pendiente</option>
-                          <option value="confirmed">Confirmado</option>
-                          <option value="processing">En proceso</option>
-                          <option value="shipped">Enviado</option>
-                          <option value="delivered">Entregado</option>
-                          <option value="cancelled">Cancelado</option>
-                          <option value="refunded">Reembolsado</option>
-                        </select>
-                      </td>
-                      {/* Mobile actions - 3-dot menu */}
-                      <td className={styles.actionsMobile}>
-                        <div className={styles.actionMenuWrapper} ref={openMenuId === order.id ? menuRef : null}>
-                          <button
-                            className={styles.menuToggle}
-                            onClick={() => toggleMenu(order.id)}
-                            aria-label="Acciones"
-                          >
-                            <span className="material-symbols-outlined">more_vert</span>
-                          </button>
-                          {openMenuId === order.id && (
-                            <div className={styles.actionMenu}>
-                              <button
-                                className={styles.menuItem}
-                                onClick={() => {
-                                  router.push(`/admin/orders/${order.id}`);
-                                  setOpenMenuId(null);
-                                }}
-                              >
-                                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>visibility</span>
-                                Ver detalles
-                              </button>
-                              <div className={styles.menuDivider} />
-                              <span className={styles.menuLabel}>Cambiar estado:</span>
-                              {['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'].map((status) => (
-                                <button
-                                  key={status}
-                                  className={`${styles.menuItem} ${order.status_id === status ? styles.menuItemActive : ''}`}
-                                  onClick={() => {
-                                    handleStatusChange(order.id, status);
-                                    setOpenMenuId(null);
-                                  }}
-                                >
-                                  <span
-                                    className={styles.statusDot}
-                                    style={{ backgroundColor: getStatusColor(status) }}
-                                  />
-                                  {status === 'pending' ? 'Pendiente' :
-                                   status === 'confirmed' ? 'Confirmado' :
-                                   status === 'processing' ? 'En proceso' :
-                                   status === 'shipped' ? 'Enviado' :
-                                   status === 'delivered' ? 'Entregado' :
-                                   status === 'cancelled' ? 'Cancelado' : 'Reembolsado'}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {/* Pagination */}
-              {pagination.totalPages > 1 && (
-                <div className={styles.pagination}>
-                  <button
-                    onClick={() => handlePageChange(pagination.page - 1)}
-                    disabled={pagination.page === 1}
-                    className={styles.paginationButton}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span> Anterior
-                  </button>
-                  
-                  <span className={styles.paginationInfo}>
-                    Página {pagination.page} de {pagination.totalPages}
-                  </span>
-                  
-                  <button
-                    onClick={() => handlePageChange(pagination.page + 1)}
-                    disabled={pagination.page === pagination.totalPages}
-                    className={styles.paginationButton}
-                  >
-                    Siguiente <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_right</span>
-                  </button>
+              {updatingStatus && (
+                <div className={styles.modalUpdating}>
+                  <div className={styles.spinnerSmall}></div>
+                  <span>Actualizando...</span>
                 </div>
               )}
-            </>
-          )}
-        </div>
+            </div>
 
-        {/* Summary Stats */}
-        <div className={styles.summaryStats}>
-          <div className={styles.statCard}>
-            <h3>Total de Pedidos</h3>
-            <p className={styles.statNumber}>{pagination.total}</p>
-          </div>
-          <div className={styles.statCard}>
-            <h3>Página Actual</h3>
-            <p className={styles.statNumber}>{pagination.page}</p>
-          </div>
-          <div className={styles.statCard}>
-            <h3>Pedidos por Página</h3>
-            <p className={styles.statNumber}>{pagination.limit}</p>
+            <div className={styles.modalFooter}>
+              <button
+                className={styles.modalCancelButton}
+                onClick={() => setStatusModalOrder(null)}
+                disabled={updatingStatus}
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </AdminLayout>
   );
 }

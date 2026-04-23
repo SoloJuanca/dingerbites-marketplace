@@ -387,23 +387,32 @@ function ProfileContent() {
                 ) : orders.length > 0 ? (
                   <div className={styles.ordersList}>
                     {orders.map(order => (
-                      <div key={order.id} className={styles.orderCard}>
-                        <div className={styles.orderHeader}>
-                          <span className={styles.orderNumber}>
-                            Pedido #{order.order_number}
-                          </span>
-                          <span className={styles.orderDate}>
-                            {formatDate(order.created_at)}
-                          </span>
-                        </div>
-                        <div className={styles.orderDetails}>
-                          <div className={styles.orderInfo}>
-                            <p><strong>Total:</strong> {formatPrice(order.total_amount)}</p>
-                            <p><strong>Estado:</strong> {order.status_name}</p>
-                            <p><strong>Método de pago:</strong> {order.payment_method}</p>
+                      <Link
+                        key={order.id}
+                        href={`/orders/${order.id}`}
+                        className={styles.orderCardLink}
+                      >
+                        <div className={styles.orderCard}>
+                          <div className={styles.orderHeader}>
+                            <span className={styles.orderNumber}>
+                              Pedido #{order.order_number}
+                            </span>
+                            <span className={styles.orderDate}>
+                              {formatDate(order.created_at)}
+                            </span>
                           </div>
+                          <div className={styles.orderDetails}>
+                            <div className={styles.orderInfo}>
+                              <p><strong>Total:</strong> {formatPrice(order.total_amount)}</p>
+                              <p><strong>Estado:</strong> {order.status_name}</p>
+                              <p><strong>Método de pago:</strong> {order.payment_method}</p>
+                            </div>
+                          </div>
+                          <span className={styles.orderArrow}>
+                            <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#9ca3af' }}>chevron_right</span>
+                          </span>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 ) : (

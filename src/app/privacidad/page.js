@@ -3,156 +3,177 @@ import Footer from '../../components/Footer/Footer';
 import styles from './privacidad.module.css';
 
 export default function PrivacidadPage() {
+  const lastUpdated = '22/04/2026';
+
   return (
     <>
       <Header />
       <main className={styles.privacyPage}>
         <div className={styles.container}>
           <div className={styles.content}>
-            <h1 className={styles.title}>Aviso de Privacidad</h1>
+            <h1 className={styles.title}>Aviso de Privacidad Integral</h1>
             <p className={styles.subtitle}>Dingerbites</p>
             
             <div className={styles.intro}>
               <p className={styles.text}>
-                En Dingerbites estamos comprometidos con la protección de los datos personales 
-                y la privacidad de nuestros clientes, proveedores y terceros. En cumplimiento a la 
-                Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP), 
-                ponemos a su disposición el presente Aviso de Privacidad.
+                En cumplimiento con la Ley Federal de Protección de Datos Personales en Posesión de los
+                Particulares (LFPDPPP), Dingerbites pone a disposición el presente Aviso de Privacidad.
               </p>
             </div>
 
             <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Responsable del tratamiento de sus datos personales</h2>
+              <h2 className={styles.sectionTitle}>1. Identidad y domicilio del responsable</h2>
               <p className={styles.text}>
-                Dingerbites (&ldquo;Responsable&rdquo;) es la persona moral que decide sobre el tratamiento 
-                de los datos personales que recaba de usted como &ldquo;Titular&rdquo;.
+                Dingerbites es responsable del tratamiento de los datos personales recabados a través de
+                su sitio web, redes sociales y canales de venta.
+              </p>
+              <p className={styles.text}>
+                Correo de contacto:{' '}
+                <a href="mailto:contacto@dingerbites.com">contacto@dingerbites.com</a>
               </p>
             </div>
 
             <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Domicilio del Responsable</h2>
-              <p className={styles.text}>
-                El domicilio para recibir notificaciones relacionadas con la protección de datos personales es:
-              </p>
-              <div className={styles.address}>
-                <p><strong>Av. Álvaro Obregón 151</strong></p>
-                <p><strong>Colonia Roma Norte</strong></p>
-                <p><strong>06700 Ciudad de México, CDMX</strong></p>
-                <p>Correo electrónico: <strong>admin@patitomontenegro.com</strong></p>
-              </div>
-            </div>
-
-            <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Finalidades del tratamiento de sus datos personales</h2>
-              <p className={styles.text}>
-                Su información personal será utilizada para las siguientes finalidades principales, 
-                necesarias para la prestación de nuestros productos y servicios:
-              </p>
-              <ul className={styles.list}>
-                <li>Identificarle y contactarle.</li>
-                <li>Crear y administrar su cuenta de usuario.</li>
-                <li>Procesar pedidos y coordinar envíos.</li>
-                <li>Cumplir obligaciones contractuales y legales.</li>
-                <li>Evaluar la calidad del servicio.</li>
-              </ul>
-              <p className={styles.text}>
-                De manera adicional, y únicamente con su consentimiento, podremos utilizar su información para:
-              </p>
-              <ul className={styles.list}>
-                <li>Enviarle promociones, descuentos y novedades de nuestros productos.</li>
-                <li>Invitarle a eventos o campañas especiales relacionadas con nuestros productos.</li>
-              </ul>
-            </div>
-
-            <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Datos personales que recabamos</h2>
-              <p className={styles.text}>Recabamos directamente de usted los siguientes datos:</p>
+              <h2 className={styles.sectionTitle}>2. Datos personales recabados</h2>
+              <p className={styles.text}>Los datos que podemos recabar incluyen:</p>
               <ul className={styles.list}>
                 <li>Nombre completo</li>
-                <li>Dirección de envío</li>
                 <li>Correo electrónico</li>
-                <li>Número de teléfono</li>
-                <li>Historial de compras y preferencias de consumo</li>
+                <li>Número telefónico</li>
+                <li>Dirección de envío</li>
+                <li>Información de navegación (cookies, session context, comportamiento en el sitio)</li>
               </ul>
               <p className={styles.text}>
-                De manera automática, cuando navega en nuestro sitio, recopilamos información técnica 
-                (&ldquo;Información del dispositivo&rdquo;), como:
+                No recopilamos directamente datos bancarios o financieros sensibles.
               </p>
+            </div>
+
+            <div className={styles.section}>
+              <h2 className={styles.sectionTitle}>3. Finalidades del tratamiento</h2>
+              <p className={styles.text}><strong>Finalidades primarias</strong></p>
               <ul className={styles.list}>
-                <li>Dirección IP</li>
-                <li>Tipo de navegador y sistema operativo</li>
-                <li>Páginas visitadas en nuestro sitio</li>
-                <li>Cookies, etiquetas y píxeles de seguimiento (Google Analytics u otros)</li>
+                <li>Procesar compras y pagos</li>
+                <li>Gestionar envíos</li>
+                <li>Dar seguimiento a pedidos</li>
+                <li>Brindar atención al cliente</li>
               </ul>
-            </div>
-
-            <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Datos sensibles</h2>
-              <p className={styles.text}>
-                Dingerbites no solicita ni recaba datos personales sensibles.
-              </p>
-            </div>
-
-            <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Opciones y medios para limitar el uso de datos</h2>
-              <p className={styles.text}>
-                Puede limitar el uso o divulgación de sus datos personales para fines mercadotécnicos 
-                enviando una solicitud al correo: <strong>admin@patitomontenegro.com</strong>.
-              </p>
-            </div>
-
-            <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Derechos ARCO</h2>
-              <p className={styles.text}>
-                Usted tiene derecho a Acceder, Rectificar, Cancelar u Oponerse al uso de sus datos personales. 
-                Para ejercer estos derechos, deberá enviar un correo con:
-              </p>
+              <p className={styles.text}><strong>Finalidades secundarias</strong></p>
               <ul className={styles.list}>
-                <li>Nombre completo y datos de contacto.</li>
-                <li>Copia de identificación oficial (INE o pasaporte).</li>
-                <li>Descripción clara del derecho que desea ejercer.</li>
+                <li>Envío de promociones y publicidad</li>
+                <li>Análisis de comportamiento de usuarios</li>
+                <li>Mejora del sitio web</li>
+                <li>Personalización de contenido</li>
               </ul>
             </div>
 
             <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Revocación del consentimiento</h2>
-              <p className={styles.text}>
-                Puede revocar en cualquier momento el consentimiento otorgado para el tratamiento de sus datos, 
-                enviando su solicitud al correo electrónico antes indicado.
-              </p>
-            </div>
-
-            <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Transferencia de datos</h2>
-              <p className={styles.text}>Sus datos personales podrán ser compartidos únicamente con:</p>
+              <h2 className={styles.sectionTitle}>4. Uso de tecnologías de rastreo (cookies)</h2>
+              <p className={styles.text}>Dingerbites utiliza cookies y tecnologías similares, incluyendo:</p>
               <ul className={styles.list}>
-                <li>Proveedores de servicios de paquetería y mensajería.</li>
-                <li>Proveedores tecnológicos que dan soporte al sitio web.</li>
+                <li>Cookies de sesión</li>
+                <li>Pixel de Meta (Facebook/Instagram)</li>
+                <li>Herramientas de analítica y medición (ej. Google Analytics)</li>
               </ul>
               <p className={styles.text}>
-                En ningún caso venderemos, alquilaremos o compartiremos sus datos con terceros 
-                no relacionados con nuestras operaciones.
+                Estas tecnologías permiten analizar comportamiento, medir campañas publicitarias,
+                personalizar anuncios, y mejorar la experiencia del sitio. El usuario puede deshabilitar
+                estas tecnologías desde su navegador.
               </p>
             </div>
 
             <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Medidas de seguridad</h2>
+              <h2 className={styles.sectionTitle}>5. Publicidad y remarketing (Google Ads y Meta Ads)</h2>
               <p className={styles.text}>
-                Adoptamos medidas técnicas, administrativas y físicas para proteger sus datos 
-                contra daño, pérdida, alteración, acceso o tratamiento no autorizado.
+                Dingerbites utiliza herramientas de publicidad digital como Google Ads y Meta Ads
+                (Facebook e Instagram). Estas plataformas pueden recopilar información mediante cookies o
+                identificadores para mostrar anuncios personalizados, medir conversiones y realizar
+                remarketing.
+              </p>
+              <p className={styles.text}>
+                El usuario puede administrar sus preferencias en Google Ads Settings y Facebook Ad Preferences.
               </p>
             </div>
 
             <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Modificaciones al Aviso de Privacidad</h2>
+              <h2 className={styles.sectionTitle}>6. Transferencia de datos</h2>
+              <p className={styles.text}>Dingerbites no vende datos personales.</p>
+              <p className={styles.text}>Podrá compartir información únicamente con:</p>
+              <ul className={styles.list}>
+                <li>Proveedores de pago (Stripe)</li>
+                <li>Servicios de mensajería</li>
+                <li>
+                  Plataformas publicitarias (Google y Meta, de forma anonimizada o mediante cookies)
+                </li>
+                <li>Autoridades cuando sea requerido por ley</li>
+              </ul>
+            </div>
+
+            <div className={styles.section}>
+              <h2 className={styles.sectionTitle}>7. Derechos ARCO</h2>
               <p className={styles.text}>
-                Podremos modificar este Aviso de Privacidad en cualquier momento. La versión 
-                actualizada estará disponible en: <strong>www.patitomontenegro.com/privacidad</strong>.
+                El titular de los datos podrá ejercer sus derechos de Acceso, Rectificación, Cancelación u
+                Oposición mediante solicitud al correo:{' '}
+                <a href="mailto:contacto@dingerbites.com">contacto@dingerbites.com</a>
+              </p>
+              <p className={styles.text}>La solicitud deberá incluir:</p>
+              <ul className={styles.list}>
+                <li>Nombre completo</li>
+                <li>Descripción de la solicitud</li>
+                <li>Medio de contacto</li>
+              </ul>
+            </div>
+
+            <div className={styles.section}>
+              <h2 className={styles.sectionTitle}>8. Revocación del consentimiento</h2>
+              <p className={styles.text}>
+                El usuario puede revocar su consentimiento para el uso de sus datos en cualquier momento
+                enviando un correo a:{' '}
+                <a href="mailto:contacto@dingerbites.com">contacto@dingerbites.com</a>
+              </p>
+            </div>
+
+            <div className={styles.section}>
+              <h2 className={styles.sectionTitle}>9. Limitación del uso o divulgación</h2>
+              <p className={styles.text}>
+                El usuario puede solicitar dejar de recibir publicidad o promociones mediante el mismo correo:
+                <br />
+                <a href="mailto:contacto@dingerbites.com">contacto@dingerbites.com</a>
+              </p>
+            </div>
+
+            <div className={styles.section}>
+              <h2 className={styles.sectionTitle}>10. Conservación de datos</h2>
+              <p className={styles.text}>
+                Los datos personales serán conservados únicamente durante el tiempo necesario para cumplir con
+                las finalidades descritas y obligaciones legales.
+              </p>
+            </div>
+
+            <div className={styles.section}>
+              <h2 className={styles.sectionTitle}>11. Seguridad</h2>
+              <p className={styles.text}>
+                Dingerbites implementa medidas de seguridad administrativas, técnicas y físicas para proteger
+                la información.
+              </p>
+            </div>
+
+            <div className={styles.section}>
+              <h2 className={styles.sectionTitle}>12. Cambios al aviso</h2>
+              <p className={styles.text}>
+                Dingerbites se reserva el derecho de modificar este aviso en cualquier momento. Las
+                modificaciones serán publicadas en el sitio web.
+              </p>
+            </div>
+
+            <div className={styles.section}>
+              <h2 className={styles.sectionTitle}>13. Consentimiento</h2>
+              <p className={styles.text}>
+                El uso del sitio web implica la aceptación del presente Aviso de Privacidad.
               </p>
             </div>
 
             <div className={styles.lastUpdated}>
-              <p>Última actualización: {new Date().toLocaleDateString('es-MX')}</p>
+              <p>Última actualización: {lastUpdated}</p>
             </div>
           </div>
         </div>

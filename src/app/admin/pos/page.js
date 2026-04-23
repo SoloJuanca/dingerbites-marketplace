@@ -15,7 +15,7 @@ const PAYMENT_METHODS = [
 ];
 
 export default function AdminPOS() {
-  const { apiRequest } = useAuth();
+  const { apiRequest, user } = useAuth();
   const [search, setSearch] = useState('');
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
@@ -357,10 +357,13 @@ export default function AdminPOS() {
 
     setSubmitting(true);
     try {
-      const normalizedCustomerEmail = customer.email.trim();
-      const shouldSendEmail = Boolean(normalizedCustomerEmail);
+      const explicitCustomerEmail = customer.email.trim();
+      const explicitCustomerPhone = customer.phone.trim();
+      const normalizedCustomerEmail = explicitCustomerEmail || user?.email || '';
+      const normalizedCustomerPhone = explicitCustomerPhone || user?.phone || '';
+      const shouldSendEmail = Boolean(explicitCustomerEmail);
       const orderPayload = {
-        user_id: null,
+        user_id: user?.id || null,
         items: cartItems.map((item) =>
           item.isManual
             ? {
@@ -377,8 +380,8 @@ export default function AdminPOS() {
                 price: item.price
               }
         ),
-        customer_email: normalizedCustomerEmail || 'pos@patito.local',
-        customer_phone: customer.phone.trim(),
+        customer_email: normalizedCustomerEmail,
+        customer_phone: normalizedCustomerPhone,
         customer_name: customer.name.trim(),
         payment_method: paymentMethod,
         shipping_method: 'Recoger en tienda',
@@ -388,7 +391,9 @@ export default function AdminPOS() {
         discount_amount: normalizedDiscount,
         total_amount: total,
         notes: notes.trim(),
-        skip_email: !shouldSendEmail
+        skip_email: !shouldSendEmail,
+        order_origin: 'pos',
+        pos_in_person: true
       };
 
       const response = await apiRequest('/api/orders', {

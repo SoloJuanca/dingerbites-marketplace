@@ -43,7 +43,9 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
     shipping_method,
     address,
     pickup_point,
-    coupon_code
+    coupon_code,
+    order_origin,
+    pos_in_person
   } = body;
 
   const skipEmail = options.skipEmail === true;
@@ -168,12 +170,14 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
       shipping_address_id: finalShippingAddressId || null,
       billing_address_id: billing_address_id || null,
       notes: notes || null,
-        customer_email: normalizedCustomerEmail,
-        customer_phone: customer_phone || null,
-        customer_name: customer_name || null,
-        payment_method: payment_method || null,
+      customer_email: normalizedCustomerEmail,
+      customer_phone: customer_phone || null,
+      customer_name: customer_name || null,
+      payment_method: payment_method || null,
       shipping_method: shipping_method || null,
       pickup_point: pickup_point || null,
+      order_origin: order_origin || null,
+      pos_in_person: pos_in_person === true,
       items: orderItems,
       service_items: orderServiceItems,
       coupon_id: couponApplication?.coupon_id || null,
@@ -183,7 +187,10 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
       history: [
         {
           status_id: pendingStatusId,
-          notes: 'Order created',
+          notes:
+            order_origin === 'pos' || pos_in_person === true
+              ? 'Order created (POS)'
+              : 'Order created',
           created_at: now
         }
       ],

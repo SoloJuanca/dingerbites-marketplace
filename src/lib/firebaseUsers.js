@@ -61,6 +61,7 @@ export async function createUser(userPayload) {
     phone: userPayload.phone || null,
     date_of_birth: userPayload.date_of_birth || null,
     gender: userPayload.gender || null,
+    terms_accepted_at: userPayload.terms_accepted_at || null,
     role: userPayload.role || 'user',
     is_admin: userPayload.is_admin !== undefined ? Boolean(userPayload.is_admin) : false,
     is_active: userPayload.is_active !== undefined ? Boolean(userPayload.is_active) : true,

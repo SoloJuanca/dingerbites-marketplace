@@ -113,10 +113,18 @@ const docs = productsSnap.docs.map((doc) => {
     sku: String(product.sku || ''),
     barcode: String(product.barcode || ''),
     search_blob: searchBlob,
+    category_id: product.category_id ? String(product.category_id) : '',
     category_slug: category?.slug || '',
+    category_name: category?.name || '',
+    subcategory_id: product.subcategory_id ? String(product.subcategory_id) : '',
     subcategory_slug: subcategory?.slug || '',
+    manufacturer_brand_id: product.manufacturer_brand_id ? String(product.manufacturer_brand_id) : '',
     manufacturer_brand_slug: manufacturerBrand?.slug || '',
+    franchise_brand_id: product.franchise_brand_id ? String(product.franchise_brand_id) : '',
     franchise_brand_slug: franchiseBrand?.slug || '',
+    brand_id: (franchiseBrand?.id || manufacturerBrand?.id || legacyBrand?.id || product.brand_id)
+      ? String(franchiseBrand?.id || manufacturerBrand?.id || legacyBrand?.id || product.brand_id)
+      : '',
     brand_slug: brand?.slug || '',
     brand_name: brand?.name || '',
     condition: product.condition || '',
