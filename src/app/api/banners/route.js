@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { listHomeBannersPublic } from '../../../lib/firebaseHomeBanners';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/banners - Public active banners
 export async function GET() {
   try {

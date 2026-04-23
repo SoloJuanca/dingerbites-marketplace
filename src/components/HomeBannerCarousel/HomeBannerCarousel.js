@@ -41,6 +41,11 @@ export default function HomeBannerCarousel({ banners = [] }) {
 
   const current = safeBanners[index];
 
+  const hasOverlayCopy =
+    Boolean(String(current.title || '').trim()) ||
+    Boolean(String(current.subtitle || '').trim()) ||
+    (Boolean(String(current.cta_label || '').trim()) && Boolean(String(current.cta_url || '').trim()));
+
   return (
     <section className={styles.section} aria-label="Banners principales">
       <div className="container">
@@ -55,8 +60,8 @@ export default function HomeBannerCarousel({ banners = [] }) {
               priority
               unoptimized
             />
-            <div className={styles.overlay}>
-              {(current.title || current.subtitle || current.cta_label) && (
+            {hasOverlayCopy && (
+              <div className={styles.overlay}>
                 <div className={styles.content}>
                   {current.title && <h2 className={styles.title}>{current.title}</h2>}
                   {current.subtitle && <p className={styles.subtitle}>{current.subtitle}</p>}
@@ -66,8 +71,8 @@ export default function HomeBannerCarousel({ banners = [] }) {
                     </Link>
                   )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {safeBanners.length > 1 && (

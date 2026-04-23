@@ -83,6 +83,9 @@
   font-size: 28px;
   line-height: 1;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .prev {
@@ -165,8 +168,6 @@
   }
 
   .navButton {
-    width: 32px;
-    height: 32px;
-    font-size: 22px;
+    display: none;
   }
 }

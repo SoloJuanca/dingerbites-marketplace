@@ -8,6 +8,9 @@ import { listHomeBannersPublic } from '../lib/firebaseHomeBanners';
 import { getCategories, getNewestProducts, getPopularProducts } from '../lib/firebaseProducts';
 import { getGeneralReviews } from '../lib/firebaseReviews';
 
+/** Banners and home sections read from Firestore — avoid static HTML cached until redeploy */
+export const revalidate = 0;
+
 export default async function Home() {
   const [bannersResult, categoriesResult, newestResult, popularResult, reviewsResult] = await Promise.allSettled([
     listHomeBannersPublic(),
