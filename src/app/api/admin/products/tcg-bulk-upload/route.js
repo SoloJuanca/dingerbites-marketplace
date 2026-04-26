@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../../lib/auth';
 import { db } from '../../../../../lib/firebaseAdmin';
 import { convertUsdToMxnWithMin } from '../../../../../lib/currency';
+import { indexProductToTypesense, loadTaxonomyLookups } from '../../../../../lib/search/typesenseSync';
 import { TCG_CSV_BASE, tcgcsvHeaders } from '../../../../../lib/tcgcsvClient';
 
 const PRODUCTS_COLLECTION = 'products';
@@ -622,6 +623,7 @@ export async function POST(request) {
     const defaultBrandId = await getOrCreateDefaultBrandId();
     const categoryDocId = categoryDocIdByTcg || fallbackTcgCategoryId;
     const now = new Date().toISOString();
+    const typesenseLookups = dryRun ? null : await loadTaxonomyLookups();
 
     const summary = {
       totalRows: parsedRows.length,
@@ -764,6 +766,7 @@ export async function POST(request) {
 
           if (!dryRun) {
             await db.collection(PRODUCTS_COLLECTION).doc(existing.id).update(updateData);
+            await indexProductToTypesense({ ...existing, ...updateData }, typesenseLookups);
           }
 
           summary.updated += 1;
@@ -818,6 +821,7 @@ export async function POST(request) {
 
         if (!dryRun) {
           await docRef.set(newProduct);
+          await indexProductToTypesense(newProduct, typesenseLookups);
         }
 
         existingByVariantKey.set(variantKey, newProduct);
