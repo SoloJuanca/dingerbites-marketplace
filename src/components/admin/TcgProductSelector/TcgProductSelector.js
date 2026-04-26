@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import SmartComboBox from '../SmartComboBox/SmartComboBox';
+import { downloadTcgBulkTemplateCsv } from '../../../lib/tcgBulkTemplateDownload';
 import styles from './TcgProductSelector.module.css';
 
 const TCG_BASE = '/api/tcg';
@@ -17,6 +19,8 @@ export default function TcgProductSelector({
   const [products, setProducts] = useState([]);
   const [prices, setPrices] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [templateError, setTemplateError] = useState(null);
 
   const resolvedCategoryId = tcgCategoryId || formData.tcg_category_id;
 
@@ -169,6 +173,19 @@ export default function TcgProductSelector({
     onSelect({ stock_quantity: e.target.value });
   };
 
+  const handleDownloadBulkTemplate = async () => {
+    if (!resolvedCategoryId || !formData.tcg_group_id) return;
+    setTemplateError(null);
+    setTemplateLoading(true);
+    try {
+      await downloadTcgBulkTemplateCsv(resolvedCategoryId, formData.tcg_group_id);
+    } catch (err) {
+      setTemplateError(err.message || 'No se pudo generar el template');
+    } finally {
+      setTemplateLoading(false);
+    }
+  };
+
   function extendedDataToDescription(extData) {
     if (!Array.isArray(extData) || extData.length === 0) return '';
     return extData
@@ -209,6 +226,33 @@ export default function TcgProductSelector({
             placeholder="Buscar o seleccionar set..."
             disabled={disabled || loading}
           />
+        </div>
+      )}
+
+      {resolvedCategoryId && formData.tcg_group_id && (
+        <div className={styles.bulkSection} role="region" aria-label="Carga masiva TCG">
+          <p className={styles.bulkSectionTitle}>Carga masiva del set</p>
+          <p className={styles.bulkSectionText}>
+            Descarga el CSV con todas las cartas y variantes de este grupo. Complétalo y súbelo desde{' '}
+            <strong>Productos → Carga masiva TCG</strong> (misma categoría y grupo).
+          </p>
+          <div className={styles.bulkSectionActions}>
+            <button
+              type="button"
+              className={styles.templateButton}
+              onClick={handleDownloadBulkTemplate}
+              disabled={disabled || templateLoading}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18, verticalAlign: 'middle' }}>
+                download
+              </span>
+              {templateLoading ? 'Generando…' : 'Descargar template CSV'}
+            </button>
+            <Link href="/admin/products" className={styles.bulkAdminLink}>
+              Ir a carga masiva
+            </Link>
+          </div>
+          {templateError && <p className={styles.bulkError}>{templateError}</p>}
         </div>
       )}
 

@@ -844,6 +844,12 @@ export default function CreateProductPage() {
               <p>Producto del catálogo TCG. Empiezas eligiendo la categoría (ej. Pokémon, Magic) y el producto.</p>
             </div>
           </div>
+          {productType === 'tcg' && (
+            <p className={styles.helpText} style={{ marginTop: 12, maxWidth: '560px' }}>
+              En el siguiente paso, al elegir categoría TCG y set, podrás descargar el CSV para carga masiva; la importación
+              se hace en Productos → Carga masiva TCG.
+            </p>
+          )}
         </div>
       );
     }

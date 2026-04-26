@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { db } from '../../../../../../lib/firebaseAdmin';
 import { convertUsdToMxnWithMin } from '../../../../../../lib/currency';
+import { TCG_CSV_BASE, tcgcsvHeaders } from '../../../../../../lib/tcgcsvClient';
 
 const PRODUCTS_COLLECTION = 'products';
-const TCG_BASE = 'https://tcgcsv.com/tcgplayer';
 
 export async function GET(request, { params }) {
   try {
@@ -31,10 +31,10 @@ export async function GET(request, { params }) {
       );
     }
 
-    const res = await fetch(
-      `${TCG_BASE}/${tcgCategoryId}/${tcgGroupId}/prices`,
-      { next: { revalidate: 3600 } }
-    );
+    const res = await fetch(`${TCG_CSV_BASE}/${tcgCategoryId}/${tcgGroupId}/prices`, {
+      headers: tcgcsvHeaders(),
+      next: { revalidate: 3600 }
+    });
     if (!res.ok) {
       throw new Error(`TCG API error: ${res.status}`);
     }

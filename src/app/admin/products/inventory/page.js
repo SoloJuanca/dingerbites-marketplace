@@ -22,13 +22,20 @@ export default function InventoryPage() {
     search: '',
     category: '',
     subcategory: '',
+    tcgCategoryId: '',
+    tcgGroupId: '',
     manufacturerBrand: '',
     franchiseBrand: '',
-    stockStatus: 'all'
+    stockStatus: 'all',
+    orderBy: 'date_desc'
   });
   const [categories, setCategories] = useState([]);
   const [manufacturerBrands, setManufacturerBrands] = useState([]);
   const [franchiseBrands, setFranchiseBrands] = useState([]);
+  const [tcgApiCategories, setTcgApiCategories] = useState([]);
+  const [tcgApiGroups, setTcgApiGroups] = useState([]);
+  const [loadingTcgCategories, setLoadingTcgCategories] = useState(false);
+  const [loadingTcgGroups, setLoadingTcgGroups] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -117,12 +124,66 @@ export default function InventoryPage() {
   const handleFilterChange = (key, value) => {
     setFilters((prev) => {
       if (key === 'category') {
-        return { ...prev, category: value, subcategory: '' };
+        return {
+          ...prev,
+          category: value,
+          subcategory: '',
+          tcgCategoryId: '',
+          tcgGroupId: ''
+        };
       }
       return { ...prev, [key]: value };
     });
     setPagination(prev => ({ ...prev, page: 1 }));
   };
+
+  const selectedCategory = categories.find((c) => String(c.id) === String(filters.category));
+  const isTcgParent = selectedCategory?.slug === 'tcg';
+
+  useEffect(() => {
+    if (!isAuthenticated || !isTcgParent) {
+      setTcgApiCategories([]);
+      setTcgApiGroups([]);
+      return;
+    }
+
+    const loadTcgCategories = async () => {
+      setLoadingTcgCategories(true);
+      try {
+        const res = await fetch('/api/tcg/categories', { cache: 'no-store' });
+        const data = await res.json();
+        setTcgApiCategories(Array.isArray(data?.results) ? data.results : []);
+      } catch {
+        setTcgApiCategories([]);
+      } finally {
+        setLoadingTcgCategories(false);
+      }
+    };
+
+    loadTcgCategories();
+  }, [isAuthenticated, isTcgParent]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !isTcgParent || !filters.tcgCategoryId) {
+      setTcgApiGroups([]);
+      return;
+    }
+
+    const loadTcgGroups = async () => {
+      setLoadingTcgGroups(true);
+      try {
+        const res = await fetch(`/api/tcg/${filters.tcgCategoryId}/groups`, { cache: 'no-store' });
+        const data = await res.json();
+        setTcgApiGroups(Array.isArray(data?.results) ? data.results : []);
+      } catch {
+        setTcgApiGroups([]);
+      } finally {
+        setLoadingTcgGroups(false);
+      }
+    };
+
+    loadTcgGroups();
+  }, [isAuthenticated, isTcgParent, filters.tcgCategoryId]);
 
   // Debounced stock update function
   const debouncedUpdateStock = useCallback(async (productId, newStock) => {
@@ -322,23 +383,76 @@ export default function InventoryPage() {
             </select>
           </div>
 
-          <div className={styles.filterGroup}>
-            <select
-              value={filters.subcategory}
-              onChange={(e) => handleFilterChange('subcategory', e.target.value)}
-              className={styles.filterSelect}
-            >
-              <option value="">Todas las subcategorías</option>
-              {Array.isArray(categories) &&
-                categories
-                  .filter((category) => category.parent_id && (!filters.category || category.parent_id === filters.category))
-                  .map((subcategory) => (
-                <option key={subcategory.id} value={subcategory.id}>
-                  {subcategory.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {isTcgParent ? (
+            <>
+              <div className={styles.filterGroup}>
+                <select
+                  value={filters.tcgCategoryId}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      tcgCategoryId: e.target.value,
+                      tcgGroupId: ''
+                    }))
+                  }
+                  className={styles.filterSelect}
+                  disabled={loadingTcgCategories}
+                >
+                  <option value="">
+                    {loadingTcgCategories ? 'Cargando categorías TCG...' : 'Categoría TCG (API)'}
+                  </option>
+                  {tcgApiCategories.map((c) => (
+                    <option key={c.categoryId} value={c.categoryId}>
+                      {c.displayName || c.name} ({c.categoryId})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className={styles.filterGroup}>
+                <select
+                  value={filters.tcgGroupId}
+                  onChange={(e) => handleFilterChange('tcgGroupId', e.target.value)}
+                  className={styles.filterSelect}
+                  disabled={!filters.tcgCategoryId || loadingTcgGroups}
+                >
+                  <option value="">
+                    {loadingTcgGroups
+                      ? 'Cargando sets...'
+                      : !filters.tcgCategoryId
+                        ? 'Set / Grupo (elige categoría)'
+                        : 'Set / Grupo (API)'}
+                  </option>
+                  {tcgApiGroups.map((g) => (
+                    <option key={g.groupId} value={g.groupId}>
+                      {g.name} ({g.groupId})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          ) : (
+            <div className={styles.filterGroup}>
+              <select
+                value={filters.subcategory}
+                onChange={(e) => handleFilterChange('subcategory', e.target.value)}
+                className={styles.filterSelect}
+              >
+                <option value="">Todas las subcategorías</option>
+                {Array.isArray(categories) &&
+                  categories
+                    .filter(
+                      (category) =>
+                        category.parent_id && (!filters.category || category.parent_id === filters.category)
+                    )
+                    .map((subcategory) => (
+                      <option key={subcategory.id} value={subcategory.id}>
+                        {subcategory.name}
+                      </option>
+                    ))}
+              </select>
+            </div>
+          )}
 
           <div className={styles.filterGroup}>
             <select
@@ -380,6 +494,22 @@ export default function InventoryPage() {
               <option value="in_stock">En Stock</option>
               <option value="low_stock">Stock Bajo</option>
               <option value="out_of_stock">Sin Stock</option>
+            </select>
+          </div>
+
+          <div className={styles.filterGroup}>
+            <select
+              value={filters.orderBy}
+              onChange={(e) => handleFilterChange('orderBy', e.target.value)}
+              className={styles.filterSelect}
+              aria-label="Ordenar inventario"
+            >
+              <option value="date_desc">Fecha (recientes primero)</option>
+              <option value="date_asc">Fecha (antiguos primero)</option>
+              <option value="price_asc">Precio (menor a mayor)</option>
+              <option value="price_desc">Precio (mayor a menor)</option>
+              <option value="name_asc">A - Z</option>
+              <option value="name_desc">Z - A</option>
             </select>
           </div>
         </div>

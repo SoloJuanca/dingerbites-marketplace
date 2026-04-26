@@ -55,3 +55,73 @@
   font-size: 0.75rem;
   color: #6b7280;
 }
+
+.bulkSection {
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+}
+
+.bulkSectionTitle {
+  margin: 0 0 6px 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1e40af;
+}
+
+.bulkSectionText {
+  margin: 0 0 10px 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: #1e3a8a;
+}
+
+.bulkSectionActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.templateButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #fff;
+  background: var(--brand-primary, #2563eb);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.templateButton:hover:not(:disabled) {
+  background: var(--brand-primary-hover, #1d4ed8);
+}
+
+.templateButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.bulkAdminLink {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--brand-primary, #2563eb);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.bulkAdminLink:hover {
+  color: var(--brand-primary-hover, #1d4ed8);
+}
+
+.bulkError {
+  margin: 8px 0 0 0;
+  font-size: 0.75rem;
+  color: #b91c1c;
+}

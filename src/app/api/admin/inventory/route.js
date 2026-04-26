@@ -49,10 +49,13 @@ export async function GET(request) {
     const search = searchParams.get('search') || '';
     const category = searchParams.get('category') || '';
     const subcategory = searchParams.get('subcategory') || '';
+    const tcgCategoryId = searchParams.get('tcgCategoryId') || '';
+    const tcgGroupId = searchParams.get('tcgGroupId') || '';
     const manufacturerBrand = searchParams.get('manufacturerBrand') || '';
     const franchiseBrand = searchParams.get('franchiseBrand') || '';
     const brand = searchParams.get('brand') || '';
     const stockStatus = searchParams.get('stockStatus') || 'all';
+    const orderBy = searchParams.get('orderBy') || 'date_desc';
     
     const snapshot = await db.collection(PRODUCTS_COLLECTION).get();
     let products = snapshot.docs
@@ -72,6 +75,15 @@ export async function GET(request) {
 
     if (subcategory) {
       products = products.filter((p) => String(p.subcategory_id || '') === String(subcategory));
+    }
+
+    // Extra filtering for TCG products (only applied if provided)
+    if (tcgCategoryId) {
+      products = products.filter((p) => String(p.tcg_category_id || '') === String(tcgCategoryId));
+    }
+
+    if (tcgGroupId) {
+      products = products.filter((p) => String(p.tcg_group_id || '') === String(tcgGroupId));
     }
 
     if (manufacturerBrand) {
@@ -156,12 +168,40 @@ export async function GET(request) {
           p.image ||
           (Array.isArray(p.images) && p.images.length > 0 ? p.images[0]?.url || p.images[0] : '') ||
           ''
-      }))
-      .sort((a, b) => {
-        const byStock = a.stock_quantity - b.stock_quantity;
-        if (byStock !== 0) return byStock;
-        return String(a.name || '').localeCompare(String(b.name || ''));
-      });
+      }));
+
+    const getDateTs = (p) => {
+      const raw = p.updated_at || p.created_at || '';
+      const t = raw ? new Date(raw).getTime() : 0;
+      return Number.isFinite(t) ? t : 0;
+    };
+
+    const compareByOrderBy = (a, b) => {
+      switch (orderBy) {
+        case 'price_asc':
+          return toNumber(a.price, 0) - toNumber(b.price, 0);
+        case 'price_desc':
+          return toNumber(b.price, 0) - toNumber(a.price, 0);
+        case 'name_asc':
+          return String(a.name || '').localeCompare(String(b.name || ''), 'es', { sensitivity: 'base' });
+        case 'name_desc':
+          return String(b.name || '').localeCompare(String(a.name || ''), 'es', { sensitivity: 'base' });
+        case 'date_asc':
+          return getDateTs(a) - getDateTs(b);
+        case 'date_desc':
+        default:
+          return getDateTs(b) - getDateTs(a);
+      }
+    };
+
+    products.sort((a, b) => {
+      const primary = compareByOrderBy(a, b);
+      if (primary !== 0) return primary;
+      // Tie-breaker stable-ish: name asc then id
+      const byName = String(a.name || '').localeCompare(String(b.name || ''), 'es', { sensitivity: 'base' });
+      if (byName !== 0) return byName;
+      return String(a.id || '').localeCompare(String(b.id || ''));
+    });
 
     const { data, pagination } = paginate(products, page, limit);
 

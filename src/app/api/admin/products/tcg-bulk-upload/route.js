@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../../lib/auth';
 import { db } from '../../../../../lib/firebaseAdmin';
 import { convertUsdToMxnWithMin } from '../../../../../lib/currency';
+import { TCG_CSV_BASE, tcgcsvHeaders } from '../../../../../lib/tcgcsvClient';
 
 const PRODUCTS_COLLECTION = 'products';
 const CATEGORIES_COLLECTION = 'product_categories';
 const BRANDS_COLLECTION = 'product_brands';
-const TCG_BASE = 'https://tcgcsv.com/tcgplayer';
 const DEFAULT_CATEGORY_ID = 89;
 const DEFAULT_GROUP_ID = 24344;
 const DEFAULT_TCG_CATEGORY_SLUG = 'tcg';
@@ -408,12 +408,15 @@ function buildTcgDescriptionAndFeatures(tcgProduct, subTypeName) {
 
 async function fetchTcgData(categoryId, groupId) {
   const [productsRes, pricesRes] = await Promise.all([
-    fetch(`${TCG_BASE}/${categoryId}/${groupId}/products?getExtendedFields=true`, {
-      headers: { Accept: 'application/json' },
-      cache: 'no-store'
-    }),
-    fetch(`${TCG_BASE}/${categoryId}/${groupId}/prices`, {
-      headers: { Accept: 'application/json' },
+    fetch(
+      `${TCG_CSV_BASE}/${categoryId}/${groupId}/products?getExtendedFields=true`,
+      {
+        headers: tcgcsvHeaders(),
+        cache: 'no-store'
+      }
+    ),
+    fetch(`${TCG_CSV_BASE}/${categoryId}/${groupId}/prices`, {
+      headers: tcgcsvHeaders(),
       cache: 'no-store'
     })
   ]);
@@ -559,6 +562,8 @@ export async function POST(request) {
     );
     const groupId = toNumber(formData.get('groupId'), DEFAULT_GROUP_ID);
     const dryRun = parseBool(formData.get('dryRun'), false);
+    const stockModeRaw = String(formData.get('stockMode') || '').trim().toLowerCase();
+    const stockMode = stockModeRaw === 'replace' ? 'replace' : 'increment'; // default safer
 
     if (!file || typeof file.text !== 'function') {
       return NextResponse.json({ error: 'CSV file is required' }, { status: 400 });
@@ -633,6 +638,7 @@ export async function POST(request) {
 
     const report = {
       dryRun,
+      stockMode,
       created: [],
       updated: [],
       skipped: [],
@@ -674,7 +680,18 @@ export async function POST(request) {
           : [{ variant: row.variant || 'Normal', stock: row.stock }];
 
       for (const rowVariant of rowVariants) {
-        const variantStock = rowVariant.stock;
+        const deltaStock = toNumber(rowVariant.stock, 0);
+
+        // Ignore zeros (do not create/update)
+        if (deltaStock <= 0) {
+          summary.skipped += 1;
+          report.skipped.push({
+            card: row.name,
+            variant: rowVariant.variant,
+            reason: 'Stock is 0 (ignored)'
+          });
+          continue;
+        }
         const variantSubType =
           parsedInput.format === 'nameRows'
             ? resolveSubType(productPriceRows, rowVariant.variant)
@@ -707,11 +724,14 @@ export async function POST(request) {
         );
 
         if (existing) {
+          const existingStock = toNumber(existing.stock_quantity, 0);
+          const nextStock = stockMode === 'replace' ? deltaStock : existingStock + deltaStock;
+
           const updateData = {
             name: productName,
             description: existing.description || generatedCopy.description || '',
             short_description: existing.short_description || generatedCopy.shortDescription || '',
-            stock_quantity: toNumber(variantStock, 0),
+            stock_quantity: nextStock,
             category_id: existing.category_id || categoryDocId,
             brand_id: existing.brand_id || defaultBrandId,
             tcg_product_id: Number(tcgProduct.productId),
@@ -750,7 +770,8 @@ export async function POST(request) {
           report.updated.push({
             id: existing.id,
             name: productName,
-            stock: toNumber(variantStock, 0),
+            stock: nextStock,
+            delta: deltaStock,
             subTypeName
           });
           continue;
@@ -769,7 +790,7 @@ export async function POST(request) {
           cost_price: null,
           sku: null,
           barcode: null,
-          stock_quantity: toNumber(variantStock, 0),
+          stock_quantity: deltaStock,
           low_stock_threshold: 5,
           allow_backorders: false,
           category_id: categoryDocId,
@@ -804,7 +825,7 @@ export async function POST(request) {
         report.created.push({
           id: docRef.id,
           name: productName,
-          stock: toNumber(variantStock, 0),
+          stock: deltaStock,
           subTypeName
         });
       }

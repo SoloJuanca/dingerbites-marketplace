@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-
-const TCG_BASE = 'https://tcgcsv.com/tcgplayer';
+import { TCG_CSV_BASE, tcgcsvHeaders } from '../../../../lib/tcgcsvClient';
 
 export async function GET() {
   try {
-    const res = await fetch(`${TCG_BASE}/categories`, {
-      headers: { Accept: 'application/json' },
+    const res = await fetch(`${TCG_CSV_BASE}/categories`, {
+      headers: tcgcsvHeaders(),
       next: { revalidate: 3600 }
     });
     if (!res.ok) {

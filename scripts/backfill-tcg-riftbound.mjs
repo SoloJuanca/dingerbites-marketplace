@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { tcgcsvHeaders, TCG_CSV_BASE } from '../src/lib/tcgcsvClient.js';
 
 const PRODUCTS_COLLECTION = 'products';
 const CATEGORIES_COLLECTION = 'product_categories';
@@ -113,8 +114,8 @@ async function getOrCreateBySlug({
 
 async function fetchTcgProductsMap(categoryId, groupId) {
   const response = await fetch(
-    `https://tcgcsv.com/tcgplayer/${categoryId}/${groupId}/products?getExtendedFields=true`,
-    { headers: { Accept: 'application/json' }, cache: 'no-store' }
+    `${TCG_CSV_BASE}/${categoryId}/${groupId}/products?getExtendedFields=true`,
+    { headers: tcgcsvHeaders(), cache: 'no-store' }
   );
 
   if (!response.ok) {

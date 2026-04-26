@@ -669,6 +669,11 @@ export default function EditProductPage() {
             </div>
           </div>
           <p className={styles.wizardStepDescription}>Tipo actual: <strong>{productType === 'tcg' ? 'TCG' : 'Normal'}</strong></p>
+          {productType === 'tcg' && (
+            <p className={styles.helpText} style={{ marginTop: 8, maxWidth: '560px' }}>
+              Con categoría TCG y set elegidos verás la descarga del CSV para carga masiva; importa en Productos → Carga masiva TCG.
+            </p>
+          )}
         </div>
       );
     }

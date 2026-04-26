@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../lib/AuthContext';
+import { downloadTcgBulkTemplateCsv } from '../../lib/tcgBulkTemplateDownload';
 import styles from './BulkUpload.module.css';
 
 const DEFAULT_CATEGORY_ID = 89;
@@ -11,6 +12,7 @@ export default function BulkUpload() {
   const { apiRequest } = useAuth();
   const [file, setFile] = useState(null);
   const [dryRun, setDryRun] = useState(true);
+  const [stockMode, setStockMode] = useState('increment'); // safer default
   const [uploading, setUploading] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
@@ -141,6 +143,7 @@ export default function BulkUpload() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('dryRun', String(dryRun));
+      formData.append('stockMode', stockMode);
       formData.append('categoryId', String(selectedCategoryId));
       formData.append('groupId', String(selectedGroupId));
 
@@ -172,73 +175,7 @@ export default function BulkUpload() {
     setError(null);
 
     try {
-      const [productsResponse, pricesResponse] = await Promise.all([
-        fetch(`/api/tcg/${selectedCategoryId}/${selectedGroupId}/products`, {
-          cache: 'no-store'
-        }),
-        fetch(`/api/tcg/${selectedCategoryId}/${selectedGroupId}/prices`, {
-          cache: 'no-store'
-        })
-      ]);
-
-      const productsData = await productsResponse.json();
-      const pricesData = await pricesResponse.json();
-
-      if (!productsResponse.ok) {
-        throw new Error(productsData?.error || 'No se pudieron cargar los productos del grupo');
-      }
-      if (!pricesResponse.ok) {
-        throw new Error(pricesData?.error || 'No se pudieron cargar las variantes del grupo');
-      }
-
-      const products = Array.isArray(productsData.results) ? productsData.results : [];
-      const prices = Array.isArray(pricesData.results) ? pricesData.results : [];
-
-      const subTypesByProductId = new Map();
-      prices.forEach((price) => {
-        const productId = String(price.productId);
-        if (!subTypesByProductId.has(productId)) subTypesByProductId.set(productId, new Set());
-        subTypesByProductId.get(productId).add(price.subTypeName || 'Normal');
-      });
-
-      const escapeCell = (value) => {
-        const text = String(value ?? '');
-        if (!/[",\n]/.test(text)) return text;
-        return `"${text.replace(/"/g, '""')}"`;
-      };
-
-      const header = ['Nombre', 'Variante', 'Stock', 'TCG Product ID'];
-      const rows = [header.join(',')];
-
-      products.forEach((product) => {
-        const productId = String(product.productId);
-        const subTypesSet = subTypesByProductId.get(productId);
-        const subTypes = subTypesSet && subTypesSet.size > 0
-          ? [...subTypesSet]
-          : ['Normal'];
-
-        subTypes.forEach((subType) => {
-          rows.push(
-            [
-              escapeCell(product.name || product.cleanName || ''),
-              escapeCell(subType || 'Normal'),
-              '0',
-              escapeCell(productId)
-            ].join(',')
-          );
-        });
-      });
-
-      const csv = rows.join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `template_tcg_${selectedCategoryId}_${selectedGroupId}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      await downloadTcgBulkTemplateCsv(selectedCategoryId, selectedGroupId);
     } catch (err) {
       setError(err.message || 'Error al generar template dinámico');
     }
@@ -335,6 +272,15 @@ export default function BulkUpload() {
               onChange={(e) => setDryRun(e.target.checked)}
             />
             Ejecutar en modo simulación (dry run)
+          </label>
+
+          <label className={styles.dryRunOption}>
+            <input
+              type="checkbox"
+              checked={stockMode === 'increment'}
+              onChange={(e) => setStockMode(e.target.checked ? 'increment' : 'replace')}
+            />
+            Sumar al stock existente (si no, reemplaza)
           </label>
 
           <button
