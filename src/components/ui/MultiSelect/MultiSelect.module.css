@@ -1,0 +1,257 @@
+.root {
+  position: relative;
+  width: 100%;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  margin: 0 0 8px 0;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.trigger {
+  width: 100%;
+  padding: 12px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.trigger:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.trigger:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.triggerInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-height: 20px;
+  flex: 1;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  max-width: 100%;
+}
+
+.chipText {
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.chipRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.chipRemove:hover {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+.chipRemove:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.more {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.triggerText {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.chevron {
+  color: #6b7280;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 8px);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.searchRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid #f3f4f6;
+  background: #fafafa;
+}
+
+.actionsOnly {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid #f3f4f6;
+  background: #fafafa;
+}
+
+.search {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #ffffff;
+}
+
+.search:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.action {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  white-space: nowrap;
+}
+
+.action:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+  transform: translateY(-1px);
+}
+
+.action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.list {
+  max-height: 280px;
+  overflow: auto;
+  padding: 6px;
+}
+
+.option {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.option:hover {
+  background: #f8fafc;
+}
+
+.optionActive {
+  border-color: rgba(59, 130, 246, 0.35);
+  background: #f0f9ff;
+}
+
+.optionSelected {
+  background: #f5f3ff;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #111827;
+  background: #ffffff;
+}
+
+.optionSelected .checkbox {
+  border-color: rgba(107, 33, 168, 0.35);
+  background: rgba(107, 33, 168, 0.08);
+}
+
+.optionText {
+  font-size: 14px;
+  color: #111827;
+}
+
+.empty {
+  padding: 18px 12px;
+  color: #9ca3af;
+  text-align: center;
+  font-size: 14px;
+}
+

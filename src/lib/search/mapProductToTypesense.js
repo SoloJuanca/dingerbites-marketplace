@@ -37,6 +37,8 @@ export function mapProductToTypesense(product, lookup = {}) {
   const tags = Array.isArray(product.tags)
     ? product.tags.map((tag) => String(tag || '').trim()).filter(Boolean)
     : [];
+  const tcgCategoryName = product.tcg_category_name != null ? String(product.tcg_category_name) : '';
+  const tcgGroupName = product.tcg_group_name != null ? String(product.tcg_group_name) : '';
 
   const searchBlob = [
     name,
@@ -46,6 +48,8 @@ export function mapProductToTypesense(product, lookup = {}) {
     String(product.barcode || ''),
     String(brand?.name || ''),
     String(category?.name || ''),
+    tcgCategoryName,
+    tcgGroupName,
     tags.join(' ')
   ]
     .join(' ')
@@ -66,6 +70,11 @@ export function mapProductToTypesense(product, lookup = {}) {
     category_name: category?.name || '',
     subcategory_id: product.subcategory_id ? String(product.subcategory_id) : '',
     subcategory_slug: subcategory?.slug || '',
+    tcg_category_id: product.tcg_category_id != null ? String(product.tcg_category_id) : '',
+    tcg_group_id: product.tcg_group_id != null ? String(product.tcg_group_id) : '',
+    tcg_category_name: tcgCategoryName,
+    tcg_group_name: tcgGroupName,
+    tcg_sub_type_name: product.tcg_sub_type_name != null ? String(product.tcg_sub_type_name) : '',
     manufacturer_brand_id: product.manufacturer_brand_id ? String(product.manufacturer_brand_id) : '',
     manufacturer_brand_slug: manufacturerBrand?.slug || '',
     franchise_brand_id: product.franchise_brand_id ? String(product.franchise_brand_id) : '',

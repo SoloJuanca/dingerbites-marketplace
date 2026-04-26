@@ -11,6 +11,7 @@ function buildFilterBy(filters) {
   const filterList = [];
   const status = String(filters.status || '').trim();
   const includeInactive = String(filters.includeInactive || '').toLowerCase() === 'true';
+  const inStockOnly = String(filters.inStockOnly || '').toLowerCase() === 'true';
 
   if (!includeInactive) {
     if (status === 'active') {
@@ -41,6 +42,8 @@ function buildFilterBy(filters) {
   appendArrayFilter('franchise_brand_slug', filters.franchiseBrand);
   appendArrayFilter('brand_slug', filters.brand);
   appendArrayFilter('condition', filters.condition);
+  appendArrayFilter('tcg_category_id', filters.tcgCategoryId);
+  appendArrayFilter('tcg_group_id', filters.tcgGroupId);
 
   const minPrice = filters.minPrice ? toNumber(filters.minPrice, 0) : null;
   const maxPrice = filters.maxPrice ? toNumber(filters.maxPrice, 0) : null;
@@ -50,6 +53,10 @@ function buildFilterBy(filters) {
     filterList.push(`price:>=${minPrice}`);
   } else if (maxPrice !== null) {
     filterList.push(`price:<=${maxPrice}`);
+  }
+
+  if (inStockOnly) {
+    filterList.push('stock_quantity:>0');
   }
 
   return filterList.join(' && ');
@@ -168,9 +175,9 @@ export async function getSearchSuggestions(rawQuery, filters = {}) {
   const { collectionName } = getTypesenseConfig();
   const result = await client.collections(collectionName).documents().search({
     q: query,
-    query_by: 'name,name_normalized,brand_name,category_name',
+    query_by: 'name,name_normalized,tcg_group_name,brand_name,category_name',
     filter_by: buildFilterBy(filters),
-    per_page: 6,
+    per_page: 12,
     prefix: true,
     sort_by: '_text_match:desc,popularity:desc'
   });
@@ -178,12 +185,35 @@ export async function getSearchSuggestions(rawQuery, filters = {}) {
   const suggestions = new Map();
   (result?.hits || []).forEach((hit) => {
     const document = hit.document || {};
-    if (document?.name && !suggestions.has(document.name)) {
-      suggestions.set(document.name, {
-        label: document.name,
-        slug: document.slug,
-        category: document.category_name || null
-      });
+    const categoryName = document.category_name || null;
+
+    // Set/group suggestions (prefer when available)
+    if (document?.tcg_group_name && document?.tcg_group_id && document?.tcg_category_id) {
+      const label = String(document.tcg_group_name);
+      const key = `tcg_group::${label.toLowerCase()}`;
+      if (!suggestions.has(key)) {
+        suggestions.set(key, {
+          label,
+          slug: `tcg-group-${document.tcg_category_id}-${document.tcg_group_id}`,
+          category: categoryName,
+          kind: 'tcg_group',
+          tcgCategoryId: String(document.tcg_category_id),
+          tcgGroupId: String(document.tcg_group_id)
+        });
+      }
+    }
+
+    // Product suggestions
+    if (document?.name) {
+      const label = String(document.name);
+      const key = `product::${label.toLowerCase()}`;
+      if (!suggestions.has(key)) {
+        suggestions.set(key, {
+          label,
+          slug: document.slug,
+          category: categoryName
+        });
+      }
     }
   });
 

@@ -257,6 +257,13 @@ export async function getProducts(filters = {}) {
   try {
     const page = Math.max(1, toNum(filters.page, 1));
     const limit = Math.max(1, toNum(filters.limit, 8));
+    const inStockOnly = String(filters.inStockOnly || '').toLowerCase() === 'true';
+    const tcgCategoryIds = filters.tcgCategoryId
+      ? String(filters.tcgCategoryId).split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+    const tcgGroupIds = filters.tcgGroupId
+      ? String(filters.tcgGroupId).split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
     const categorySlugs = filters.category ? String(filters.category).split(',').map((s) => s.trim()).filter(Boolean) : [];
     const subcategorySlugs = filters.subcategory
       ? String(filters.subcategory).split(',').map((s) => s.trim()).filter(Boolean)
@@ -282,6 +289,17 @@ export async function getProducts(filters = {}) {
     const snapshot = await db.collection(PRODUCTS_COLLECTION).get();
     let products = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     products = products.filter((p) => p.is_active !== false);
+    if (inStockOnly) {
+      products = products.filter(hasStock);
+    }
+    if (tcgCategoryIds.length > 0) {
+      const set = new Set(tcgCategoryIds.map(String));
+      products = products.filter((p) => set.has(String(p.tcg_category_id || '')));
+    }
+    if (tcgGroupIds.length > 0) {
+      const set = new Set(tcgGroupIds.map(String));
+      products = products.filter((p) => set.has(String(p.tcg_group_id || '')));
+    }
 
     const { categoryIds, subcategoryIds, manufacturerBrandIds, franchiseBrandIds, legacyBrandIds } =
       await resolveTaxonomySlugs({

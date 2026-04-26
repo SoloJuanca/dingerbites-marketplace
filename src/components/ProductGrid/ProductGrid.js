@@ -11,6 +11,8 @@ export default function ProductGrid({
   currentPage,
   category,
   subcategory,
+  tcgCategoryId,
+  tcgGroupId,
   manufacturerBrand,
   franchiseBrand,
   brand,
@@ -19,6 +21,7 @@ export default function ProductGrid({
   maxPrice,
   sortBy,
   search,
+  inStockOnly,
   initialData = null
 }) {
   const [products, setProducts] = useState(initialData?.products || []);
@@ -39,6 +42,8 @@ export default function ProductGrid({
 
         if (category) params.set('category', category);
         if (subcategory) params.set('subcategory', subcategory);
+        if (tcgCategoryId) params.set('tcgCategoryId', tcgCategoryId);
+        if (tcgGroupId) params.set('tcgGroupId', tcgGroupId);
         if (manufacturerBrand) params.set('manufacturerBrand', manufacturerBrand);
         if (franchiseBrand) params.set('franchiseBrand', franchiseBrand);
         if (brand) params.set('brand', brand);
@@ -47,6 +52,7 @@ export default function ProductGrid({
         if (maxPrice) params.set('maxPrice', maxPrice);
         if (sortBy) params.set('sortBy', sortBy);
         if (search) params.set('q', search);
+        if (inStockOnly != null && String(inStockOnly).trim() !== '') params.set('inStockOnly', String(inStockOnly));
 
         const response = await fetch(`/api/search/products?${params.toString()}`);
         
@@ -84,7 +90,23 @@ export default function ProductGrid({
     }
 
     loadProducts();
-  }, [currentPage, category, subcategory, manufacturerBrand, franchiseBrand, brand, condition, minPrice, maxPrice, sortBy, search, initialData]);
+  }, [
+    currentPage,
+    category,
+    subcategory,
+    tcgCategoryId,
+    tcgGroupId,
+    manufacturerBrand,
+    franchiseBrand,
+    brand,
+    condition,
+    minPrice,
+    maxPrice,
+    sortBy,
+    search,
+    inStockOnly,
+    initialData
+  ]);
 
   if (loading) {
     return (

@@ -9,7 +9,8 @@ export async function GET(request) {
     const q = searchParams.get('q') || '';
     const filters = {
       category: searchParams.get('category') || '',
-      subcategory: searchParams.get('subcategory') || ''
+      subcategory: searchParams.get('subcategory') || '',
+      inStockOnly: 'true'
     };
 
     const suggestions = await getSearchSuggestions(q, filters);

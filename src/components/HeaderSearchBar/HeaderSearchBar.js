@@ -60,7 +60,10 @@ export default function HeaderSearchBar() {
       }
       try {
         setIsLoadingSuggestions(true);
-        const response = await fetch(`/api/search/suggestions?q=${encodeURIComponent(q)}`);
+        const params = new URLSearchParams();
+        params.set('q', q);
+        if (categorySlug) params.set('category', categorySlug);
+        const response = await fetch(`/api/search/suggestions?${params.toString()}`);
         if (!response.ok) return;
         const data = await response.json();
         if (!cancelled) {
@@ -133,6 +136,8 @@ export default function HeaderSearchBar() {
         const params = new URLSearchParams();
         params.set('page', '1');
         if (categorySlug) params.set('category', categorySlug);
+        if (selected.tcgCategoryId) params.set('tcgCategoryId', selected.tcgCategoryId);
+        if (selected.tcgGroupId) params.set('tcgGroupId', selected.tcgGroupId);
         params.set('q', selected.label);
         router.push(`/catalog?${params.toString()}`);
         setSuggestions([]);
@@ -143,6 +148,8 @@ export default function HeaderSearchBar() {
   };
 
   const showSuggestions = isFocused && (suggestions.length > 0 || isLoadingSuggestions);
+  const trimmedQuery = query.trim();
+  const showExploreCatalog = isFocused && !isLoadingSuggestions && suggestions.length === 0 && trimmedQuery.length >= 2;
   const wrapperClass = `${styles.wrapper}${showSuggestions ? ` ${styles.wrapperOpen}` : ''}`;
 
   return (
@@ -194,7 +201,7 @@ export default function HeaderSearchBar() {
         </div>
       </form>
 
-      {showSuggestions && (
+      {(showSuggestions || showExploreCatalog) && (
         <div
           id="header-search-suggestions"
           className={styles.suggestionsList}
@@ -203,6 +210,28 @@ export default function HeaderSearchBar() {
         >
           {isLoadingSuggestions ? (
             <div className={styles.suggestionItemMuted}>Buscando...</div>
+          ) : showExploreCatalog ? (
+            <button
+              type="button"
+              role="option"
+              aria-selected="false"
+              className={styles.suggestionItem}
+              onMouseDown={(ev) => {
+                ev.preventDefault();
+                const params = new URLSearchParams();
+                params.set('page', '1');
+                if (categorySlug) params.set('category', categorySlug);
+                params.set('q', trimmedQuery);
+                router.push(`/catalog?${params.toString()}`);
+                setSuggestions([]);
+                setActiveIndex(-1);
+                setIsFocused(false);
+                inputRef.current?.blur?.();
+              }}
+            >
+              <span>Explorar catálogo</span>
+              <small>Ver resultados</small>
+            </button>
           ) : (
             suggestions.map((suggestion, index) => (
               <button
@@ -217,6 +246,8 @@ export default function HeaderSearchBar() {
                   const params = new URLSearchParams();
                   params.set('page', '1');
                   if (categorySlug) params.set('category', categorySlug);
+                  if (suggestion.tcgCategoryId) params.set('tcgCategoryId', suggestion.tcgCategoryId);
+                  if (suggestion.tcgGroupId) params.set('tcgGroupId', suggestion.tcgGroupId);
                   params.set('q', suggestion.label);
                   router.push(`/catalog?${params.toString()}`);
                   setSuggestions([]);

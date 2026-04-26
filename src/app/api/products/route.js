@@ -9,6 +9,8 @@ export async function GET(request) {
       page: parseInt(searchParams.get('page')) || 1,
       category: searchParams.get('category') || '',
       subcategory: searchParams.get('subcategory') || '',
+      tcgCategoryId: searchParams.get('tcgCategoryId') || '',
+      tcgGroupId: searchParams.get('tcgGroupId') || '',
       manufacturerBrand: searchParams.get('manufacturerBrand') || '',
       franchiseBrand: searchParams.get('franchiseBrand') || '',
       brand: searchParams.get('brand') || '',
@@ -17,7 +19,8 @@ export async function GET(request) {
       maxPrice: searchParams.get('maxPrice') || '',
       sortBy: searchParams.get('sortBy') || 'newest',
       q: searchParams.get('q') || searchParams.get('search') || '',
-      limit: parseInt(searchParams.get('limit')) || 12
+      limit: parseInt(searchParams.get('limit')) || 12,
+      inStockOnly: searchParams.get('inStockOnly') || 'true'
     };
 
     const result = await searchProducts(filters, { allowFallback: true });

@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import styles from './SortOptions.module.css';
 
-export default function SortOptions({ currentSort }) {
+export default function SortOptions({ currentSort, currentInStockOnly = 'true' }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -31,6 +31,16 @@ export default function SortOptions({ currentSort }) {
     router.push(`${pathname}?${params.toString()}`);
   };
 
+  const handleInStockChange = (e) => {
+    const params = new URLSearchParams(searchParams);
+    const checked = e.target.checked;
+    params.delete('page');
+    params.set('inStockOnly', checked ? 'true' : 'false');
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const isInStockOnly = String(currentInStockOnly || 'true').toLowerCase() !== 'false';
+
   return (
     <div className={styles.sortContainer}>
       <label htmlFor="sort-select" className={styles.label}>
@@ -48,6 +58,16 @@ export default function SortOptions({ currentSort }) {
           </option>
         ))}
       </select>
+
+      <label className={styles.stockToggle}>
+        <input
+          type="checkbox"
+          className={styles.stockCheckbox}
+          checked={isInStockOnly}
+          onChange={handleInStockChange}
+        />
+        <span className={styles.stockLabel}>Mostrar solo en stock</span>
+      </label>
     </div>
   );
 } 

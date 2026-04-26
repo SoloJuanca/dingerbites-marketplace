@@ -6,12 +6,21 @@ import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../../../lib/AuthContext';
 import AdminLayout from '../../../../components/admin/AdminLayout/AdminLayout';
+import MultiSelect from '../../../../components/ui/MultiSelect/MultiSelect';
 import styles from './inventory.module.css';
 
 export default function InventoryPage() {
   const { apiRequest, isAuthenticated } = useAuth();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [facets, setFacets] = useState({
+    category: {},
+    subcategory: {},
+    manufacturerBrand: {},
+    franchiseBrand: {},
+    tcgCategoryId: {},
+    tcgGroupId: {}
+  });
   const [inventoryStats, setInventoryStats] = useState({
     totalInvestment: 0,
     totalProducts: 0,
@@ -20,12 +29,12 @@ export default function InventoryPage() {
   });
   const [filters, setFilters] = useState({
     search: '',
-    category: '',
-    subcategory: '',
-    tcgCategoryId: '',
-    tcgGroupId: '',
-    manufacturerBrand: '',
-    franchiseBrand: '',
+    category: [],
+    subcategory: [],
+    tcgCategoryId: [],
+    tcgGroupId: [],
+    manufacturerBrand: [],
+    franchiseBrand: [],
     stockStatus: 'all',
     orderBy: 'date_desc'
   });
@@ -57,19 +66,49 @@ export default function InventoryPage() {
     }
   }, [filters, pagination.page, isAuthenticated]);
 
+  const buildInventoryQuery = () => {
+    const params = new URLSearchParams();
+    params.set('page', String(pagination.page));
+    params.set('limit', String(pagination.limit));
+
+    if (filters.search) params.set('search', filters.search);
+    params.set('stockStatus', filters.stockStatus || 'all');
+    params.set('orderBy', filters.orderBy || 'date_desc');
+
+    const appendMany = (key, values) => {
+      if (!Array.isArray(values)) return;
+      values
+        .map(String)
+        .filter((v) => v !== '')
+        .forEach((v) => params.append(key, v));
+    };
+
+    appendMany('category', filters.category);
+    appendMany('subcategory', filters.subcategory);
+    appendMany('manufacturerBrand', filters.manufacturerBrand);
+    appendMany('franchiseBrand', filters.franchiseBrand);
+    appendMany('tcgCategoryId', filters.tcgCategoryId);
+    appendMany('tcgGroupId', filters.tcgGroupId);
+
+    return params;
+  };
+
   const loadInventoryData = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams({
-        page: pagination.page,
-        limit: pagination.limit,
-        ...filters
-      });
-
-      const response = await apiRequest(`/api/admin/inventory?${params}`);
+      const params = buildInventoryQuery();
+      const response = await apiRequest(`/api/admin/inventory?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
         setProducts(data.products || []);
+        setFacets(data.facets || {
+          category: {},
+          subcategory: {},
+          manufacturerBrand: {},
+          franchiseBrand: {},
+          tcgCategoryId: {},
+          tcgGroupId: {}
+        });
         setInventoryStats(data.stats || inventoryStats);
         setPagination(prev => ({
           ...prev,
@@ -123,22 +162,25 @@ export default function InventoryPage() {
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => {
-      if (key === 'category') {
-        return {
-          ...prev,
-          category: value,
-          subcategory: '',
-          tcgCategoryId: '',
-          tcgGroupId: ''
-        };
-      }
       return { ...prev, [key]: value };
     });
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
-  const selectedCategory = categories.find((c) => String(c.id) === String(filters.category));
-  const isTcgParent = selectedCategory?.slug === 'tcg';
+  const parentCategories = Array.isArray(categories)
+    ? categories.filter((c) => !c?.parent_id)
+    : [];
+  const tcgParentId = parentCategories.find((c) => c?.slug === 'tcg')?.id ?? null;
+  const isTcgParent = tcgParentId != null && Array.isArray(filters.category) && filters.category.map(String).includes(String(tcgParentId));
+
+  const filterOptionsByFacet = (options, facetKey, selectedIds) => {
+    const facet = facets?.[facetKey] || {};
+    const selected = new Set((Array.isArray(selectedIds) ? selectedIds : []).map(String));
+    return (Array.isArray(options) ? options : []).filter((opt) => {
+      const id = String(opt.id);
+      return selected.has(id) || Number(facet[id] || 0) > 0;
+    });
+  };
 
   useEffect(() => {
     if (!isAuthenticated || !isTcgParent) {
@@ -164,7 +206,7 @@ export default function InventoryPage() {
   }, [isAuthenticated, isTcgParent]);
 
   useEffect(() => {
-    if (!isAuthenticated || !isTcgParent || !filters.tcgCategoryId) {
+    if (!isAuthenticated || !isTcgParent || !Array.isArray(filters.tcgCategoryId) || filters.tcgCategoryId.length === 0) {
       setTcgApiGroups([]);
       return;
     }
@@ -172,9 +214,30 @@ export default function InventoryPage() {
     const loadTcgGroups = async () => {
       setLoadingTcgGroups(true);
       try {
-        const res = await fetch(`/api/tcg/${filters.tcgCategoryId}/groups`, { cache: 'no-store' });
-        const data = await res.json();
-        setTcgApiGroups(Array.isArray(data?.results) ? data.results : []);
+        const uniqueCategoryIds = [...new Set(filters.tcgCategoryId.map(String).filter(Boolean))];
+        const groupResults = await Promise.all(
+          uniqueCategoryIds.map(async (catId) => {
+            try {
+              const res = await fetch(`/api/tcg/${catId}/groups`, { cache: 'no-store' });
+              const data = await res.json();
+              const groups = Array.isArray(data?.results) ? data.results : [];
+              return groups.map((g) => ({ ...g, __tcgCategoryId: catId }));
+            } catch {
+              return [];
+            }
+          })
+        );
+        const merged = groupResults.flat();
+        // Dedupe by category+group
+        const seen = new Set();
+        const deduped = [];
+        for (const g of merged) {
+          const key = `${g.__tcgCategoryId}:${g.groupId}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          deduped.push(g);
+        }
+        setTcgApiGroups(deduped);
       } catch {
         setTcgApiGroups([]);
       } finally {
@@ -184,6 +247,37 @@ export default function InventoryPage() {
 
     loadTcgGroups();
   }, [isAuthenticated, isTcgParent, filters.tcgCategoryId]);
+
+  // Keep dependent filters consistent when categories change
+  useEffect(() => {
+    setFilters((prev) => {
+      const next = { ...prev };
+      const selectedParents = Array.isArray(next.category) ? next.category.map(String) : [];
+
+      // If TCG parent is not selected, clear TCG API filters
+      const hasTcg = tcgParentId != null && selectedParents.includes(String(tcgParentId));
+      if (!hasTcg) {
+        next.tcgCategoryId = [];
+        next.tcgGroupId = [];
+      }
+
+      // If parent categories are selected, drop subcategories that don't belong to them
+      const selectedParentsSet = new Set(selectedParents);
+      if (selectedParentsSet.size > 0) {
+        const allowedSubcategoryIds = new Set(
+          (Array.isArray(categories) ? categories : [])
+            .filter((c) => c?.parent_id && selectedParentsSet.has(String(c.parent_id)))
+            .map((c) => String(c.id))
+        );
+        next.subcategory = (Array.isArray(next.subcategory) ? next.subcategory : []).filter((id) =>
+          allowedSubcategoryIds.has(String(id))
+        );
+      }
+
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tcgParentId, categories, filters.category]);
 
   // Debounced stock update function
   const debouncedUpdateStock = useCallback(async (productId, newStock) => {
@@ -369,119 +463,114 @@ export default function InventoryPage() {
           </div>
 
           <div className={styles.filterGroup}>
-            <select
+            <MultiSelect
+              ariaLabel="Filtrar por categorías"
+              placeholder="Todas las categorías"
+              options={filterOptionsByFacet(
+                parentCategories.map((c) => ({ id: c.id, name: c.name })),
+                'category',
+                filters.category
+              )}
               value={filters.category}
-              onChange={(e) => handleFilterChange('category', e.target.value)}
-              className={styles.filterSelect}
-            >
-              <option value="">Todas las categorías</option>
-              {Array.isArray(categories) && categories.filter((category) => !category.parent_id).map(category => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
+              onChange={(ids) => handleFilterChange('category', ids)}
+            />
           </div>
 
           {isTcgParent ? (
             <>
               <div className={styles.filterGroup}>
-                <select
+                <MultiSelect
+                  ariaLabel="Filtrar por categorías TCG (API)"
+                  placeholder={loadingTcgCategories ? 'Cargando categorías TCG…' : 'Categoría TCG (API)'}
+                  options={filterOptionsByFacet(
+                    tcgApiCategories.map((c) => ({
+                      id: c.categoryId,
+                      name: `${c.displayName || c.name} (${c.categoryId})`
+                    })),
+                    'tcgCategoryId',
+                    filters.tcgCategoryId
+                  )}
                   value={filters.tcgCategoryId}
-                  onChange={(e) =>
+                  onChange={(ids) =>
                     setFilters((prev) => ({
                       ...prev,
-                      tcgCategoryId: e.target.value,
-                      tcgGroupId: ''
+                      tcgCategoryId: ids,
+                      tcgGroupId: (Array.isArray(prev.tcgGroupId) ? prev.tcgGroupId : []).filter(Boolean)
                     }))
                   }
-                  className={styles.filterSelect}
                   disabled={loadingTcgCategories}
-                >
-                  <option value="">
-                    {loadingTcgCategories ? 'Cargando categorías TCG...' : 'Categoría TCG (API)'}
-                  </option>
-                  {tcgApiCategories.map((c) => (
-                    <option key={c.categoryId} value={c.categoryId}>
-                      {c.displayName || c.name} ({c.categoryId})
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div className={styles.filterGroup}>
-                <select
-                  value={filters.tcgGroupId}
-                  onChange={(e) => handleFilterChange('tcgGroupId', e.target.value)}
-                  className={styles.filterSelect}
-                  disabled={!filters.tcgCategoryId || loadingTcgGroups}
-                >
-                  <option value="">
-                    {loadingTcgGroups
-                      ? 'Cargando sets...'
-                      : !filters.tcgCategoryId
+                <MultiSelect
+                  ariaLabel="Filtrar por sets/grupos TCG (API)"
+                  placeholder={
+                    loadingTcgGroups
+                      ? 'Cargando sets…'
+                      : (!Array.isArray(filters.tcgCategoryId) || filters.tcgCategoryId.length === 0)
                         ? 'Set / Grupo (elige categoría)'
-                        : 'Set / Grupo (API)'}
-                  </option>
-                  {tcgApiGroups.map((g) => (
-                    <option key={g.groupId} value={g.groupId}>
-                      {g.name} ({g.groupId})
-                    </option>
-                  ))}
-                </select>
+                        : 'Set / Grupo (API)'
+                  }
+                  options={filterOptionsByFacet(
+                    tcgApiGroups.map((g) => ({
+                      id: g.groupId,
+                      name: `${g.name} (${g.groupId})`
+                    })),
+                    'tcgGroupId',
+                    filters.tcgGroupId
+                  )}
+                  value={filters.tcgGroupId}
+                  onChange={(ids) => handleFilterChange('tcgGroupId', ids)}
+                  disabled={!Array.isArray(filters.tcgCategoryId) || filters.tcgCategoryId.length === 0 || loadingTcgGroups}
+                />
               </div>
             </>
           ) : (
             <div className={styles.filterGroup}>
-              <select
+              <MultiSelect
+                ariaLabel="Filtrar por subcategorías"
+                placeholder="Todas las subcategorías"
+                options={filterOptionsByFacet((() => {
+                  const selectedParents = new Set((Array.isArray(filters.category) ? filters.category : []).map(String));
+                  const subs = Array.isArray(categories) ? categories.filter((c) => c?.parent_id) : [];
+                  const filtered = selectedParents.size > 0
+                    ? subs.filter((c) => selectedParents.has(String(c.parent_id)))
+                    : subs;
+                  return filtered.map((c) => ({ id: c.id, name: c.name }));
+                })(), 'subcategory', filters.subcategory)}
                 value={filters.subcategory}
-                onChange={(e) => handleFilterChange('subcategory', e.target.value)}
-                className={styles.filterSelect}
-              >
-                <option value="">Todas las subcategorías</option>
-                {Array.isArray(categories) &&
-                  categories
-                    .filter(
-                      (category) =>
-                        category.parent_id && (!filters.category || category.parent_id === filters.category)
-                    )
-                    .map((subcategory) => (
-                      <option key={subcategory.id} value={subcategory.id}>
-                        {subcategory.name}
-                      </option>
-                    ))}
-              </select>
+                onChange={(ids) => handleFilterChange('subcategory', ids)}
+              />
             </div>
           )}
 
           <div className={styles.filterGroup}>
-            <select
+            <MultiSelect
+              ariaLabel="Filtrar por marcas fabricante"
+              placeholder="Todas las marcas fabricante"
+              options={filterOptionsByFacet(
+                (Array.isArray(manufacturerBrands) ? manufacturerBrands : []).map((b) => ({ id: b.id, name: b.name })),
+                'manufacturerBrand',
+                filters.manufacturerBrand
+              )}
               value={filters.manufacturerBrand}
-              onChange={(e) => handleFilterChange('manufacturerBrand', e.target.value)}
-              className={styles.filterSelect}
-            >
-              <option value="">Todas las marcas fabricante</option>
-              {Array.isArray(manufacturerBrands) && manufacturerBrands.map((brand) => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ))}
-            </select>
+              onChange={(ids) => handleFilterChange('manufacturerBrand', ids)}
+            />
           </div>
 
           <div className={styles.filterGroup}>
-            <select
+            <MultiSelect
+              ariaLabel="Filtrar por marcas de franquicia"
+              placeholder="Todas las marcas de franquicia"
+              options={filterOptionsByFacet(
+                (Array.isArray(franchiseBrands) ? franchiseBrands : []).map((b) => ({ id: b.id, name: b.name })),
+                'franchiseBrand',
+                filters.franchiseBrand
+              )}
               value={filters.franchiseBrand}
-              onChange={(e) => handleFilterChange('franchiseBrand', e.target.value)}
-              className={styles.filterSelect}
-            >
-              <option value="">Todas las marcas de franquicia</option>
-              {Array.isArray(franchiseBrands) && franchiseBrands.map((brand) => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ))}
-            </select>
+              onChange={(ids) => handleFilterChange('franchiseBrand', ids)}
+            />
           </div>
 
           <div className={styles.filterGroup}>

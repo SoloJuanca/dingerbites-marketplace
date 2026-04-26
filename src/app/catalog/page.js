@@ -37,6 +37,8 @@ function normalizeFilters(searchParams) {
     currentPage: parseInt(safeParams.page, 10) || 1,
     category: safeParams.category || '',
     subcategory: safeParams.subcategory || '',
+    tcgCategoryId: safeParams.tcgCategoryId || '',
+    tcgGroupId: safeParams.tcgGroupId || '',
     manufacturerBrand: safeParams.manufacturerBrand || '',
     franchiseBrand: safeParams.franchiseBrand || '',
     brand: safeParams.brand || '',
@@ -44,7 +46,8 @@ function normalizeFilters(searchParams) {
     minPrice: safeParams.minPrice || '',
     maxPrice: safeParams.maxPrice || '',
     sortBy: safeParams.sortBy || 'newest',
-    search: safeParams.q || safeParams.search || ''
+    search: safeParams.q || safeParams.search || '',
+    inStockOnly: safeParams.inStockOnly ?? 'true'
   };
 }
 
@@ -63,6 +66,8 @@ export default async function CatalogPage({ searchParams }) {
         limit: 12,
         category: filters.category,
         subcategory: filters.subcategory,
+        tcgCategoryId: filters.tcgCategoryId,
+        tcgGroupId: filters.tcgGroupId,
         manufacturerBrand: filters.manufacturerBrand,
         franchiseBrand: filters.franchiseBrand,
         brand: filters.brand,
@@ -70,7 +75,8 @@ export default async function CatalogPage({ searchParams }) {
         minPrice: filters.minPrice,
         maxPrice: filters.maxPrice,
         sortBy: filters.sortBy,
-        q: filters.search
+        q: filters.search,
+        inStockOnly: filters.inStockOnly
       },
       { allowFallback: true }
     )

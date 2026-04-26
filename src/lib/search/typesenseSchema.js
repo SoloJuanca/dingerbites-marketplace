@@ -16,6 +16,11 @@ export const PRODUCTS_COLLECTION_SCHEMA = {
     { name: 'category_name', type: 'string', optional: true, facet: true },
     { name: 'subcategory_id', type: 'string', optional: true, facet: true },
     { name: 'subcategory_slug', type: 'string', optional: true, facet: true },
+    { name: 'tcg_category_id', type: 'string', optional: true, facet: true },
+    { name: 'tcg_group_id', type: 'string', optional: true, facet: true },
+    { name: 'tcg_category_name', type: 'string', optional: true, facet: true },
+    { name: 'tcg_group_name', type: 'string', optional: true, facet: true, infix: true },
+    { name: 'tcg_sub_type_name', type: 'string', optional: true, facet: true },
     { name: 'manufacturer_brand_id', type: 'string', optional: true, facet: true },
     { name: 'manufacturer_brand_slug', type: 'string', optional: true, facet: true },
     { name: 'franchise_brand_id', type: 'string', optional: true, facet: true },
@@ -41,4 +46,4 @@ export const PRODUCTS_COLLECTION_SCHEMA = {
   default_sorting_field: 'created_at_ts'
 };
 
-export const PRODUCTS_SEARCH_FIELDS = 'name,name_normalized,search_blob,description,short_description,brand_name,category_name,tags';
+export const PRODUCTS_SEARCH_FIELDS = 'name,name_normalized,search_blob,description,short_description,brand_name,category_name,tcg_group_name,tags';

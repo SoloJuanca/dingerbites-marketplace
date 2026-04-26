@@ -32,14 +32,52 @@
   border-color: #adb5bd;
 }
 
+.stockToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border: 1px solid #dee2e6;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.stockToggle:focus-within {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(107, 33, 168, 0.1);
+}
+
+.stockCheckbox {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--brand-primary);
+}
+
+.stockLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: #495057;
+  white-space: nowrap;
+}
+
 @media (max-width: 768px) {
   .sortContainer {
     justify-content: stretch;
     width: 100%;
+    flex-wrap: wrap;
   }
   
   .sortSelect {
     flex: 1;
     min-width: auto;
+  }
+
+  .stockToggle {
+    width: 100%;
+    justify-content: center;
   }
 } 

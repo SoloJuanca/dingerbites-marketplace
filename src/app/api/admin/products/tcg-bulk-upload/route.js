@@ -523,6 +523,30 @@ function resolveSubTypeFromLabel(productPrices, variantLabel) {
   return null;
 }
 
+async function fetchTcgGroupName(categoryId, groupId) {
+  const res = await fetch(`${TCG_CSV_BASE}/${categoryId}/groups`, {
+    headers: tcgcsvHeaders(),
+    cache: 'no-store'
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const groups = Array.isArray(data?.results) ? data.results : [];
+  const match = groups.find((g) => String(g.groupId) === String(groupId));
+  return match?.name ? String(match.name) : null;
+}
+
+async function fetchTcgCategoryName(categoryId) {
+  const res = await fetch(`${TCG_CSV_BASE}/categories`, {
+    headers: tcgcsvHeaders(),
+    cache: 'no-store'
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const categories = Array.isArray(data?.results) ? data.results : [];
+  const match = categories.find((c) => String(c.categoryId) === String(categoryId));
+  return (match?.displayName || match?.name) ? String(match.displayName || match.name) : null;
+}
+
 export async function GET(request) {
   const admin = await authenticateAdmin(request);
   if (!admin) {
@@ -624,6 +648,11 @@ export async function POST(request) {
     const categoryDocId = categoryDocIdByTcg || fallbackTcgCategoryId;
     const now = new Date().toISOString();
     const typesenseLookups = dryRun ? null : await loadTaxonomyLookups();
+
+    const [tcgGroupName, tcgCategoryName] = await Promise.all([
+      fetchTcgGroupName(categoryId, groupId),
+      fetchTcgCategoryName(categoryId)
+    ]);
 
     const summary = {
       totalRows: parsedRows.length,
@@ -739,6 +768,8 @@ export async function POST(request) {
             tcg_product_id: Number(tcgProduct.productId),
             tcg_group_id: Number(groupId),
             tcg_category_id: Number(categoryId),
+            tcg_group_name: tcgGroupName || existing.tcg_group_name || null,
+            tcg_category_name: tcgCategoryName || existing.tcg_category_name || null,
             tcg_sub_type_name: subTypeName,
             features:
               Array.isArray(existing.features) && existing.features.length > 0
@@ -814,6 +845,8 @@ export async function POST(request) {
           tcg_product_id: Number(tcgProduct.productId),
           tcg_group_id: Number(groupId),
           tcg_category_id: Number(categoryId),
+          tcg_group_name: tcgGroupName || null,
+          tcg_category_name: tcgCategoryName || null,
           tcg_sub_type_name: subTypeName,
           created_at: now,
           updated_at: now

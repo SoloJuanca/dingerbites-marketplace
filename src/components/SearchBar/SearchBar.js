@@ -33,7 +33,11 @@ export default function SearchBar({ placeholder = "Buscar productos..." }) {
       }
       try {
         setIsLoadingSuggestions(true);
-        const response = await fetch(`/api/search/suggestions?q=${encodeURIComponent(q)}`);
+        const params = new URLSearchParams();
+        params.set('q', q);
+        const category = searchParams.get('category') || '';
+        if (category) params.set('category', category);
+        const response = await fetch(`/api/search/suggestions?${params.toString()}`);
         if (!response.ok) return;
         const data = await response.json();
         if (!cancelled) {
@@ -108,6 +112,8 @@ export default function SearchBar({ placeholder = "Buscar productos..." }) {
         setSearchTerm(selected.label);
         const params = new URLSearchParams(searchParams.toString());
         params.set('q', selected.label);
+        if (selected.tcgCategoryId) params.set('tcgCategoryId', selected.tcgCategoryId);
+        if (selected.tcgGroupId) params.set('tcgGroupId', selected.tcgGroupId);
         params.set('page', '1');
         router.push(`${pathname}?${params.toString()}`);
         setSuggestions([]);
@@ -116,6 +122,9 @@ export default function SearchBar({ placeholder = "Buscar productos..." }) {
       handleSearch(e);
     }
   };
+
+  const trimmed = searchTerm.trim();
+  const showExploreCatalog = isFocused && !isLoadingSuggestions && suggestions.length === 0 && trimmed.length >= 2;
 
   return (
     <div className={styles.searchContainer}>
@@ -150,10 +159,28 @@ export default function SearchBar({ placeholder = "Buscar productos..." }) {
           <span className={styles.searchButtonText}>Buscar</span>
         </button>
       </form>
-      {isFocused && (suggestions.length > 0 || isLoadingSuggestions) && (
+      {isFocused && (suggestions.length > 0 || isLoadingSuggestions || showExploreCatalog) && (
         <div className={styles.suggestionsList} role="listbox" aria-label="Sugerencias de búsqueda">
           {isLoadingSuggestions ? (
             <div className={styles.suggestionItemMuted}>Buscando...</div>
+          ) : showExploreCatalog ? (
+            <button
+              type="button"
+              className={styles.suggestionItem}
+              onMouseDown={() => {
+                const params = new URLSearchParams(searchParams.toString());
+                params.set('q', trimmed);
+                params.set('page', '1');
+                router.push(`${pathname}?${params.toString()}`);
+                setSuggestions([]);
+                setActiveIndex(-1);
+                setIsFocused(false);
+                inputRef.current?.blur?.();
+              }}
+            >
+              <span>Explorar catálogo</span>
+              <small>Ver resultados</small>
+            </button>
           ) : (
             suggestions.map((suggestion, index) => (
               <button
@@ -164,6 +191,8 @@ export default function SearchBar({ placeholder = "Buscar productos..." }) {
                   setSearchTerm(suggestion.label);
                   const params = new URLSearchParams(searchParams.toString());
                   params.set('q', suggestion.label);
+                  if (suggestion.tcgCategoryId) params.set('tcgCategoryId', suggestion.tcgCategoryId);
+                  if (suggestion.tcgGroupId) params.set('tcgGroupId', suggestion.tcgGroupId);
                   params.set('page', '1');
                   router.push(`${pathname}?${params.toString()}`);
                   setSuggestions([]);

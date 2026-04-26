@@ -40,6 +40,8 @@ export default function CatalogClient({
               currentCondition={filters.condition}
               currentMinPrice={filters.minPrice}
               currentMaxPrice={filters.maxPrice}
+              currentTcgCategoryId={filters.tcgCategoryId}
+              currentTcgGroupId={filters.tcgGroupId}
             />
           </aside>
 
@@ -49,13 +51,15 @@ export default function CatalogClient({
                 <Icon name="tune" size={20} />
                 Filtros
               </button>
-              <SortOptions currentSort={filters.sortBy} />
+              <SortOptions currentSort={filters.sortBy} currentInStockOnly={filters.inStockOnly} />
             </div>
 
             <ProductGrid
               currentPage={filters.currentPage}
               category={filters.category}
               subcategory={filters.subcategory}
+              tcgCategoryId={filters.tcgCategoryId}
+              tcgGroupId={filters.tcgGroupId}
               manufacturerBrand={filters.manufacturerBrand}
               franchiseBrand={filters.franchiseBrand}
               brand={filters.brand}
@@ -64,6 +68,7 @@ export default function CatalogClient({
               maxPrice={filters.maxPrice}
               sortBy={filters.sortBy}
               search={filters.search}
+              inStockOnly={filters.inStockOnly}
               initialData={initialResult}
             />
           </div>
@@ -84,6 +89,8 @@ export default function CatalogClient({
         currentCondition={filters.condition}
         currentMinPrice={filters.minPrice}
         currentMaxPrice={filters.maxPrice}
+        currentTcgCategoryId={filters.tcgCategoryId}
+        currentTcgGroupId={filters.tcgGroupId}
         isOpen={isFilterModalOpen}
         onClose={closeFilterModal}
       />

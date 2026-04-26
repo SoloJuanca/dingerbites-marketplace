@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Icon from '../Icon/Icon';
 import styles from './FilterModal.module.css';
@@ -13,6 +13,8 @@ export default function FilterModal({
   priceRange = { min: 0, max: 1000 },
   currentCategory, 
   currentSubcategory,
+  currentTcgCategoryId,
+  currentTcgGroupId,
   currentManufacturerBrand,
   currentFranchiseBrand,
   currentBrand, 
@@ -35,6 +37,19 @@ export default function FilterModal({
   const selectedFranchiseBrands = currentFranchiseBrand ? currentFranchiseBrand.split(',') : [];
   const selectedBrands = currentBrand ? currentBrand.split(',') : [];
   const selectedConditions = currentCondition ? currentCondition.split(',') : [];
+  const isTcgSelected = selectedCategories.includes('tcg');
+  const selectedTcgCategoryIds = (currentTcgCategoryId || searchParams.get('tcgCategoryId') || '')
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean);
+  const selectedTcgGroupIds = (currentTcgGroupId || searchParams.get('tcgGroupId') || '')
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean);
+  const [tcgApiCategories, setTcgApiCategories] = useState([]);
+  const [tcgApiGroups, setTcgApiGroups] = useState([]);
+  const [loadingTcgApiCategories, setLoadingTcgApiCategories] = useState(false);
+  const [loadingTcgApiGroups, setLoadingTcgApiGroups] = useState(false);
 
   const categoriesByParent = categories.reduce((map, category) => {
     const parentId = category.parent_id || null;
@@ -76,6 +91,77 @@ export default function FilterModal({
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function loadTcgCategories() {
+      if (!isOpen || !isTcgSelected) {
+        setTcgApiCategories([]);
+        setTcgApiGroups([]);
+        return;
+      }
+      try {
+        setLoadingTcgApiCategories(true);
+        const res = await fetch('/api/tcg/categories', { cache: 'no-store' });
+        const data = await res.json();
+        if (cancelled) return;
+        setTcgApiCategories(Array.isArray(data?.results) ? data.results : []);
+      } catch {
+        if (!cancelled) setTcgApiCategories([]);
+      } finally {
+        if (!cancelled) setLoadingTcgApiCategories(false);
+      }
+    }
+    loadTcgCategories();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, isTcgSelected]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadTcgGroups() {
+      if (!isOpen || !isTcgSelected || selectedTcgCategoryIds.length === 0) {
+        setTcgApiGroups([]);
+        return;
+      }
+      try {
+        setLoadingTcgApiGroups(true);
+        const uniqueCategoryIds = [...new Set(selectedTcgCategoryIds.map(String).filter(Boolean))];
+        const groupResults = await Promise.all(
+          uniqueCategoryIds.map(async (catId) => {
+            try {
+              const res = await fetch(`/api/tcg/${encodeURIComponent(catId)}/groups`, { cache: 'no-store' });
+              const data = await res.json();
+              const groups = Array.isArray(data?.results) ? data.results : [];
+              return groups.map((g) => ({ ...g, __tcgCategoryId: catId }));
+            } catch {
+              return [];
+            }
+          })
+        );
+        const merged = groupResults.flat();
+        const seen = new Set();
+        const deduped = [];
+        for (const g of merged) {
+          const key = `${g.__tcgCategoryId}:${g.groupId}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          deduped.push(g);
+        }
+        if (cancelled) return;
+        setTcgApiGroups(deduped);
+      } catch {
+        if (!cancelled) setTcgApiGroups([]);
+      } finally {
+        if (!cancelled) setLoadingTcgApiGroups(false);
+      }
+    }
+    loadTcgGroups();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, isTcgSelected, selectedTcgCategoryIds.join(',')]);
+
   const updateFilters = (newFilters) => {
     const params = new URLSearchParams(searchParams);
     
@@ -95,6 +181,69 @@ export default function FilterModal({
     router.push(`${pathname}?${params.toString()}`);
     onClose();
   };
+
+  const updateTcgFilters = ({ tcgCategoryIds, tcgGroupIds }) => {
+    const params = new URLSearchParams(searchParams);
+    params.delete('page');
+
+    const catValue = Array.isArray(tcgCategoryIds) ? tcgCategoryIds.map(String).filter(Boolean).join(',') : '';
+    const groupValue = Array.isArray(tcgGroupIds) ? tcgGroupIds.map(String).filter(Boolean).join(',') : '';
+
+    if (catValue) params.set('tcgCategoryId', catValue);
+    else params.delete('tcgCategoryId');
+
+    if (groupValue) params.set('tcgGroupId', groupValue);
+    else params.delete('tcgGroupId');
+
+    if (isTcgSelected) params.delete('subcategory');
+
+    router.push(`${pathname}?${params.toString()}`);
+    onClose();
+  };
+
+  const tcgCategoryOptions = useMemo(() => {
+    return (Array.isArray(tcgApiCategories) ? tcgApiCategories : []).map((c) => ({
+      id: String(c.categoryId),
+      label: c.displayName || c.name || String(c.categoryId)
+    }));
+  }, [tcgApiCategories]);
+
+  const tcgGroupOptions = useMemo(() => {
+    return (Array.isArray(tcgApiGroups) ? tcgApiGroups : []).map((g) => ({
+      id: String(g.groupId),
+      label: g.name || String(g.groupId)
+    }));
+  }, [tcgApiGroups]);
+
+  const handleTcgCategoryToggle = (id) => {
+    const key = String(id);
+    const set = new Set(selectedTcgCategoryIds.map(String));
+    const next = new Set(set);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    updateTcgFilters({ tcgCategoryIds: [...next], tcgGroupIds: [] });
+  };
+
+  const handleTcgGroupToggle = (id) => {
+    const key = String(id);
+    const set = new Set(selectedTcgGroupIds.map(String));
+    const next = new Set(set);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    updateTcgFilters({ tcgCategoryIds: selectedTcgCategoryIds, tcgGroupIds: [...next] });
+  };
+
+  const visibleSubcategories = useMemo(() => {
+    if (isTcgSelected) return [];
+    const parents = (categoriesByParent.get(null) || [])
+      .filter((parentCategory) =>
+        selectedCategories.includes(parentCategory.slug) || hasSelectedDescendant(parentCategory.id)
+      );
+    return parents.flatMap((parentCategory) => (categoriesByParent.get(parentCategory.id) || []));
+  }, [isTcgSelected, categoriesByParent, selectedCategories, selectedSubcategories]);
+
+  const shouldShowSubcategoriesSection =
+    !isTcgSelected && (visibleSubcategories.length > 0 || selectedSubcategories.length > 0);
 
   const handleCategoryChange = (categoryValue, categoryId) => {
     let newCategories = [...selectedCategories];
@@ -275,36 +424,102 @@ export default function FilterModal({
           </div>
 
           {/* Subcategorías */}
-          <div className={styles.filterSection}>
-            <button className={styles.sectionHeader}>
-              <h3 className={styles.sectionTitle}>Subcategorías</h3>
-              <Icon name="expand_more" className={styles.collapseIcon} />
-            </button>
-            <div className={styles.sectionContent}>
-              <div className={styles.brandList}>
-                {(categoriesByParent.get(null) || [])
-                  .filter((parentCategory) =>
-                    selectedCategories.includes(parentCategory.slug) || hasSelectedDescendant(parentCategory.id)
-                  )
-                  .flatMap((parentCategory) =>
-                    (categoriesByParent.get(parentCategory.id) || []).map((subcategory) => (
-                      <div key={subcategory.id} className={styles.checkboxItem}>
-                        <input
-                          type="checkbox"
-                          id={`subcategory-${subcategory.id}`}
-                          className={styles.checkbox}
-                          checked={selectedSubcategories.includes(subcategory.slug)}
-                          onChange={() => handleSubcategoryChange(subcategory.slug)}
-                        />
-                        <label htmlFor={`subcategory-${subcategory.id}`} className={styles.checkboxLabel}>
-                          {subcategory.name}
-                        </label>
-                      </div>
-                    ))
-                  )}
+          {shouldShowSubcategoriesSection ? (
+            <div className={styles.filterSection}>
+              <button className={styles.sectionHeader}>
+                <h3 className={styles.sectionTitle}>Subcategorías</h3>
+                <Icon name="expand_more" className={styles.collapseIcon} />
+              </button>
+              <div className={styles.sectionContent}>
+                <div className={styles.brandList}>
+                  {visibleSubcategories.map((subcategory) => (
+                    <div key={subcategory.id} className={styles.checkboxItem}>
+                      <input
+                        type="checkbox"
+                        id={`subcategory-${subcategory.id}`}
+                        className={styles.checkbox}
+                        checked={selectedSubcategories.includes(subcategory.slug)}
+                        onChange={() => handleSubcategoryChange(subcategory.slug)}
+                      />
+                      <label htmlFor={`subcategory-${subcategory.id}`} className={styles.checkboxLabel}>
+                        {subcategory.name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          ) : null}
+
+          {isTcgSelected ? (
+            <>
+              {/* Catálogos TCG */}
+              <div className={styles.filterSection}>
+                <button className={styles.sectionHeader}>
+                  <h3 className={styles.sectionTitle}>Catálogos TCG</h3>
+                  <Icon name="expand_more" className={styles.collapseIcon} />
+                </button>
+                <div className={styles.sectionContent}>
+                  <div className={styles.brandList}>
+                    {loadingTcgApiCategories ? (
+                      <div className={styles.tcgMuted}>Cargando catálogos…</div>
+                    ) : tcgCategoryOptions.length === 0 ? (
+                      <div className={styles.tcgMuted}>No hay catálogos disponibles</div>
+                    ) : (
+                      tcgCategoryOptions.map((cat) => (
+                        <div key={cat.id} className={styles.checkboxItem}>
+                          <input
+                            type="checkbox"
+                            id={`tcg-cat-${cat.id}`}
+                            className={styles.checkbox}
+                            checked={selectedTcgCategoryIds.includes(cat.id)}
+                            onChange={() => handleTcgCategoryToggle(cat.id)}
+                          />
+                          <label htmlFor={`tcg-cat-${cat.id}`} className={styles.checkboxLabel}>
+                            {cat.label}
+                          </label>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Sets TCG */}
+              <div className={styles.filterSection}>
+                <button className={styles.sectionHeader}>
+                  <h3 className={styles.sectionTitle}>Sets TCG</h3>
+                  <Icon name="expand_more" className={styles.collapseIcon} />
+                </button>
+                <div className={styles.sectionContent}>
+                  <div className={styles.brandList}>
+                    {selectedTcgCategoryIds.length === 0 ? (
+                      <div className={styles.tcgMuted}>Selecciona al menos 1 catálogo</div>
+                    ) : loadingTcgApiGroups ? (
+                      <div className={styles.tcgMuted}>Cargando sets…</div>
+                    ) : tcgGroupOptions.length === 0 ? (
+                      <div className={styles.tcgMuted}>No hay sets disponibles</div>
+                    ) : (
+                      tcgGroupOptions.map((group) => (
+                        <div key={group.id} className={styles.checkboxItem}>
+                          <input
+                            type="checkbox"
+                            id={`tcg-group-${group.id}`}
+                            className={styles.checkbox}
+                            checked={selectedTcgGroupIds.includes(group.id)}
+                            onChange={() => handleTcgGroupToggle(group.id)}
+                          />
+                          <label htmlFor={`tcg-group-${group.id}`} className={styles.checkboxLabel}>
+                            {group.label}
+                          </label>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : null}
 
           {/* Condición */}
           <div className={styles.filterSection}>
