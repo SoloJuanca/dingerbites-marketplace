@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
@@ -38,6 +38,7 @@ export default function InventoryPage() {
     stockStatus: 'all',
     orderBy: 'date_desc'
   });
+  const [searchDraft, setSearchDraft] = useState('');
   const [categories, setCategories] = useState([]);
   const [manufacturerBrands, setManufacturerBrands] = useState([]);
   const [franchiseBrands, setFranchiseBrands] = useState([]);
@@ -58,13 +59,18 @@ export default function InventoryPage() {
   
   // Refs for debouncing
   const stockUpdateTimeouts = useRef({});
+  const searchTimeoutRef = useRef(null);
+  const latestInventoryRequestId = useRef(0);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadInventoryData();
-      loadFiltersData();
+  const arraysEqual = (a, b) => {
+    const aa = Array.isArray(a) ? a.map(String) : [];
+    const bb = Array.isArray(b) ? b.map(String) : [];
+    if (aa.length !== bb.length) return false;
+    for (let i = 0; i < aa.length; i += 1) {
+      if (aa[i] !== bb[i]) return false;
     }
-  }, [filters, pagination.page, isAuthenticated]);
+    return true;
+  };
 
   const buildInventoryQuery = () => {
     const params = new URLSearchParams();
@@ -93,13 +99,16 @@ export default function InventoryPage() {
     return params;
   };
 
-  const loadInventoryData = async () => {
+  const loadInventoryData = useCallback(async () => {
+    const requestId = ++latestInventoryRequestId.current;
     try {
       setLoading(true);
       const params = buildInventoryQuery();
       const response = await apiRequest(`/api/admin/inventory?${params.toString()}`);
+      if (latestInventoryRequestId.current !== requestId) return;
       if (response.ok) {
         const data = await response.json();
+        if (latestInventoryRequestId.current !== requestId) return;
         setProducts(data.products || []);
         setFacets(data.facets || {
           category: {},
@@ -129,11 +138,13 @@ export default function InventoryPage() {
       console.error('Error loading inventory:', error);
       toast.error('Error al conectar con el servidor');
     } finally {
-      setLoading(false);
+      if (latestInventoryRequestId.current === requestId) {
+        setLoading(false);
+      }
     }
-  };
+  }, [apiRequest, pagination.page, pagination.limit, filters]);
 
-  const loadFiltersData = async () => {
+  const loadFiltersData = useCallback(async () => {
     try {
       const [categoriesResponse, manufacturerBrandsResponse, franchiseBrandsResponse] = await Promise.all([
         apiRequest('/api/admin/categories'),
@@ -158,7 +169,36 @@ export default function InventoryPage() {
     } catch (error) {
       console.error('Error loading filters data:', error);
     }
-  };
+  }, [apiRequest]);
+
+  // Load filter option lists once per authenticated session
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    loadFiltersData();
+  }, [isAuthenticated, loadFiltersData]);
+
+  // Only reload inventory when query-relevant inputs change
+  const inventoryQueryKey = useMemo(() => {
+    const keyObj = {
+      page: pagination.page,
+      limit: pagination.limit,
+      search: filters.search || '',
+      stockStatus: filters.stockStatus || 'all',
+      orderBy: filters.orderBy || 'date_desc',
+      category: Array.isArray(filters.category) ? filters.category.map(String) : [],
+      subcategory: Array.isArray(filters.subcategory) ? filters.subcategory.map(String) : [],
+      manufacturerBrand: Array.isArray(filters.manufacturerBrand) ? filters.manufacturerBrand.map(String) : [],
+      franchiseBrand: Array.isArray(filters.franchiseBrand) ? filters.franchiseBrand.map(String) : [],
+      tcgCategoryId: Array.isArray(filters.tcgCategoryId) ? filters.tcgCategoryId.map(String) : [],
+      tcgGroupId: Array.isArray(filters.tcgGroupId) ? filters.tcgGroupId.map(String) : []
+    };
+    return JSON.stringify(keyObj);
+  }, [pagination.page, pagination.limit, filters]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    loadInventoryData();
+  }, [isAuthenticated, inventoryQueryKey, loadInventoryData]);
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => {
@@ -166,6 +206,28 @@ export default function InventoryPage() {
     });
     setPagination(prev => ({ ...prev, page: 1 }));
   };
+
+  // Debounce search so we don't spam requests on each keystroke
+  useEffect(() => {
+    // Keep draft in sync when filters.search changes externally
+    setSearchDraft(filters.search || '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => {
+      setFilters((prev) => {
+        if ((prev.search || '') === (searchDraft || '')) return prev;
+        return { ...prev, search: searchDraft || '' };
+      });
+      setPagination((prev) => (prev.page === 1 ? prev : { ...prev, page: 1 }));
+    }, 350);
+
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, [searchDraft]);
 
   const parentCategories = Array.isArray(categories)
     ? categories.filter((c) => !c?.parent_id)
@@ -251,14 +313,21 @@ export default function InventoryPage() {
   // Keep dependent filters consistent when categories change
   useEffect(() => {
     setFilters((prev) => {
+      const selectedParents = Array.isArray(prev.category) ? prev.category.map(String) : [];
       const next = { ...prev };
-      const selectedParents = Array.isArray(next.category) ? next.category.map(String) : [];
+      let changed = false;
 
       // If TCG parent is not selected, clear TCG API filters
       const hasTcg = tcgParentId != null && selectedParents.includes(String(tcgParentId));
       if (!hasTcg) {
-        next.tcgCategoryId = [];
-        next.tcgGroupId = [];
+        if (!arraysEqual(prev.tcgCategoryId, [])) {
+          next.tcgCategoryId = [];
+          changed = true;
+        }
+        if (!arraysEqual(prev.tcgGroupId, [])) {
+          next.tcgGroupId = [];
+          changed = true;
+        }
       }
 
       // If parent categories are selected, drop subcategories that don't belong to them
@@ -269,12 +338,16 @@ export default function InventoryPage() {
             .filter((c) => c?.parent_id && selectedParentsSet.has(String(c.parent_id)))
             .map((c) => String(c.id))
         );
-        next.subcategory = (Array.isArray(next.subcategory) ? next.subcategory : []).filter((id) =>
+        const cleaned = (Array.isArray(prev.subcategory) ? prev.subcategory : []).filter((id) =>
           allowedSubcategoryIds.has(String(id))
         );
+        if (!arraysEqual(prev.subcategory, cleaned)) {
+          next.subcategory = cleaned;
+          changed = true;
+        }
       }
 
-      return next;
+      return changed ? next : prev;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tcgParentId, categories, filters.category]);
@@ -456,8 +529,8 @@ export default function InventoryPage() {
             <input
               type="text"
               placeholder="Buscar productos..."
-              value={filters.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
+              value={searchDraft}
+              onChange={(e) => setSearchDraft(e.target.value)}
               className={styles.searchInput}
             />
           </div>
