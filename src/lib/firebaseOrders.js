@@ -314,13 +314,10 @@ export async function listOrdersAdmin(options = {}) {
   orders.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
   const statusIds = [...new Set(orders.map((o) => o.status_id).filter(Boolean))];
-  const userIds = [...new Set(orders.map((o) => o.user_id).filter(Boolean))];
-  const [statusDocs, userDocs] = await Promise.all([
-    Promise.all(statusIds.map((id) => db.collection(ORDER_STATUSES_COLLECTION).doc(String(id)).get())),
-    Promise.all(userIds.map((id) => db.collection('users').doc(String(id)).get()))
-  ]);
+  const statusDocs = await Promise.all(
+    statusIds.map((id) => db.collection(ORDER_STATUSES_COLLECTION).doc(String(id)).get())
+  );
   const statusById = new Map(statusDocs.filter((d) => d.exists).map((d) => [d.id, d.data()]));
-  const userById = new Map(userDocs.filter((d) => d.exists).map((d) => [d.id, d.data()]));
 
   const page = Math.max(1, Number(options.page) || 1);
   const limit = Math.max(1, Number(options.limit) || 20);
@@ -328,14 +325,14 @@ export async function listOrdersAdmin(options = {}) {
   const start = (page - 1) * limit;
   const paginated = orders.slice(start, start + limit).map((o) => {
     const status = statusById.get(String(o.status_id));
-    const user = o.user_id ? userById.get(String(o.user_id)) : null;
     return {
       ...o,
       status_name: status?.name ?? o.status_id ?? null,
       status_color: status?.color ?? null,
-      first_name: user?.first_name ?? null,
-      last_name: user?.last_name ?? null,
-      customer_name: user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : null
+      // Always trust customer data stored in the order document (POS orders may not have a registered user).
+      customer_name: o.customer_name || null,
+      customer_email: o.customer_email || null,
+      customer_phone: o.customer_phone || null
     };
   });
 

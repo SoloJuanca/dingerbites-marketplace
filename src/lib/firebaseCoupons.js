@@ -625,3 +625,101 @@ export async function consumeCouponInTransaction({
     eligible_subtotal: evaluation.eligible_subtotal
   };
 }
+
+/**
+ * Read-only phase for transactional coupon consumption.
+ * Firestore transactions require ALL reads before ANY writes.
+ *
+ * Returns a "prepared" object that can later be applied with applyPreparedCouponConsumptionInTransaction().
+ */
+export async function prepareCouponConsumptionInTransaction({
+  transaction,
+  code,
+  userId = null,
+  customerEmail = null,
+  items = [],
+  orderSubtotal = 0,
+  orderId,
+  requestMeta = {}
+}) {
+  const coupon = await getCouponByCode(code, transaction);
+  if (!coupon) {
+    throw new Error('Coupon not found');
+  }
+
+  let actorRedemptionsCount = 0;
+  if (coupon.source_collection === COUPONS_COLLECTION) {
+    actorRedemptionsCount = await getRedemptionsForActor(coupon.id, { userId, customerEmail }, transaction);
+  } else if (coupon.used_at) {
+    actorRedemptionsCount = 1;
+  }
+
+  const evaluation = evaluateCoupon(coupon, {
+    userId,
+    customerEmail,
+    items,
+    orderSubtotal,
+    actorRedemptionsCount
+  });
+  if (!evaluation.valid) {
+    throw new Error(`Coupon rejected: ${evaluation.reason_code}`);
+  }
+
+  const now = nowIso();
+  const redemptionRef = db.collection(COUPON_REDEMPTIONS_COLLECTION).doc();
+  const redemptionPayload = {
+    coupon_id: coupon.id,
+    coupon_code: coupon.code,
+    order_id: String(orderId),
+    actor_user_id: userId ? String(userId) : null,
+    actor_email: customerEmail ? normalizeEmail(customerEmail) : null,
+    discount_amount: evaluation.discount_amount,
+    ip: requestMeta.ip || null,
+    user_agent: requestMeta.userAgent || null,
+    created_at: now
+  };
+
+  let couponUpdateRef = null;
+  let couponUpdatePayload = null;
+
+  if (coupon.source_collection === LEGACY_USER_COUPONS_COLLECTION) {
+    couponUpdateRef = db.collection(LEGACY_USER_COUPONS_COLLECTION).doc(String(coupon.id));
+    couponUpdatePayload = { used_at: now, updated_at: now };
+  } else {
+    couponUpdateRef = db.collection(COUPONS_COLLECTION).doc(String(coupon.id));
+    couponUpdatePayload = {
+      redemptions_count: FieldValue.increment(1),
+      updated_at: now
+    };
+    if (coupon.usage_mode === 'single_use') {
+      couponUpdatePayload.used_at = now;
+      couponUpdatePayload.active = false;
+    }
+  }
+
+  return {
+    application: {
+      coupon_id: coupon.id,
+      coupon_code: coupon.code,
+      discount_amount: evaluation.discount_amount,
+      eligible_subtotal: evaluation.eligible_subtotal
+    },
+    writes: {
+      redemptionRef,
+      redemptionPayload,
+      couponUpdateRef,
+      couponUpdatePayload
+    }
+  };
+}
+
+export function applyPreparedCouponConsumptionInTransaction(transaction, prepared) {
+  if (!prepared?.writes) return;
+  const { redemptionRef, redemptionPayload, couponUpdateRef, couponUpdatePayload } = prepared.writes;
+  if (redemptionRef && redemptionPayload) {
+    transaction.set(redemptionRef, redemptionPayload);
+  }
+  if (couponUpdateRef && couponUpdatePayload) {
+    transaction.update(couponUpdateRef, couponUpdatePayload);
+  }
+}

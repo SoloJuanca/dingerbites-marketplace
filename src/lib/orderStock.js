@@ -34,9 +34,19 @@ export async function deductProductStockInTransaction(transaction, orderItems, n
   const byProduct = quantitiesByProductId(orderItems);
   if (byProduct.size === 0) return;
 
-  for (const [productId, requestedQty] of byProduct.entries()) {
-    const productRef = db.collection(PRODUCTS_COLLECTION).doc(productId);
-    const doc = await transaction.get(productRef);
+  const entries = [...byProduct.entries()].map(([productId, requestedQty]) => ({
+    productId: String(productId),
+    requestedQty,
+    ref: db.collection(PRODUCTS_COLLECTION).doc(String(productId))
+  }));
+
+  // IMPORTANT: Firestore transactions require ALL reads before ANY writes.
+  const docs = await Promise.all(entries.map((item) => transaction.get(item.ref)));
+
+  const updates = [];
+  for (let i = 0; i < entries.length; i += 1) {
+    const { productId, requestedQty, ref } = entries[i];
+    const doc = docs[i];
 
     if (!doc.exists) {
       const err = new Error(`Producto no encontrado: ${productId}`);
@@ -76,9 +86,15 @@ export async function deductProductStockInTransaction(transaction, orderItems, n
       throw err;
     }
 
-    const nextStock = available - requestedQty;
-    transaction.update(productRef, {
-      stock_quantity: nextStock,
+    updates.push({
+      ref,
+      nextStock: available - requestedQty
+    });
+  }
+
+  for (const update of updates) {
+    transaction.update(update.ref, {
+      stock_quantity: update.nextStock,
       updated_at: nowIso
     });
   }

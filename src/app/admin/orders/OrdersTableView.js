@@ -29,6 +29,8 @@ export default function OrdersTableView({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  console.log("orders", orders);
+
   const toggleMenu = (orderId, e) => {
     e.stopPropagation();
     setOpenMenuId((prev) => (prev === orderId ? null : orderId));

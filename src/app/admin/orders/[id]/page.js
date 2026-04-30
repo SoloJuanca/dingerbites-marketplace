@@ -277,11 +277,7 @@ export default function AdminOrderDetail() {
             <h2>Información del Cliente</h2>
             <div className={styles.customerInfo}>
               <div className={styles.customerDetails}>
-                <h3>{
-                  order.first_name && order.last_name ? 
-                    `${order.first_name} ${order.last_name}` : 
-                    'Cliente Invitado'
-                }</h3>
+                <h3>{order.customer_name || 'Cliente Invitado'}</h3>
                 <p><strong>Email:</strong> {order.customer_email}</p>
                 {order.customer_phone && (
                   <p><strong>Teléfono:</strong> {order.customer_phone}</p>

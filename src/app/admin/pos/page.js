@@ -14,6 +14,8 @@ const PAYMENT_METHODS = [
   'Otro'
 ];
 
+const POS_DEFAULT_EMAIL = 'pos@dingerbites.com';
+
 export default function AdminPOS() {
   const { apiRequest, user } = useAuth();
   const [search, setSearch] = useState('');
@@ -359,8 +361,8 @@ export default function AdminPOS() {
     try {
       const explicitCustomerEmail = customer.email.trim();
       const explicitCustomerPhone = customer.phone.trim();
-      const normalizedCustomerEmail = explicitCustomerEmail || user?.email || '';
-      const normalizedCustomerPhone = explicitCustomerPhone || user?.phone || '';
+      const normalizedCustomerEmail = explicitCustomerEmail || POS_DEFAULT_EMAIL;
+      const normalizedCustomerPhone = explicitCustomerPhone || '';
       const shouldSendEmail = Boolean(explicitCustomerEmail);
       const orderPayload = {
         user_id: user?.id || null,
@@ -381,8 +383,8 @@ export default function AdminPOS() {
               }
         ),
         customer_email: normalizedCustomerEmail,
-        customer_phone: normalizedCustomerPhone,
-        customer_name: customer.name.trim(),
+        customer_phone: normalizedCustomerPhone || null,
+        customer_name: customer.name.trim() || null,
         payment_method: paymentMethod,
         shipping_method: 'Recoger en tienda',
         subtotal,

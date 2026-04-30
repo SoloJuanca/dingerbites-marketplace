@@ -1,4 +1,7 @@
-import { consumeCouponInTransaction } from './firebaseCoupons';
+import {
+  applyPreparedCouponConsumptionInTransaction,
+  prepareCouponConsumptionInTransaction
+} from './firebaseCoupons';
 import { getOrderStatusIdByName } from './firebaseOrders';
 import { getUserByEmail, createUser } from './firebaseUsers';
 import { hashPassword } from './auth';
@@ -52,7 +55,10 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
   const stripeCheckoutSessionId = options.stripeCheckoutSessionId || null;
   const stripePaymentIntentId = options.stripePaymentIntentId || null;
 
-  const normalizedCustomerEmail = normalizeEmail(customer_email || authUser?.email);
+  const isPosOrder = order_origin === 'pos' || pos_in_person === true;
+  const normalizedCustomerEmail = normalizeEmail(
+    customer_email || (isPosOrder ? 'pos@dingerbites.com' : authUser?.email)
+  );
 
   if (!normalizedCustomerEmail || (!items?.length && !service_items?.length)) {
     const err = new Error('Customer email and at least one item are required');
@@ -135,9 +141,10 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
   const now = new Date().toISOString();
 
   const createdOrder = await db.runTransaction(async (transaction) => {
+    let couponPrepared = null;
     let couponApplication = null;
     if (coupon_code && String(coupon_code).trim()) {
-      couponApplication = await consumeCouponInTransaction({
+      couponPrepared = await prepareCouponConsumptionInTransaction({
         transaction,
         code: String(coupon_code).trim(),
         userId: finalUserId || null,
@@ -147,6 +154,7 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
         orderId: orderRef.id,
         requestMeta
       });
+      couponApplication = couponPrepared.application;
     }
 
     const totals = computeOrderTotals({
@@ -156,6 +164,11 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
     });
 
     await deductProductStockInTransaction(transaction, orderItems, now);
+
+    // After stock reads, we can safely apply transactional coupon writes (no more reads after this point).
+    if (couponPrepared) {
+      applyPreparedCouponConsumptionInTransaction(transaction, couponPrepared);
+    }
 
     const orderPayload = {
       id: orderRef.id,
