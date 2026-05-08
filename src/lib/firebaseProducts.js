@@ -2,6 +2,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { db } from './firebaseAdmin';
 import { getTcgMinPriceForSubType } from './currency';
 import { PRODUCT_CONDITIONS, normalizeProductCondition, sanitizeProductCondition } from './productCondition';
+import { getTypesenseConfig, getTypesenseServerClient, isTypesenseConfigured } from './typesenseServer';
 
 const PRODUCTS_COLLECTION = 'products';
 const CATEGORIES_COLLECTION = 'product_categories';
@@ -15,6 +16,74 @@ function toNum(value, fallback = 0) {
   if (value === null || value === undefined || value === '') return fallback;
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
+}
+
+function buildTypesenseFilterBy(filters = {}) {
+  const parts = ['is_active:=true'];
+  const inStockOnly = String(filters.inStockOnly ?? '').toLowerCase() === 'true';
+  if (inStockOnly) parts.push('stock_quantity:>0');
+
+  const appendArray = (field, value) => {
+    if (!value) return;
+    const values = String(value)
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
+    if (values.length === 0) return;
+    const clause = values.map((v) => `${field}:=\`${v}\``).join(' || ');
+    parts.push(values.length > 1 ? `(${clause})` : clause);
+  };
+
+  appendArray('category_slug', filters.category);
+  appendArray('subcategory_slug', filters.subcategory);
+  appendArray('manufacturer_brand_slug', filters.manufacturerBrand);
+  appendArray('franchise_brand_slug', filters.franchiseBrand);
+  appendArray('brand_slug', filters.brand);
+  appendArray('condition', filters.condition);
+  appendArray('tcg_category_id', filters.tcgCategoryId);
+  appendArray('tcg_group_id', filters.tcgGroupId);
+
+  const minPrice = filters.minPrice != null && filters.minPrice !== '' ? toNum(filters.minPrice, 0) : null;
+  const maxPrice = filters.maxPrice != null && filters.maxPrice !== '' ? toNum(filters.maxPrice, 0) : null;
+  if (minPrice !== null && maxPrice !== null) parts.push(`price:[${minPrice}..${maxPrice}]`);
+  else if (minPrice !== null) parts.push(`price:>=${minPrice}`);
+  else if (maxPrice !== null) parts.push(`price:<=${maxPrice}`);
+
+  return parts.join(' && ');
+}
+
+function mapTypesenseDocToCatalogItem(doc) {
+  return {
+    id: String(doc.id),
+    slug: String(doc.slug),
+    name: String(doc.name || ''),
+    description: doc.description || '',
+    short_description: doc.short_description || '',
+    price: toNum(doc.price, 0),
+    compare_price: doc.compare_price != null ? toNum(doc.compare_price, 0) : null,
+    is_featured: Boolean(doc.is_featured),
+    is_bestseller: Boolean(doc.is_bestseller),
+    is_active: Boolean(doc.is_active),
+    created_at: doc.created_at || null,
+    updated_at: doc.updated_at || null,
+    category_name: doc.category_name || null,
+    category_slug: doc.category_slug || null,
+    subcategory_name: doc.subcategory_name || null,
+    subcategory_slug: doc.subcategory_slug || null,
+    manufacturer_brand_name: doc.manufacturer_brand_name || null,
+    manufacturer_brand_slug: doc.manufacturer_brand_slug || null,
+    franchise_brand_name: doc.franchise_brand_name || null,
+    franchise_brand_slug: doc.franchise_brand_slug || null,
+    brand_name: doc.brand_name || null,
+    brand_slug: doc.brand_slug || null,
+    image: doc.image || DEFAULT_IMAGE,
+    images: Array.isArray(doc.images) ? doc.images : [],
+    tcg_product_id: doc.tcg_product_id ?? null,
+    tcg_sub_type_name: doc.tcg_sub_type_name ?? null,
+    condition: sanitizeProductCondition(doc.condition),
+    stock_quantity: toNum(doc.stock_quantity, 0),
+    allow_backorders: Boolean(doc.allow_backorders)
+  };
 }
 
 /** Public catalog: list active categories in hierarchical order (parents first, then subcategories). */
@@ -82,6 +151,29 @@ export async function getBrands({ type = null } = {}) {
 /** Public catalog: min/max price of active products. */
 export async function getPriceRange() {
   try {
+    if (isTypesenseConfigured() && getTypesenseConfig().enableSearch !== false) {
+      const client = getTypesenseServerClient();
+      const { collectionName } = getTypesenseConfig();
+      const base = {
+        q: '*',
+        query_by: 'name',
+        page: 1,
+        per_page: 1,
+        filter_by: 'is_active:=true'
+      };
+
+      const [minRes, maxRes] = await Promise.all([
+        client.collections(collectionName).documents().search({ ...base, sort_by: 'price:asc' }),
+        client.collections(collectionName).documents().search({ ...base, sort_by: 'price:desc' })
+      ]);
+
+      const minDoc = minRes?.hits?.[0]?.document || null;
+      const maxDoc = maxRes?.hits?.[0]?.document || null;
+      const min = minDoc?.price != null ? toNum(minDoc.price, 0) : 0;
+      const max = maxDoc?.price != null ? toNum(maxDoc.price, 1000) : 1000;
+      return { min, max };
+    }
+
     const snapshot = await db.collection(PRODUCTS_COLLECTION).get();
     let prices = snapshot.docs
       .map((d) => d.data())
@@ -286,109 +378,73 @@ export async function getProducts(filters = {}) {
     const search = (filters.search || '').trim().toLowerCase();
     const sortBy = filters.sortBy || 'newest';
 
+    if (isTypesenseConfigured() && getTypesenseConfig().enableSearch !== false) {
+      const client = getTypesenseServerClient();
+      const { collectionName } = getTypesenseConfig();
+      const q = (filters.q || filters.search || '*').trim() || '*';
+
+      const sortByMap = {
+        price_asc: 'price:asc,updated_at_ts:desc',
+        'price-low': 'price:asc,updated_at_ts:desc',
+        price_desc: 'price:desc,updated_at_ts:desc',
+        'price-high': 'price:desc,updated_at_ts:desc',
+        oldest: 'created_at_ts:asc',
+        name_asc: '_text_match:desc,name:asc',
+        name_desc: '_text_match:desc,name:desc',
+        newest: '_text_match:desc,created_at_ts:desc'
+      };
+
+      const result = await client.collections(collectionName).documents().search({
+        q,
+        query_by: 'name,description,brand_name,category_name',
+        page,
+        per_page: limit,
+        filter_by: buildTypesenseFilterBy({
+          category: categorySlugs.join(','),
+          subcategory: subcategorySlugs.join(','),
+          manufacturerBrand: manufacturerBrandSlugs.join(','),
+          franchiseBrand: franchiseBrandSlugs.join(','),
+          brand: brandSlugs.join(','),
+          condition: conditionFilters.join(','),
+          minPrice,
+          maxPrice,
+          tcgCategoryId: tcgCategoryIds.join(','),
+          tcgGroupId: tcgGroupIds.join(','),
+          inStockOnly: inStockOnly ? 'true' : 'false'
+        }),
+        sort_by: sortByMap[sortBy] || sortByMap.newest,
+        prefix: true,
+        num_typos: 2,
+        typo_tokens_threshold: 1
+      });
+
+      const hits = Array.isArray(result?.hits) ? result.hits : [];
+      const products = hits.map((hit) => mapTypesenseDocToCatalogItem(hit.document || {}));
+      const total = Number(result?.found || 0);
+      const totalPages = Math.max(1, Math.ceil(total / limit));
+
+      return {
+        products,
+        total,
+        totalPages,
+        currentPage: page,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      };
+    }
+
+    // Typesense not configured: keep legacy Firestore behavior (may be expensive).
     const snapshot = await db.collection(PRODUCTS_COLLECTION).get();
     let products = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     products = products.filter((p) => p.is_active !== false);
-    if (inStockOnly) {
-      products = products.filter(hasStock);
-    }
-    if (tcgCategoryIds.length > 0) {
-      const set = new Set(tcgCategoryIds.map(String));
-      products = products.filter((p) => set.has(String(p.tcg_category_id || '')));
-    }
-    if (tcgGroupIds.length > 0) {
-      const set = new Set(tcgGroupIds.map(String));
-      products = products.filter((p) => set.has(String(p.tcg_group_id || '')));
-    }
-
-    const { categoryIds, subcategoryIds, manufacturerBrandIds, franchiseBrandIds, legacyBrandIds } =
-      await resolveTaxonomySlugs({
-        categorySlugs,
-        subcategorySlugs,
-        manufacturerBrandSlugs,
-        franchiseBrandSlugs,
-        legacyBrandSlugs: brandSlugs
-      });
-    if (categoryIds.length > 0) {
-      products = products.filter((p) => p.category_id && categoryIds.includes(p.category_id));
-    }
-    if (subcategoryIds.length > 0) {
-      products = products.filter(
-        (p) =>
-          (p.subcategory_id && subcategoryIds.includes(p.subcategory_id)) ||
-          (!p.subcategory_id && p.category_id && subcategoryIds.includes(p.category_id))
-      );
-    }
-    if (manufacturerBrandIds.length > 0) {
-      products = products.filter(
-        (p) =>
-          (p.manufacturer_brand_id && manufacturerBrandIds.includes(p.manufacturer_brand_id)) ||
-          (!p.manufacturer_brand_id && p.brand_id && manufacturerBrandIds.includes(p.brand_id))
-      );
-    }
-    if (franchiseBrandIds.length > 0) {
-      products = products.filter(
-        (p) =>
-          (p.franchise_brand_id && franchiseBrandIds.includes(p.franchise_brand_id)) ||
-          (!p.franchise_brand_id && p.brand_id && franchiseBrandIds.includes(p.brand_id))
-      );
-    }
-    if (legacyBrandIds.length > 0) {
-      products = products.filter(
-        (p) =>
-          (p.brand_id && legacyBrandIds.includes(p.brand_id)) ||
-          (p.manufacturer_brand_id && legacyBrandIds.includes(p.manufacturer_brand_id)) ||
-          (p.franchise_brand_id && legacyBrandIds.includes(p.franchise_brand_id))
-      );
-    }
-    if (conditionFilters.length > 0) {
-      products = products.filter((p) => conditionFilters.includes(sanitizeProductCondition(p.condition)));
-    }
-    if (minPrice != null) {
-      products = products.filter((p) => toNum(p.price, 0) >= minPrice);
-    }
-    if (maxPrice != null && Number.isFinite(maxPrice)) {
-      products = products.filter((p) => toNum(p.price, 0) <= maxPrice);
-    }
-    if (search) {
-      products = products.filter((p) => {
-        const haystack = `${p.name || ''} ${p.description || ''} ${p.short_description || ''}`.toLowerCase();
-        return haystack.includes(search);
-      });
-    }
+    if (inStockOnly) products = products.filter(hasStock);
 
     const total = products.length;
     const totalPages = Math.ceil(total / limit);
     const currentPage = page;
     const start = (page - 1) * limit;
-
-    switch (sortBy) {
-      case 'price_asc':
-      case 'price-low':
-        products.sort((a, b) => toNum(a.price, 0) - toNum(b.price, 0));
-        break;
-      case 'price_desc':
-      case 'price-high':
-        products.sort((a, b) => toNum(b.price, 0) - toNum(a.price, 0));
-        break;
-      case 'name_asc':
-        products.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
-        break;
-      case 'name_desc':
-        products.sort((a, b) => String(b.name || '').localeCompare(String(a.name || '')));
-        break;
-      case 'oldest':
-        products.sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')));
-        break;
-      case 'newest':
-      default:
-        products.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
-        break;
-    }
-
     const pageProducts = products.slice(start, start + limit);
     const { categoriesById, brandsById } = await loadCategoryAndBrandMaps();
-
     const items = pageProducts.map((p) => mapProductToCatalogItem(p, categoriesById, brandsById));
 
     return {
@@ -415,6 +471,25 @@ export async function getProducts(filters = {}) {
 export async function getNewestProducts({ limit = 8, inStockOnly = true } = {}) {
   try {
     const safeLimit = Math.max(1, Number(limit) || 8);
+    if (isTypesenseConfigured() && getTypesenseConfig().enableSearch !== false) {
+      const client = getTypesenseServerClient();
+      const { collectionName } = getTypesenseConfig();
+      const filterParts = ['is_active:=true'];
+      if (inStockOnly) filterParts.push('stock_quantity:>0');
+
+      const result = await client.collections(collectionName).documents().search({
+        q: '*',
+        query_by: 'name',
+        page: 1,
+        per_page: safeLimit,
+        filter_by: filterParts.join(' && '),
+        sort_by: 'created_at_ts:desc'
+      });
+
+      const hits = Array.isArray(result?.hits) ? result.hits : [];
+      return hits.map((hit) => mapTypesenseDocToCatalogItem(hit.document || {})).slice(0, safeLimit);
+    }
+
     const snapshot = await db.collection(PRODUCTS_COLLECTION).get();
     let products = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     products = products.filter((p) => p.is_active !== false);
@@ -436,116 +511,63 @@ export async function getNewestProducts({ limit = 8, inStockOnly = true } = {}) 
 export async function getPopularProducts({ limit = 8, inStockOnly = true, windowDays = 30 } = {}) {
   try {
     const safeLimit = Math.max(1, Number(limit) || 8);
-    const safeWindowDays = Math.max(1, Number(windowDays) || 30);
-    const cutoffMs = Date.now() - (safeWindowDays * 24 * 60 * 60 * 1000);
-    const useObservability = true;
-    const weights = {
-      sold: 0.6,
-      revenue: 0.25,
-      views: 0.15
-    };
-    const tcgPriorityMultiplier = 0.72;
+    // Avoid reading orders/products full-scan. Prefer Typesense popularity sorting.
+    if (isTypesenseConfigured() && getTypesenseConfig().enableSearch !== false) {
+      const client = getTypesenseServerClient();
+      const { collectionName } = getTypesenseConfig();
+      const filterParts = ['is_active:=true'];
+      if (inStockOnly) filterParts.push('stock_quantity:>0');
 
-    const [productsSnap, ordersSnap] = await Promise.all([
-      db.collection(PRODUCTS_COLLECTION).get(),
-      db.collection(ORDERS_COLLECTION).get()
-    ]);
+      const result = await client.collections(collectionName).documents().search({
+        q: '*',
+        query_by: 'name',
+        page: 1,
+        per_page: safeLimit,
+        filter_by: filterParts.join(' && '),
+        sort_by: 'popularity:desc,updated_at_ts:desc'
+      });
 
-    let products = productsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    products = products.filter((p) => p.is_active !== false);
-    if (inStockOnly) {
-      products = products.filter(hasStock);
+      const hits = Array.isArray(result?.hits) ? result.hits : [];
+      return hits
+        .map((hit) => hit?.document || {})
+        .filter((doc) => doc?.id && doc?.slug)
+        .slice(0, safeLimit)
+        .map((doc) => ({
+          id: String(doc.id),
+          slug: String(doc.slug),
+          name: String(doc.name || ''),
+          description: doc.description || '',
+          short_description: doc.short_description || '',
+          price: toNum(doc.price, 0),
+          compare_price: doc.compare_price != null ? toNum(doc.compare_price, 0) : null,
+          is_featured: Boolean(doc.is_featured),
+          is_bestseller: Boolean(doc.is_bestseller),
+          is_active: Boolean(doc.is_active),
+          created_at: doc.created_at || null,
+          updated_at: doc.updated_at || null,
+          category_name: doc.category_name || null,
+          category_slug: doc.category_slug || null,
+          subcategory_name: doc.subcategory_name || null,
+          subcategory_slug: doc.subcategory_slug || null,
+          manufacturer_brand_name: doc.manufacturer_brand_name || null,
+          manufacturer_brand_slug: doc.manufacturer_brand_slug || null,
+          franchise_brand_name: doc.franchise_brand_name || null,
+          franchise_brand_slug: doc.franchise_brand_slug || null,
+          brand_name: doc.brand_name || null,
+          brand_slug: doc.brand_slug || null,
+          image: doc.image || DEFAULT_IMAGE,
+          images: Array.isArray(doc.images) ? doc.images : [],
+          tcg_product_id: doc.tcg_product_id ?? null,
+          tcg_sub_type_name: doc.tcg_sub_type_name ?? null,
+          condition: sanitizeProductCondition(doc.condition),
+          stock_quantity: toNum(doc.stock_quantity, 0),
+          allow_backorders: Boolean(doc.allow_backorders)
+        }));
     }
 
-    const productsById = new Map(products.map((p) => [String(p.id), p]));
-    const scoreByProductId = new Map();
-
-    for (const orderDoc of ordersSnap.docs) {
-      const order = orderDoc.data();
-      const createdAt = toValidDate(order.created_at);
-      if (!createdAt || createdAt.getTime() < cutoffMs) {
-        continue;
-      }
-
-      const items = Array.isArray(order.items) ? order.items : [];
-      for (const item of items) {
-        const productId = String(item.product_id || item.id || '');
-        if (!productId || !productsById.has(productId)) {
-          continue;
-        }
-
-        const quantity = Math.max(1, toNum(item.quantity, 1));
-        const unitPrice = toNum(item.unit_price, toNum(productsById.get(productId)?.price, 0));
-        const current = scoreByProductId.get(productId) || { sold: 0, revenue: 0, views: 0 };
-        current.sold += quantity;
-        current.revenue += quantity * unitPrice;
-        scoreByProductId.set(productId, current);
-      }
-    }
-
-    const maxSold = Math.max(
-      1,
-      ...[...scoreByProductId.values()].map((value) => toNum(value.sold, 0))
-    );
-    const maxRevenue = Math.max(
-      1,
-      ...[...scoreByProductId.values()].map((value) => toNum(value.revenue, 0))
-    );
-    const maxViews = Math.max(
-      1,
-      ...products.map((product) => toNum(product.view_count, 0))
-    );
-
-    const rankedByPopularity = [...products]
-      .map((product) => {
-        const productId = String(product.id);
-        const orderStats = scoreByProductId.get(productId) || { sold: 0, revenue: 0, views: 0 };
-        const soldSignal = toNum(orderStats.sold, 0) / maxSold;
-        const revenueSignal = toNum(orderStats.revenue, 0) / maxRevenue;
-        const viewsSignal = useObservability ? toNum(product.view_count, 0) / maxViews : 0;
-
-        const baseScore =
-          soldSignal * weights.sold +
-          revenueSignal * weights.revenue +
-          viewsSignal * weights.views;
-
-        const isTcgProduct = product.tcg_product_id != null;
-        const adjustedScore = isTcgProduct ? baseScore * tcgPriorityMultiplier : baseScore;
-
-        return { product, score: adjustedScore };
-      })
-      .sort((a, b) => b.score - a.score)
-      .map((entry) => entry.product);
-
-    const selected = [];
-    const seen = new Set();
-
-    const pushUnique = (list) => {
-      for (const product of list) {
-        if (!product || seen.has(product.id)) continue;
-        selected.push(product);
-        seen.add(product.id);
-        if (selected.length >= safeLimit) break;
-      }
-    };
-
-    pushUnique(rankedByPopularity);
-
-    if (selected.length < safeLimit) {
-      const bestsellers = products
-        .filter((p) => Boolean(p.is_bestseller))
-        .sort((a, b) => String(b.updated_at || b.created_at || '').localeCompare(String(a.updated_at || a.created_at || '')));
-      pushUnique(bestsellers);
-    }
-
-    if (selected.length < safeLimit) {
-      const newest = [...products]
-        .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
-      pushUnique(newest);
-    }
-
-    const { categoriesById, brandsById } = await loadCategoryAndBrandMaps();
-    return selected.slice(0, safeLimit).map((product) => mapProductToCatalogItem(product, categoriesById, brandsById));
+    // Fallback: avoid orders scan. Prefer newest products.
+    console.warn('Typesense not configured; getPopularProducts falling back to newest products.');
+    return getNewestProducts({ limit: safeLimit, inStockOnly });
   } catch (err) {
     console.error('Error getting popular products (Firestore):', err);
     return [];

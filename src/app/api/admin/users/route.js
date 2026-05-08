@@ -48,13 +48,27 @@ export async function GET(request) {
     const validSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'created_at';
     const validSortOrder = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
-    const snapshot = await db.collection('users').get();
+    // Avoid full-collection scans. Use Firestore pagination (offset) + limit.
+    // Note: offset still incurs read costs for skipped docs, but is far cheaper than fetching all docs.
+    let baseQuery = db.collection('users');
+    if (status === 'active') baseQuery = baseQuery.where('is_active', '==', true);
+    if (status === 'inactive') baseQuery = baseQuery.where('is_active', '==', false);
+    if (status === 'verified') baseQuery = baseQuery.where('is_verified', '==', true);
+    if (status === 'unverified') baseQuery = baseQuery.where('is_verified', '==', false);
+
+    let query = baseQuery;
+
+    query = query.orderBy(validSortBy, validSortOrder).offset(offset).limit(limit);
+
+    const [snapshot, totalAgg] = await Promise.all([
+      query.get(),
+      // Aggregation avoids scanning docs for totals.
+      baseQuery.count().get().catch(() => null)
+    ]);
+
     let users = snapshot.docs.map((doc) => {
       const { password_hash, ...safeUser } = doc.data();
-      return {
-        id: doc.id,
-        ...safeUser
-      };
+      return { id: doc.id, ...safeUser };
     });
 
     if (search) {
@@ -65,22 +79,19 @@ export async function GET(request) {
       });
     }
 
-    if (status === 'active') users = users.filter((u) => u.is_active === true);
-    if (status === 'inactive') users = users.filter((u) => u.is_active === false);
-    if (status === 'verified') users = users.filter((u) => u.is_verified === true);
-    if (status === 'unverified') users = users.filter((u) => u.is_verified !== true);
-
-    users.sort((a, b) => {
-      const left = String(a[validSortBy] || '');
-      const right = String(b[validSortBy] || '');
-      const cmp = left.localeCompare(right);
-      return validSortOrder === 'ASC' ? cmp : -cmp;
-    });
-
-    const { data, pagination } = paginate(users, page, limit);
+    const total = totalAgg?.data?.().count ?? users.length;
+    const totalPages = Math.ceil(total / limit);
+    const pagination = {
+      total,
+      totalPages,
+      currentPage: page,
+      hasNextPage: totalPages > 0 && page < totalPages,
+      hasPrevPage: page > 1
+    };
+    const data = users;
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const stats = {
-      total_users: users.length,
+      total_users: total,
       active_users: users.filter((u) => u.is_active === true).length,
       verified_users: users.filter((u) => u.is_verified === true).length,
       recent_users: users.filter((u) => {

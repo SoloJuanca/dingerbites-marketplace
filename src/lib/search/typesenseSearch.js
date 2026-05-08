@@ -126,16 +126,39 @@ function normalizeTypesenseResult(result, page, limit) {
   };
 }
 
+function toBoolean(value) {
+  if (typeof value === 'boolean') return value;
+  return String(value || '').toLowerCase() === 'true';
+}
+
+function shouldAllowFirestoreFallback(options = {}) {
+  if (options.allowFallback === false) return false;
+  const envOverride = process.env.ALLOW_FIRESTORE_SEARCH_FALLBACK;
+  if (envOverride != null) return toBoolean(envOverride);
+  // Safe default: allow in dev, disallow in production to avoid runaway read costs.
+  return process.env.NODE_ENV !== 'production';
+}
+
+function emptySearchResult(page, limit, meta = {}) {
+  return {
+    products: [],
+    total: 0,
+    totalPages: 0,
+    currentPage: page,
+    hasNextPage: false,
+    hasPrevPage: false,
+    ...meta
+  };
+}
+
 export async function searchProducts(filters = {}, options = {}) {
-  const shouldFallback = options.allowFallback !== false;
+  const shouldFallback = shouldAllowFirestoreFallback(options);
   const page = Math.max(1, toNumber(filters.page, 1));
   const limit = Math.max(1, toNumber(filters.limit, 12));
 
   if (!isTypesenseConfigured() || getTypesenseConfig().enableSearch === false) {
-    if (!shouldFallback) {
-      throw new Error('Typesense is not configured');
-    }
-    return getProducts(filters);
+    if (shouldFallback) return getProducts(filters);
+    return emptySearchResult(page, limit, { degraded: true, degraded_reason: 'typesense_unavailable' });
   }
 
   try {
@@ -157,7 +180,10 @@ export async function searchProducts(filters = {}, options = {}) {
     const result = await client.collections(collectionName).documents().search(searchParameters);
     return normalizeTypesenseResult(result, page, limit);
   } catch (error) {
-    if (!shouldFallback) throw error;
+    if (!shouldFallback) {
+      console.error('Typesense search failed (no Firestore fallback allowed):', error);
+      return emptySearchResult(page, limit, { degraded: true, degraded_reason: 'typesense_error' });
+    }
     console.error('Typesense search failed, using Firestore fallback:', error);
     return getProducts(filters);
   }

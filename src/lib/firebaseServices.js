@@ -2,7 +2,6 @@ import { db } from './firebaseAdmin';
 
 const SERVICES_COLLECTION = 'services';
 const SERVICE_CATEGORIES_COLLECTION = 'service_categories';
-const SERVICE_REVIEWS_COLLECTION = 'service_reviews';
 
 function toNum(value, fallback = 0) {
   if (value === null || value === undefined || value === '') return fallback;
@@ -63,30 +62,14 @@ export async function getServices(options = {}) {
     categoryDocs.filter((d) => d.exists).map((d) => [d.id, d.data()])
   );
 
-  const reviewCounts = await Promise.all(
-    paginated.map(async (s) => {
-      const revSnap = await db
-        .collection(SERVICE_REVIEWS_COLLECTION)
-        .where('service_id', '==', s.id)
-        .where('is_approved', '==', true)
-        .get();
-      const ratings = revSnap.docs.map((d) => d.data().rating).filter((r) => r != null);
-      const count = ratings.length;
-      const avg = count ? ratings.reduce((a, b) => a + b, 0) / count : 0;
-      return { id: s.id, review_count: count, average_rating: avg };
-    })
-  );
-  const reviewByServiceId = new Map(reviewCounts.map((r) => [r.id, r]));
-
   const result = paginated.map((s) => {
     const cat = s.category_id ? categoriesById.get(String(s.category_id)) : null;
-    const rev = reviewByServiceId.get(s.id);
     return {
       ...s,
       category_name: cat?.name ?? null,
       category_slug: cat?.slug ?? null,
-      review_count: rev?.review_count ?? 0,
-      average_rating: rev?.average_rating ?? 0
+      review_count: toNum(s.review_count, 0),
+      average_rating: toNum(s.average_rating, 0)
     };
   });
 
@@ -138,6 +121,8 @@ export async function createService(payload) {
     level: level || null,
     max_participants: toNum(max_participants, 12),
     is_active: true,
+    review_count: 0,
+    average_rating: 0,
     created_at: now,
     updated_at: now
   };

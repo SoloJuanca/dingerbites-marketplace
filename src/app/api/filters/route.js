@@ -12,43 +12,58 @@ export async function GET() {
     ]);
     const brands = [...manufacturerBrands, ...franchiseBrands];
 
-    return NextResponse.json({
-      categories,
-      manufacturerBrands,
-      franchiseBrands,
-      brands,
-      priceRange,
-      conditions: PRODUCT_CONDITIONS.map((value) => ({
-        value,
-        label: PRODUCT_CONDITION_LABELS[value]
-      }))
-    });
+    return NextResponse.json(
+      {
+        categories,
+        manufacturerBrands,
+        franchiseBrands,
+        brands,
+        priceRange,
+        conditions: PRODUCT_CONDITIONS.map((value) => ({
+          value,
+          label: PRODUCT_CONDITION_LABELS[value]
+        }))
+      },
+      {
+        headers: {
+          // Cache at the edge/CDN when available, serve stale while revalidating.
+          'cache-control': 'public, s-maxage=3600, stale-while-revalidate=86400'
+        }
+      }
+    );
   } catch (error) {
     console.error('Error fetching filter data:', error);
     
     // Devolver datos mock como fallback
-    return NextResponse.json({
-      categories: [
-        { id: 1, name: 'Belleza', slug: 'belleza' },
-        { id: 2, name: 'Manicure', slug: 'manicure' },
-        { id: 3, name: 'Cuidado de la Piel', slug: 'cuidado-piel' }
-      ],
-      brands: [
-        { id: 1, name: 'Brand A', slug: 'brand-a' },
-        { id: 2, name: 'Brand B', slug: 'brand-b' },
-        { id: 3, name: 'Brand C', slug: 'brand-c' }
-      ],
-      manufacturerBrands: [
-        { id: 1, name: 'Brand A', slug: 'brand-a' }
-      ],
-      franchiseBrands: [
-        { id: 2, name: 'Brand B', slug: 'brand-b' }
-      ],
-      priceRange: { min: 0, max: 2000 },
-      conditions: PRODUCT_CONDITIONS.map((value) => ({
-        value,
-        label: PRODUCT_CONDITION_LABELS[value]
-      }))
-    });
+    return NextResponse.json(
+      {
+        categories: [
+          { id: 1, name: 'Belleza', slug: 'belleza' },
+          { id: 2, name: 'Manicure', slug: 'manicure' },
+          { id: 3, name: 'Cuidado de la Piel', slug: 'cuidado-piel' }
+        ],
+        brands: [
+          { id: 1, name: 'Brand A', slug: 'brand-a' },
+          { id: 2, name: 'Brand B', slug: 'brand-b' },
+          { id: 3, name: 'Brand C', slug: 'brand-c' }
+        ],
+        manufacturerBrands: [
+          { id: 1, name: 'Brand A', slug: 'brand-a' }
+        ],
+        franchiseBrands: [
+          { id: 2, name: 'Brand B', slug: 'brand-b' }
+        ],
+        priceRange: { min: 0, max: 2000 },
+        conditions: PRODUCT_CONDITIONS.map((value) => ({
+          value,
+          label: PRODUCT_CONDITION_LABELS[value]
+        }))
+      },
+      {
+        headers: {
+          'cache-control': 'public, s-maxage=3600, stale-while-revalidate=86400'
+        }
+      }
+    );
   }
 }

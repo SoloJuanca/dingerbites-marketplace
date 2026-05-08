@@ -176,6 +176,24 @@ export async function createReview(payload) {
     created_at: now,
     updated_at: now
   });
+
+  // Update service aggregates to avoid N+1 reads on listing.
+  try {
+    const serviceRef = db.collection(SERVICES_COLLECTION).doc(String(serviceId));
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(serviceRef);
+      if (!snap.exists) return;
+      const current = snap.data() || {};
+      const prevCount = Number(current.review_count || 0);
+      const prevAvg = Number(current.average_rating || 0);
+      const newCount = prevCount + 1;
+      const newAvg = (prevAvg * prevCount + Number(rating)) / newCount;
+      tx.update(serviceRef, { review_count: newCount, average_rating: newAvg, updated_at: now });
+    });
+  } catch (e) {
+    console.error('Failed updating service aggregates:', e);
+  }
+
   const created = await docRef.get();
   return { id: created.id, rating, title: title || null, comment: comment || null, created_at: now };
 }

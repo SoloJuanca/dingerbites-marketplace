@@ -10,6 +10,8 @@ export default function HeaderSearchBar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const inputRef = useRef(null);
+  const hasLoadedFiltersRef = useRef(false);
+  const isLoadingFiltersRef = useRef(false);
   const [categories, setCategories] = useState([]);
   const [categorySlug, setCategorySlug] = useState('');
   const [query, setQuery] = useState('');
@@ -18,25 +20,22 @@ export default function HeaderSearchBar() {
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isFocused, setIsFocused] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const res = await fetch('/api/filters');
-        if (!res.ok) return;
-        const data = await res.json();
-        const list = Array.isArray(data.categories) ? data.categories : [];
-        if (!cancelled) {
-          setCategories(list.filter((c) => c?.slug && !c.parent_id));
-        }
-      } catch {
-        if (!cancelled) setCategories([]);
-      }
+  const loadHeaderFiltersOnce = useCallback(async () => {
+    if (hasLoadedFiltersRef.current) return;
+    if (isLoadingFiltersRef.current) return;
+    isLoadingFiltersRef.current = true;
+    try {
+      const res = await fetch('/api/filters');
+      if (!res.ok) return;
+      const data = await res.json();
+      const list = Array.isArray(data.categories) ? data.categories : [];
+      setCategories(list.filter((c) => c?.slug && !c.parent_id));
+      hasLoadedFiltersRef.current = true;
+    } catch {
+      // keep categories empty; we can retry on next focus/open
+    } finally {
+      isLoadingFiltersRef.current = false;
     }
-    load();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   useEffect(() => {
@@ -167,6 +166,8 @@ export default function HeaderSearchBar() {
               id="header-search-category"
               className={styles.categorySelect}
               value={categorySlug}
+              onPointerDown={loadHeaderFiltersOnce}
+              onFocus={loadHeaderFiltersOnce}
               onChange={(e) => setCategorySlug(e.target.value)}
               aria-label="Filtrar por categoría"
             >
@@ -186,7 +187,10 @@ export default function HeaderSearchBar() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            onFocus={() => setIsFocused(true)}
+            onFocus={() => {
+              setIsFocused(true);
+              loadHeaderFiltersOnce();
+            }}
             onBlur={() => setIsFocused(false)}
             placeholder="Buscar productos..."
             autoComplete="off"

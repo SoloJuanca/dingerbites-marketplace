@@ -75,7 +75,12 @@ export async function GET(request) {
     const stockStatus = searchParams.get('stockStatus') || 'all';
     const orderBy = searchParams.get('orderBy') || 'date_desc';
     
-    const snapshot = await db.collection(PRODUCTS_COLLECTION).get();
+    // Avoid full collection scans; cap the working set.
+    const snapshot = await db
+      .collection(PRODUCTS_COLLECTION)
+      .orderBy('updated_at', 'desc')
+      .limit(5000)
+      .get();
     let products = snapshot.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
       .filter((p) => p.is_active !== false);

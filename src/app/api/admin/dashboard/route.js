@@ -33,13 +33,6 @@ export async function GET(request) {
       );
     }
 
-    const [ordersSnap, usersSnap, productsSnap, statusesSnap] = await Promise.all([
-      db.collection('orders').get().catch(() => ({ docs: [] })),
-      db.collection('users').get().catch(() => ({ docs: [] })),
-      db.collection('products').get().catch(() => ({ docs: [] })),
-      db.collection('order_statuses').get().catch(() => ({ docs: [] }))
-    ]);
-
     const now = new Date();
     const todayStart = startOfDay(now);
     const weekStart = new Date(now);
@@ -49,7 +42,31 @@ export async function GET(request) {
     const yearStart = new Date(now);
     yearStart.setMonth(now.getMonth() - 12);
 
-    const orders = ordersSnap.docs
+    // Avoid full-collection scans. Read only recent windows + aggregates.
+    const monthStartIso = monthStart.toISOString();
+    const yearStartIso = yearStart.toISOString();
+
+    const [
+      ordersMonthSnap,
+      ordersYearSnap,
+      recentOrdersSnap,
+      usersMonthSnap,
+      totalUsersAgg,
+      totalProductsAgg,
+      productsSnap,
+      statusesSnap
+    ] = await Promise.all([
+      db.collection('orders').where('created_at', '>=', monthStartIso).get().catch(() => ({ docs: [] })),
+      db.collection('orders').where('created_at', '>=', yearStartIso).get().catch(() => ({ docs: [] })),
+      db.collection('orders').orderBy('created_at', 'desc').limit(10).get().catch(() => ({ docs: [] })),
+      db.collection('users').where('created_at', '>=', monthStartIso).get().catch(() => ({ docs: [] })),
+      db.collection('users').count().get().catch(() => null),
+      db.collection('products').count().get().catch(() => null),
+      db.collection('products').where('is_active', '==', true).limit(5000).get().catch(() => ({ docs: [] })),
+      db.collection('order_statuses').get().catch(() => ({ docs: [] }))
+    ]);
+
+    const ordersMonth = ordersMonthSnap.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
       .map((order) => ({
         ...order,
@@ -58,7 +75,16 @@ export async function GET(request) {
       }))
       .filter((o) => o.created_at_date);
 
-    const users = usersSnap.docs
+    const ordersYear = ordersYearSnap.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .map((order) => ({
+        ...order,
+        created_at_date: toDate(order.created_at),
+        total_amount_num: toNumber(order.total_amount, 0)
+      }))
+      .filter((o) => o.created_at_date);
+
+    const users = usersMonthSnap.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
       .map((user) => ({
         ...user,
@@ -71,13 +97,12 @@ export async function GET(request) {
     const statuses = statusesSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     const statusesById = new Map(statuses.map((s) => [String(s.id), s]));
 
-    const ordersToday = orders.filter((o) => o.created_at_date >= todayStart);
-    const ordersWeek = orders.filter((o) => o.created_at_date >= weekStart);
-    const ordersMonth = orders.filter((o) => o.created_at_date >= monthStart);
+    const ordersToday = ordersMonth.filter((o) => o.created_at_date >= todayStart);
+    const ordersWeek = ordersMonth.filter((o) => o.created_at_date >= weekStart);
 
     const newUsersToday = users.filter((u) => u.created_at_date && u.created_at_date >= todayStart);
     const newUsersWeek = users.filter((u) => u.created_at_date && u.created_at_date >= weekStart);
-    const newUsersMonth = users.filter((u) => u.created_at_date && u.created_at_date >= monthStart);
+    const newUsersMonth = users;
 
     const lowStockProducts = products.filter((p) => {
       const stock = toNumber(p.stock_quantity, 0);
@@ -97,7 +122,9 @@ export async function GET(request) {
       new_users_week: newUsersWeek.length,
       new_users_month: newUsersMonth.length,
       low_stock_products: lowStockProducts.length,
-      out_of_stock_products: outOfStockProducts.length
+      out_of_stock_products: outOfStockProducts.length,
+      total_users: totalUsersAgg?.data?.().count ?? null,
+      total_products: totalProductsAgg?.data?.().count ?? null
     };
 
     const revenueMap = new Map();
@@ -200,9 +227,14 @@ export async function GET(request) {
       .slice(0, 20);
 
     const usersById = new Map(users.map((u) => [String(u.id), u]));
-    const recentOrders = [...orders]
-      .sort((a, b) => b.created_at_date - a.created_at_date)
-      .slice(0, 10)
+    const recentOrders = recentOrdersSnap.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .map((order) => ({
+        ...order,
+        created_at_date: toDate(order.created_at),
+        total_amount_num: toNumber(order.total_amount, 0)
+      }))
+      .filter((order) => order.created_at_date)
       .map((order) => {
         const status = statusesById.get(String(order.status_id)) || {};
         const orderUser = order.user_id ? usersById.get(String(order.user_id)) : null;
