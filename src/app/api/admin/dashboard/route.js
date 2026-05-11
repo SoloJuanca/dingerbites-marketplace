@@ -257,7 +257,7 @@ export async function GET(request) {
       });
 
     const monthlyMap = new Map();
-    orders
+    ordersYear
       .filter((o) => o.created_at_date >= yearStart)
       .forEach((order) => {
         const month = `${order.created_at_date.getFullYear()}-${String(order.created_at_date.getMonth() + 1).padStart(2, '0')}-01`;

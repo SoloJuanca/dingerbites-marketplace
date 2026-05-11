@@ -87,7 +87,8 @@ export function generateAdminEmailContent(orderData) {
     service_items,
     address,
     notes,
-    created_at
+    created_at,
+    advance_payment_proof_url
   } = orderData;
 
   const formatCurrency = (amount) => {
@@ -248,6 +249,12 @@ export function generateAdminEmailContent(orderData) {
               <td style="padding: 8px 0; font-weight: bold; color: #4a5568;">Método de Pago:</td>
               <td style="padding: 8px 0; color: #2d3748;">${payment_method || 'No especificado'}</td>
             </tr>
+            ${advance_payment_proof_url ? `
+            <tr>
+              <td style="padding: 8px 0; font-weight: bold; color: #4a5568;">Comprobante anticipo (50%):</td>
+              <td style="padding: 8px 0; color: #2d3748;"><a href="${advance_payment_proof_url}" style="color: #3182ce; text-decoration: none; word-break: break-all;">Ver imagen del comprobante</a></td>
+            </tr>
+            ` : ''}
             ${address ? `
             <tr>
               <td style="padding: 8px 0; font-weight: bold; color: #4a5568;">Dirección de Entrega:</td>

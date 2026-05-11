@@ -10,6 +10,11 @@ import { useAuth } from '../../lib/AuthContext';
 import OrderConfirmation from '../OrderConfirmation/OrderConfirmation';
 import AddressManager from '../AddressManager/AddressManager';
 import StripeEmbeddedPayment from '../StripeEmbeddedPayment/StripeEmbeddedPayment';
+import {
+  CASH_ADVANCE_PROOF_MIN_TOTAL_MXN,
+  PAYMENT_PROOF_ACCEPT_ATTR,
+  validatePaymentProofImageFile
+} from '../../lib/checkoutPaymentProofRules';
 import styles from './SimpleCheckout.module.css';
 
 const PICKUP_POINTS = [
@@ -52,6 +57,9 @@ export default function SimpleCheckout() {
   const [stripeLoading, setStripeLoading] = useState(false);
   const [stripeError, setStripeError] = useState(null);
   const prevPaymentIntentIdRef = useRef(null);
+  const cashAdvanceProofInputRef = useRef(null);
+  const [cashAdvanceProofFile, setCashAdvanceProofFile] = useState(null);
+  const [cashAdvanceProofPreview, setCashAdvanceProofPreview] = useState(null);
 
   const { items, clearCart, getTotalPrice } = useCart();
   const { user, isAuthenticated, apiRequest } = useAuth();
@@ -186,6 +194,14 @@ export default function SimpleCheckout() {
       }
     }
 
+    const needsCashAdvanceProof =
+      formData.paymentMethod === 'cash' &&
+      formData.deliveryType === 'pickup' &&
+      getTotal() >= CASH_ADVANCE_PROOF_MIN_TOTAL_MXN;
+    if (needsCashAdvanceProof && !cashAdvanceProofFile) {
+      newErrors.cashAdvanceProof = 'Adjunta la captura del comprobante del pago del 50%.';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -204,6 +220,55 @@ export default function SimpleCheckout() {
 
   const getTotal = () => {
     return getSubtotal() + getShippingCost() - getDiscount();
+  };
+
+  const clearCashAdvanceProof = () => {
+    setCashAdvanceProofFile(null);
+    setCashAdvanceProofPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    if (cashAdvanceProofInputRef.current) {
+      cashAdvanceProofInputRef.current.value = '';
+    }
+  };
+
+  useEffect(() => {
+    const subtotal = getTotalPrice();
+    const shipping = formData.deliveryType === 'delivery' ? 120 : 0;
+    const discount = couponData?.discount_amount || 0;
+    const total = subtotal + shipping - discount;
+    const needsProof =
+      formData.paymentMethod === 'cash' &&
+      formData.deliveryType === 'pickup' &&
+      total >= CASH_ADVANCE_PROOF_MIN_TOTAL_MXN;
+    if (!needsProof) {
+      setCashAdvanceProofFile(null);
+      setCashAdvanceProofPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      if (cashAdvanceProofInputRef.current) {
+        cashAdvanceProofInputRef.current.value = '';
+      }
+    }
+  }, [formData.paymentMethod, formData.deliveryType, items, couponData, getTotalPrice]);
+
+  const handleCashAdvanceProofChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const check = validatePaymentProofImageFile(file);
+    if (!check.ok) {
+      toast.error(check.message);
+      e.target.value = '';
+      return;
+    }
+    setCashAdvanceProofPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+    setCashAdvanceProofFile(file);
+    setErrors((prev) => ({ ...prev, cashAdvanceProof: '' }));
   };
 
   const validateCoupon = async () => {
@@ -455,6 +520,31 @@ export default function SimpleCheckout() {
       const shippingAmount = getShippingCost();
       const totalAmount = getTotal();
 
+      let advancePaymentProofUrl = null;
+      const needsAdvanceProof =
+        formData.paymentMethod === 'cash' &&
+        formData.deliveryType === 'pickup' &&
+        totalAmount >= CASH_ADVANCE_PROOF_MIN_TOTAL_MXN;
+
+      if (needsAdvanceProof) {
+        if (!cashAdvanceProofFile) {
+          toast.error('Adjunta la captura del comprobante del pago del 50%.');
+          return;
+        }
+        const fd = new FormData();
+        fd.append('file', cashAdvanceProofFile);
+        const uploadRes = await fetch('/api/upload/order-payment-proof', {
+          method: 'POST',
+          body: fd
+        });
+        const uploadData = await uploadRes.json().catch(() => ({}));
+        if (!uploadRes.ok) {
+          toast.error(uploadData.error || 'No se pudo subir el comprobante. Intenta de nuevo.');
+          return;
+        }
+        advancePaymentProofUrl = uploadData.url;
+      }
+
       const orderData = {
         ...buildCheckoutOrderPayload(),
         payment_method:
@@ -463,6 +553,10 @@ export default function SimpleCheckout() {
         shipping_amount: shippingAmount,
         total_amount: totalAmount
       };
+
+      if (advancePaymentProofUrl) {
+        orderData.advance_payment_proof_url = advancePaymentProofUrl;
+      }
 
       // Crear orden en la base de datos
       let orderResponse;
@@ -977,13 +1071,67 @@ export default function SimpleCheckout() {
 
               {formData.paymentMethod === 'cash' && formData.deliveryType === 'pickup' && (
                 <div className={styles.cashOnDeliveryRules}>
-                  {getTotal() < 50 ? (
+                  {getTotal() < CASH_ADVANCE_PROOF_MIN_TOTAL_MXN ? (
                     <p>El pedido deberá pagarse en su totalidad al momento de la entrega.</p>
                   ) : (
-                    <p>
-                      El pedido se pagará en dos transacciones del 50% cada una (50% al recibir, 50% en la
-                      siguiente transacción).
-                    </p>
+                    <>
+                      <p>
+                        En ese mismo momento envía una captura de pantalla del pago del 50% del total de la
+                        orden. Te confirmaremos por correo electrónico o por mensaje de texto (si registraste
+                        teléfono) que recibimos el pago y acordaremos la fecha de entrega. El 50% restante lo
+                        pagas al momento de la entrega.
+                      </p>
+                      <div className={styles.proofUpload}>
+                        <span className={styles.proofUploadLabel} id="cash-advance-proof-label">
+                          Comprobante del 50% <span className={styles.requiredMark}>(obligatorio)</span>
+                        </span>
+                        <label
+                          className={`${styles.proofDropZone} ${errors.cashAdvanceProof ? styles.proofDropZoneError : ''}`}
+                          htmlFor="cash-advance-proof-input"
+                        >
+                          <input
+                            ref={cashAdvanceProofInputRef}
+                            id="cash-advance-proof-input"
+                            type="file"
+                            accept={PAYMENT_PROOF_ACCEPT_ATTR}
+                            className={styles.proofFileInput}
+                            onChange={handleCashAdvanceProofChange}
+                            aria-labelledby="cash-advance-proof-label"
+                            aria-describedby="cash-advance-proof-hint"
+                            aria-invalid={errors.cashAdvanceProof ? 'true' : 'false'}
+                          />
+                          <span className={styles.proofDropZoneText}>
+                            {cashAdvanceProofFile
+                              ? cashAdvanceProofFile.name
+                              : 'Haz clic para elegir imagen o arrastra el archivo aquí'}
+                          </span>
+                        </label>
+                        <p id="cash-advance-proof-hint" className={styles.proofHint}>
+                          Formatos: JPG, PNG o WebP. Tamaño máximo 5 MB.
+                        </p>
+                        {errors.cashAdvanceProof && (
+                          <p className={styles.proofError} role="alert">
+                            {errors.cashAdvanceProof}
+                          </p>
+                        )}
+                        {cashAdvanceProofPreview && (
+                          <div className={styles.proofPreview}>
+                            <img
+                              src={cashAdvanceProofPreview}
+                              alt="Vista previa del comprobante"
+                              className={styles.proofPreviewImg}
+                            />
+                            <button
+                              type="button"
+                              className={styles.proofRemoveButton}
+                              onClick={clearCashAdvanceProof}
+                            >
+                              Quitar imagen
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
               )}

@@ -91,6 +91,9 @@ export async function POST(request) {
     const message = error?.message || 'Failed to create order';
     const code = error?.code;
 
+    if (code === 'PAYMENT_PROOF_REQUIRED') {
+      return jsonError(message, 400, 'PAYMENT_PROOF_REQUIRED');
+    }
     if (code === 'REQUIRED_FIELDS_MISSING') {
       return jsonError(
         'Customer email and at least one item are required',

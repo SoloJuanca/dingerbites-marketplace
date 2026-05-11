@@ -2,17 +2,28 @@
 
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import {
+  CASH_ADVANCE_PROOF_MIN_TOTAL_MXN,
+  PAYMENT_PROOF_ACCEPT_ATTR,
+  validatePaymentProofImageFile
+} from '../../lib/checkoutPaymentProofRules';
 import styles from './OrderConfirmation.module.css';
 
-export default function OrderConfirmation({ 
-  checkoutData, 
-  items, 
-  onConfirm, 
+export default function OrderConfirmation({
+  checkoutData,
+  items,
+  onConfirm,
   onBack,
   formatPrice,
   isAuthenticated,
   apiRequest,
-  onUpdateCoupon
+  onUpdateCoupon,
+  cashAdvanceProofFile = null,
+  cashAdvanceProofPreview = null,
+  cashAdvanceProofError = '',
+  cashAdvanceProofInputRef = null,
+  onCashAdvanceProofChange,
+  onClearCashAdvanceProof
 }) {
   const [couponInput, setCouponInput] = useState(checkoutData.couponCode || '');
   const [applyingCoupon, setApplyingCoupon] = useState(false);
@@ -90,6 +101,24 @@ export default function OrderConfirmation({
   const getUserTypeText = () => {
     return checkoutData.userType === 'guest' ? 'Invitado' : 'Cuenta registrada';
   };
+
+  const handleProofInputChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !onCashAdvanceProofChange) return;
+    const check = validatePaymentProofImageFile(file);
+    if (!check.ok) {
+      toast.error(check.message);
+      e.target.value = '';
+      return;
+    }
+    onCashAdvanceProofChange(file, URL.createObjectURL(file));
+  };
+
+  const needsCashAdvanceProofUi =
+    checkoutData.paymentMethod === 'cash' &&
+    checkoutData.deliveryType === 'pickup' &&
+    getTotal() >= CASH_ADVANCE_PROOF_MIN_TOTAL_MXN &&
+    typeof onCashAdvanceProofChange === 'function';
 
   return (
     <div className={styles.orderConfirmation}>
@@ -254,11 +283,62 @@ export default function OrderConfirmation({
               </>
             )}
             {checkoutData.paymentMethod === 'cash' && checkoutData.deliveryType === 'pickup' && (
-              <li>
-                <strong>Pago contra entrega:</strong> {getTotal() < 50
-                  ? 'El pedido deberá pagarse en su totalidad al momento de la entrega.'
-                  : 'El pedido se pagará en dos transacciones del 50% cada una (50% al recibir, 50% en la siguiente transacción).'}
-              </li>
+              <>
+                <li>
+                  <strong>Pago contra entrega:</strong>{' '}
+                  {getTotal() < CASH_ADVANCE_PROOF_MIN_TOTAL_MXN
+                    ? 'El pedido deberá pagarse en su totalidad al momento de la entrega.'
+                    : 'Adjunta aquí abajo la captura del pago del 50% del total de la orden. Te confirmaremos por correo electrónico o por mensaje de texto (si registraste teléfono) que recibimos el pago y acordaremos la fecha de entrega. El 50% restante lo pagas al momento de la entrega.'}
+                </li>
+                {needsCashAdvanceProofUi && (
+                  <li className={styles.proofUploadListItem}>
+                    <span className={styles.proofFieldLabel} id="flow-cash-proof-label">
+                      Comprobante del 50% <span className={styles.requiredMark}>(obligatorio)</span>
+                    </span>
+                    <label
+                      className={`${styles.proofDropZone} ${cashAdvanceProofError ? styles.proofDropZoneError : ''}`}
+                      htmlFor="flow-cash-advance-proof-input"
+                    >
+                      <input
+                        ref={cashAdvanceProofInputRef}
+                        id="flow-cash-advance-proof-input"
+                        type="file"
+                        accept={PAYMENT_PROOF_ACCEPT_ATTR}
+                        className={styles.proofFileInput}
+                        onChange={handleProofInputChange}
+                        aria-labelledby="flow-cash-proof-label"
+                        aria-describedby="flow-cash-proof-hint"
+                        aria-invalid={cashAdvanceProofError ? 'true' : 'false'}
+                      />
+                      <span className={styles.proofDropZoneText}>
+                        {cashAdvanceProofFile
+                          ? cashAdvanceProofFile.name
+                          : 'Haz clic para elegir imagen (JPG, PNG o WebP, máx. 5 MB)'}
+                      </span>
+                    </label>
+                    <p id="flow-cash-proof-hint" className={styles.proofHint}>
+                      Se subirá al confirmar el pedido.
+                    </p>
+                    {cashAdvanceProofError && (
+                      <p className={styles.proofError} role="alert">
+                        {cashAdvanceProofError}
+                      </p>
+                    )}
+                    {cashAdvanceProofPreview && onClearCashAdvanceProof && (
+                      <div className={styles.proofPreview}>
+                        <img
+                          src={cashAdvanceProofPreview}
+                          alt="Vista previa del comprobante"
+                          className={styles.proofPreviewImg}
+                        />
+                        <button type="button" className={styles.proofRemoveButton} onClick={onClearCashAdvanceProof}>
+                          Quitar imagen
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                )}
+              </>
             )}
             {checkoutData.deliveryType === 'pickup' && (
               <li>

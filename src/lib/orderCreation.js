@@ -15,6 +15,7 @@ import {
   computeOrderTotals
 } from './orderPricing';
 import { normalizeEmail } from './security';
+import { CASH_ADVANCE_PROOF_MIN_TOTAL_MXN } from './checkoutPaymentProofRules';
 import { logSecurityEvent } from './auditLog';
 import { deductProductStockInTransaction } from './orderStock';
 
@@ -48,7 +49,8 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
     pickup_point,
     coupon_code,
     order_origin,
-    pos_in_person
+    pos_in_person,
+    advance_payment_proof_url
   } = body;
 
   const skipEmail = options.skipEmail === true;
@@ -163,6 +165,24 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
       discountAmount: couponApplication?.discount_amount || 0
     });
 
+    const requiresAdvancePaymentProof =
+      String(payment_method || '').toLowerCase().includes('contra entrega') &&
+      String(shipping_method || '') === 'Recoger en punto' &&
+      Number(totals.total_amount) >= CASH_ADVANCE_PROOF_MIN_TOTAL_MXN;
+
+    const proofUrl =
+      typeof advance_payment_proof_url === 'string' ? advance_payment_proof_url.trim() : '';
+
+    if (requiresAdvancePaymentProof) {
+      if (!proofUrl || !/^https:\/\//i.test(proofUrl)) {
+        const err = new Error(
+          'Debes adjuntar la captura de pantalla del comprobante del pago del 50% antes de confirmar el pedido.'
+        );
+        err.code = 'PAYMENT_PROOF_REQUIRED';
+        throw err;
+      }
+    }
+
     await deductProductStockInTransaction(transaction, orderItems, now);
 
     // After stock reads, we can safely apply transactional coupon writes (no more reads after this point).
@@ -217,6 +237,9 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
     if (stripePaymentIntentId) {
       orderPayload.stripe_payment_intent_id = stripePaymentIntentId;
     }
+    if (proofUrl) {
+      orderPayload.advance_payment_proof_url = proofUrl;
+    }
 
     transaction.set(orderRef, orderPayload);
     return orderPayload;
@@ -235,6 +258,7 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
     address,
     pickup_point: pickup_point || null,
     notes,
+    advance_payment_proof_url: createdOrder.advance_payment_proof_url || null,
     created_at: new Date()
   };
 

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { CASH_ADVANCE_PROOF_MIN_TOTAL_MXN } from '../../lib/checkoutPaymentProofRules';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useCart } from '../../lib/CartContext';
@@ -36,6 +37,11 @@ export default function CheckoutFlow() {
     couponCode: '',
     couponData: null,
   });
+
+  const cashAdvanceProofInputRef = useRef(null);
+  const [cashAdvanceProofFile, setCashAdvanceProofFile] = useState(null);
+  const [cashAdvanceProofPreview, setCashAdvanceProofPreview] = useState(null);
+  const [cashAdvanceProofError, setCashAdvanceProofError] = useState('');
   
   const { items, clearCart, getTotalPrice } = useCart();
   const { user, isAuthenticated, apiRequest } = useAuth();
@@ -111,6 +117,56 @@ export default function CheckoutFlow() {
     );
   };
 
+  useEffect(() => {
+    const subtotal = getTotalPrice();
+    const shipping = checkoutData.deliveryType === 'delivery' ? 120 : 0;
+    const transferDisc = checkoutData.paymentMethod === 'transfer' ? subtotal * 0.05 : 0;
+    const couponDisc = checkoutData.couponData?.discount_amount || 0;
+    const total = subtotal + shipping - Math.max(transferDisc, couponDisc);
+    const needsProof =
+      checkoutData.paymentMethod === 'cash' &&
+      checkoutData.deliveryType === 'pickup' &&
+      total >= CASH_ADVANCE_PROOF_MIN_TOTAL_MXN;
+    if (!needsProof) {
+      setCashAdvanceProofFile(null);
+      setCashAdvanceProofPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setCashAdvanceProofError('');
+      if (cashAdvanceProofInputRef.current) {
+        cashAdvanceProofInputRef.current.value = '';
+      }
+    }
+  }, [
+    checkoutData.paymentMethod,
+    checkoutData.deliveryType,
+    checkoutData.couponData,
+    items,
+    getTotalPrice
+  ]);
+
+  const handleCashAdvanceProofChange = (file, previewUrl) => {
+    setCashAdvanceProofPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return previewUrl;
+    });
+    setCashAdvanceProofFile(file);
+    setCashAdvanceProofError('');
+  };
+
+  const handleClearCashAdvanceProof = () => {
+    setCashAdvanceProofFile(null);
+    setCashAdvanceProofPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    if (cashAdvanceProofInputRef.current) {
+      cashAdvanceProofInputRef.current.value = '';
+    }
+    setCashAdvanceProofError('');
+  };
+
   const getStockConflicts = () => {
     return items
       .map((item) => {
@@ -149,6 +205,33 @@ export default function CheckoutFlow() {
       }
       const totalAmount = subtotal + shippingAmount - discount;
 
+      const needsAdvanceProof =
+        checkoutData.paymentMethod === 'cash' &&
+        checkoutData.deliveryType === 'pickup' &&
+        totalAmount >= CASH_ADVANCE_PROOF_MIN_TOTAL_MXN;
+
+      if (needsAdvanceProof && !cashAdvanceProofFile) {
+        setCashAdvanceProofError('Adjunta la captura del comprobante del pago del 50%.');
+        toast.error('Adjunta la captura del comprobante del pago del 50%.');
+        return;
+      }
+
+      let advancePaymentProofUrl = null;
+      if (needsAdvanceProof && cashAdvanceProofFile) {
+        const fd = new FormData();
+        fd.append('file', cashAdvanceProofFile);
+        const uploadRes = await fetch('/api/upload/order-payment-proof', {
+          method: 'POST',
+          body: fd
+        });
+        const uploadData = await uploadRes.json().catch(() => ({}));
+        if (!uploadRes.ok) {
+          toast.error(uploadData.error || 'No se pudo subir el comprobante. Intenta de nuevo.');
+          return;
+        }
+        advancePaymentProofUrl = uploadData.url;
+      }
+
       const orderData = {
         user_id: isAuthenticated ? user.id : null,
         items: items.map(item => ({
@@ -171,6 +254,10 @@ export default function CheckoutFlow() {
         address: checkoutData.deliveryType === 'delivery' ? checkoutData.contactInfo.address : checkoutData.pickupPoint || null,
         pickup_point: checkoutData.deliveryType === 'pickup' ? checkoutData.pickupPoint : null,
       };
+
+      if (advancePaymentProofUrl) {
+        orderData.advance_payment_proof_url = advancePaymentProofUrl;
+      }
 
       // Crear orden en la base de datos
       let orderResponse;
@@ -314,6 +401,12 @@ export default function CheckoutFlow() {
             onUpdateCoupon={(couponCode, couponData) =>
               setCheckoutData((prev) => ({ ...prev, couponCode, couponData }))
             }
+            cashAdvanceProofFile={cashAdvanceProofFile}
+            cashAdvanceProofPreview={cashAdvanceProofPreview}
+            cashAdvanceProofError={cashAdvanceProofError}
+            cashAdvanceProofInputRef={cashAdvanceProofInputRef}
+            onCashAdvanceProofChange={handleCashAdvanceProofChange}
+            onClearCashAdvanceProof={handleClearCashAdvanceProof}
           />
         );
       

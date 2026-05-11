@@ -237,6 +237,21 @@ export default function AdminOrderDetail() {
                 <label>Método de Pago:</label>
                 <span>{order.payment_method || 'No especificado'}</span>
               </div>
+              {order.advance_payment_proof_url && (
+                <div className={styles.summaryItem}>
+                  <label>Comprobante anticipo (50%):</label>
+                  <span>
+                    <a
+                      href={order.advance_payment_proof_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.trackingLink}
+                    >
+                      Ver imagen
+                    </a>
+                  </span>
+                </div>
+              )}
               <div className={styles.summaryItem}>
                 <label>Estado de Pago:</label>
                 <span>{order.payment_status || '—'}</span>

@@ -481,6 +481,132 @@
   font-weight: 500;
 }
 
+.cashOnDeliveryRules p + .proofUpload {
+  margin-top: 16px;
+}
+
+.proofUpload {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.proofUploadLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #276749;
+}
+
+.requiredMark {
+  color: #c05621;
+  font-weight: 700;
+}
+
+.proofDropZone {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 96px;
+  padding: 16px;
+  border: 2px dashed #68d391;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.proofDropZone:hover {
+  border-color: #38a169;
+  background: #f0fff4;
+}
+
+.proofDropZone:focus-within {
+  outline: 2px solid var(--brand-primary, #6b21a8);
+  outline-offset: 2px;
+}
+
+.proofDropZoneError {
+  border-color: #e53e3e;
+  background: #fff5f5;
+}
+
+.proofDropZoneError:hover {
+  border-color: #c53030;
+  background: #fff5f5;
+}
+
+.proofFileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.proofDropZoneText {
+  font-size: 14px;
+  color: #276749;
+  text-align: center;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+.proofHint {
+  margin: 0;
+  font-size: 12px;
+  color: #2f855a;
+}
+
+.proofError {
+  margin: 0;
+  font-size: 13px;
+  color: #c53030;
+  font-weight: 600;
+}
+
+.proofPreview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.proofPreviewImg {
+  max-width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid #9ae6b4;
+  background: #fff;
+}
+
+.proofRemoveButton {
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #742a2a;
+  background: #fed7d7;
+  border: 1px solid #fc8181;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.proofRemoveButton:hover {
+  background: #feb2b2;
+}
+
+.proofRemoveButton:focus-visible {
+  outline: 2px solid var(--brand-primary, #6b21a8);
+  outline-offset: 2px;
+}
+
 .radioOption.disabled {
   opacity: 0.5;
   cursor: not-allowed;
