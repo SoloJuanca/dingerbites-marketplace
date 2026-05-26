@@ -9,6 +9,9 @@ import {
 } from '../../lib/checkoutPaymentProofRules';
 import styles from './OrderConfirmation.module.css';
 
+const SHIPPING_COST_MXN = 120;
+const FREE_SHIPPING_MIN_SUBTOTAL_MXN = 2000;
+
 export default function OrderConfirmation({
   checkoutData,
   items,
@@ -29,7 +32,11 @@ export default function OrderConfirmation({
   const [applyingCoupon, setApplyingCoupon] = useState(false);
 
   const getShippingCost = () => {
-    return checkoutData.deliveryType === 'delivery' ? 120 : 0;
+    if (checkoutData.deliveryType !== 'delivery' || getSubtotal() > FREE_SHIPPING_MIN_SUBTOTAL_MXN) {
+      return 0;
+    }
+
+    return SHIPPING_COST_MXN;
   };
 
   const getSubtotal = () => {

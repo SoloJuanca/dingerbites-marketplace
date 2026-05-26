@@ -17,6 +17,9 @@ import {
 } from '../../lib/checkoutPaymentProofRules';
 import styles from './SimpleCheckout.module.css';
 
+const SHIPPING_COST_MXN = 120;
+const FREE_SHIPPING_MIN_SUBTOTAL_MXN = 2000;
+
 const PICKUP_POINTS = [
   'Galerías Valle Oriente, Monterrey Nuevo León',
   'Walmart Las Torres, Monterrey Nuevo León',
@@ -207,7 +210,11 @@ export default function SimpleCheckout() {
   };
 
   const getShippingCost = () => {
-    return formData.deliveryType === 'delivery' ? 120 : 0;
+    if (formData.deliveryType !== 'delivery' || getSubtotal() > FREE_SHIPPING_MIN_SUBTOTAL_MXN) {
+      return 0;
+    }
+
+    return SHIPPING_COST_MXN;
   };
 
   const getSubtotal = () => {

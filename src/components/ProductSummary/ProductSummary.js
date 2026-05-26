@@ -330,7 +330,7 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
           <Icon name="local_shipping" size={20} className={styles.featureIcon} />
           <div className={styles.featureText}>
             <strong>Envío gratis</strong>
-            <span>En pedidos mayores a $800</span>
+            <span>En pedidos mayores a $2000</span>
           </div>
         </div>
         

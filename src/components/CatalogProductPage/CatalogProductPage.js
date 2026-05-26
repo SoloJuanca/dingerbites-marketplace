@@ -129,7 +129,7 @@ function ProductData({ slug }) {
                   <Icon name="local_shipping" size={20} className={styles.mobileTrustFeatureIcon} />
                   <div className={styles.mobileTrustFeatureText}>
                     <strong>Envío gratis</strong>
-                    <span>En pedidos mayores a $800</span>
+                    <span>En pedidos mayores a $2000</span>
                   </div>
                 </article>
 
