@@ -5,9 +5,26 @@ import Image from 'next/image';
 import Icon from '../Icon/Icon';
 import styles from './ImageCarousel.module.css';
 
+function normalizeImageUrl(image) {
+  if (!image) return '';
+  return typeof image === 'string' ? image : image.url || '';
+}
+
+function getTcgImageUrl(imageUrl) {
+  if (!imageUrl || !imageUrl.includes('tcgplayer-cdn.tcgplayer.com/product/')) {
+    return imageUrl;
+  }
+
+  return imageUrl.replace('_200w.jpg', '_400w.jpg');
+}
+
 export default function ImageCarousel({ images, productName, isTcgProduct = false }) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const imageList = Array.isArray(images) ? images : [images];
+  const imageList = (Array.isArray(images) ? images : [images])
+    .map(normalizeImageUrl)
+    .filter(Boolean)
+    .map((image) => (isTcgProduct ? getTcgImageUrl(image) : image));
+  const currentImage = imageList[currentIndex];
 
   const goToPrevious = () => {
     setCurrentIndex(prev => 
@@ -38,14 +55,16 @@ export default function ImageCarousel({ images, productName, isTcgProduct = fals
 
   return (
     <div className={styles.carousel}>
-      <div className={styles.mainImageContainer}>
+      <div className={`${styles.mainImageContainer} ${isTcgProduct ? styles.tcgMainImageContainer : ''}`}>
         <Image
-          src={imageList[currentIndex]}
+          src={currentImage}
           alt={`${productName} - Imagen ${currentIndex + 1}`}
           width={600}
           height={400}
-          className={styles.mainImage}
+          className={`${styles.mainImage} ${isTcgProduct ? styles.tcgMainImage : ''}`}
           priority={currentIndex === 0}
+          sizes="(max-width: 480px) calc(100vw - 64px), (max-width: 768px) calc(100vw - 80px), (max-width: 1024px) calc(100vw - 96px), 760px"
+          unoptimized={isTcgProduct}
         />
         
         {imageList.length > 1 && (
@@ -98,6 +117,7 @@ export default function ImageCarousel({ images, productName, isTcgProduct = fals
                 width={80}
                 height={80}
                 className={`${styles.thumbnailImage} ${isTcgProduct ? styles.thumbnailContain : ''}`}
+                unoptimized={isTcgProduct}
               />
             </button>
           ))}

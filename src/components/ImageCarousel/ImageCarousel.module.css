@@ -15,12 +15,24 @@
   margin-bottom: 16px;
 }
 
+.tcgMainImageContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .mainImage {
   width: 100%;
   height: 100%;
   object-fit: contain;
   background: #f8f9fa;
   transition: transform 0.3s ease;
+}
+
+.tcgMainImage {
+  width: auto;
+  max-width: 100%;
+  height: 100%;
 }
 
 .navButton {
@@ -169,6 +181,11 @@
   .mainImageContainer {
     height: 300px;
   }
+
+  .tcgMainImageContainer {
+    height: min(92vw, 420px);
+    min-height: 320px;
+  }
   
   .navButton {
     width: 36px;
@@ -196,6 +213,11 @@
 @media (max-width: 480px) {
   .mainImageContainer {
     height: 250px;
+  }
+
+  .tcgMainImageContainer {
+    height: min(96vw, 392px);
+    min-height: 320px;
   }
   
   .navButton {
