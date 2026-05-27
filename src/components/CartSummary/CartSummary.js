@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useCart } from '../../lib/CartContext';
 import { useAuth } from '../../lib/AuthContext';
 import Link from 'next/link';
+import { resolveShippingAmount } from '../../lib/shipping';
 import styles from './CartSummary.module.css';
 
 export default function CartSummary() {
@@ -11,8 +12,8 @@ export default function CartSummary() {
   const { user, apiRequest } = useAuth();
   const [isClearing, setIsClearing] = useState(false);
 
-  const deliveryFee = 120; // Envío estándar
   const subtotal = getTotalPrice();
+  const deliveryFee = resolveShippingAmount({ subtotal, deliveryType: 'delivery' });
   const total = subtotal + deliveryFee;
 
   const formatPrice = (price) => {
@@ -69,7 +70,7 @@ export default function CartSummary() {
         </div>
         <div className={styles.priceRow}>
           <span>Envío:</span>
-          <span>{formatPrice(deliveryFee)}</span>
+          <span>{deliveryFee > 0 ? formatPrice(deliveryFee) : 'Gratis'}</span>
         </div>
         <div className={styles.totalRow}>
           <span>Total:</span>

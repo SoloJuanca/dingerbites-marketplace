@@ -20,7 +20,15 @@ function cartReducer(state, action) {
           ...state,
           items: state.items.map(item =>
             item.id === action.payload.id
-              ? { ...item, quantity: boundedQuantity }
+              ? {
+                ...item,
+                name: action.payload.name ?? item.name,
+                description: action.payload.description ?? item.description,
+                price: action.payload.price ?? item.price,
+                image: action.payload.image ?? item.image,
+                stock_quantity: action.payload.stock_quantity ?? item.stock_quantity,
+                quantity: boundedQuantity
+              }
               : item
           )
         };

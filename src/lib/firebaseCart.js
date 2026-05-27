@@ -1,4 +1,5 @@
 import { db } from './firebaseAdmin';
+import { getTcgMarketPriceForProduct } from './tcgMarketPrice';
 
 const CART_ITEMS_COLLECTION = 'cart_items';
 const PRODUCTS_COLLECTION = 'products';
@@ -32,7 +33,6 @@ export async function getCartItems(userId, sessionId) {
   for (const row of cartDocs) {
     const product = row.product_id ? productsById.get(String(row.product_id)) : null;
     if (product && product.is_active === false) continue;
-    const price = toNum(row.variant_price) || toNum(product?.price, 0);
     const imageUrl = product?.image || (Array.isArray(product?.images) && product.images[0] ? (product.images[0].url || product.images[0]) : '') || '';
     items.push({
       id: row.id,
@@ -70,6 +70,10 @@ export async function addCartItem({ userId, sessionId, productId, variantId, qua
   if (stock < quantity) {
     return { error: 'INSUFFICIENT_STOCK', availableStock: stock };
   }
+  const isTcgProduct = product.tcg_product_id != null;
+  const cartUnitPrice = isTcgProduct
+    ? (await getTcgMarketPriceForProduct(product)).marketPriceMxn
+    : null;
 
   const variantIdStr = variantId ? String(variantId) : null;
   let existingQuery = db.collection(CART_ITEMS_COLLECTION).where('product_id', '==', String(productId));
@@ -93,7 +97,11 @@ export async function addCartItem({ userId, sessionId, productId, variantId, qua
     if (newQty > stock) {
       return { error: 'INSUFFICIENT_STOCK', availableStock: stock };
     }
-    await docRef.update({ quantity: newQty, updated_at: now });
+    await docRef.update({
+      quantity: newQty,
+      updated_at: now,
+      ...(cartUnitPrice != null ? { variant_price: cartUnitPrice } : {})
+    });
     return { id: docRef.id, quantity: newQty };
   }
 
@@ -103,6 +111,7 @@ export async function addCartItem({ userId, sessionId, productId, variantId, qua
     session_id: sessionId || null,
     product_id: String(productId),
     product_variant_id: variantIdStr,
+    variant_price: cartUnitPrice,
     quantity,
     created_at: now,
     updated_at: now

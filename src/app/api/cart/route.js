@@ -6,6 +6,7 @@ import {
   removeCartItem,
   clearCart
 } from '../../../lib/firebaseCart';
+import { TcgMarketPriceError } from '../../../lib/tcgMarketPrice';
 
 // GET /api/cart - Get cart items for user or session
 export async function GET(request) {
@@ -79,6 +80,13 @@ export async function POST(request) {
       quantity: result.quantity
     });
   } catch (error) {
+    if (error instanceof TcgMarketPriceError) {
+      return NextResponse.json(
+        { error: 'No se pudo obtener el precio actualizado desde TCG' },
+        { status: 400 }
+      );
+    }
+
     console.error('Error adding to cart:', error);
     return NextResponse.json(
       { error: 'Failed to add item to cart' },

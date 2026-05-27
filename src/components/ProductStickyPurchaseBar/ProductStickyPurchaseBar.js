@@ -11,7 +11,9 @@ import styles from './ProductStickyPurchaseBar.module.css';
 export default function ProductStickyPurchaseBar({
   product,
   marketPriceMxn = null,
-  isTcgProduct = false
+  isTcgProduct = false,
+  marketPriceError = '',
+  marketPriceLoading = false
 }) {
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
@@ -34,20 +36,21 @@ export default function ProductStickyPurchaseBar({
 
   const tcgMinForProduct = getTcgMinPriceForSubType(product.tcg_sub_type_name || 'Normal');
   const displayPrice =
-    isTcgProduct && marketPriceMxn != null
-      ? Math.max(tcgMinForProduct, marketPriceMxn)
-      : isTcgProduct && (product.price != null && product.price > 0)
-        ? Math.max(tcgMinForProduct, product.price)
-        : product.price ?? 0;
+    isTcgProduct
+      ? marketPriceMxn != null
+        ? Math.max(tcgMinForProduct, marketPriceMxn)
+        : null
+      : product.price ?? 0;
 
   const hasPrice = displayPrice != null && displayPrice > 0;
+  const isTcgPriceBlocked = isTcgProduct && (marketPriceLoading || Boolean(marketPriceError) || !hasPrice);
   const stockQuantity = Number(product.stock_quantity || 0);
   const inCartQuantity = getCartQuantityByProductId(product.id);
   const remainingStock = Math.max(0, stockQuantity - inCartQuantity);
   const isOutOfStock = stockQuantity <= 0;
   const maxSelectableQuantity = Math.max(1, Math.min(10, remainingStock || 1));
   const isCartAtStockLimit = !isOutOfStock && remainingStock <= 0;
-  const canAddToCart = !(isTcgProduct && !hasPrice) && !isOutOfStock && !isCartAtStockLimit;
+  const canAddToCart = !isTcgPriceBlocked && !isOutOfStock && !isCartAtStockLimit;
 
   const handleQuantityChange = (newQuantity) => {
     const bounded = Math.max(1, Math.min(maxSelectableQuantity, Number(newQuantity) || 1));
@@ -59,6 +62,14 @@ export default function ProductStickyPurchaseBar({
   }, [maxSelectableQuantity]);
 
   const handleAddToCart = async () => {
+    if (isTcgPriceBlocked) {
+      toast.error(
+        marketPriceLoading
+          ? 'Estamos consultando el precio actualizado desde TCG'
+          : 'No se pudo obtener el precio actualizado desde TCG'
+      );
+      return;
+    }
     if (!canAddToCart) return;
     if (quantity > remainingStock) {
       toast.error(`Solo puedes agregar ${remainingStock} unidad(es) más`);
@@ -68,9 +79,7 @@ export default function ProductStickyPurchaseBar({
 
     setIsAddingToCart(true);
 
-    const cartPrice = isTcgProduct && marketPriceMxn != null
-      ? Math.max(tcgMinForProduct, marketPriceMxn)
-      : (isTcgProduct ? Math.max(tcgMinForProduct, product.price ?? 0) : (product.price ?? 0));
+    const cartPrice = displayPrice;
 
     await addToCartWithSync({
       id: product.id,
@@ -117,12 +126,22 @@ export default function ProductStickyPurchaseBar({
         onClick={handleAddToCart}
         disabled={isAddingToCart || !canAddToCart}
         type="button"
-        aria-label={canAddToCart ? 'Agregar al carrito' : 'Producto no disponible'}
+        aria-label={
+          canAddToCart
+            ? 'Agregar al carrito'
+            : isTcgPriceBlocked
+              ? 'Precio TCG no disponible'
+              : 'Producto no disponible'
+        }
       >
         {isOutOfStock
           ? 'Sin stock'
           : isCartAtStockLimit
             ? 'Maximo en carrito'
+            : isTcgProduct && marketPriceLoading
+              ? 'Consultando precio'
+            : isTcgPriceBlocked
+              ? 'Precio no disponible'
           : isAddingToCart
             ? 'Agregado'
             : `Agregar ${hasPrice ? formatPrice(displayPrice * quantity) : ''}`.trim()}

@@ -10,7 +10,13 @@ import { getProductRatingStats } from '../../lib/reviews';
 import { getTcgMinPriceForSubType } from '../../lib/currency';
 import styles from './ProductSummary.module.css';
 
-export default function ProductSummary({ product, marketPriceMxn = null, isTcgProduct = false }) {
+export default function ProductSummary({
+  product,
+  marketPriceMxn = null,
+  isTcgProduct = false,
+  marketPriceError = '',
+  marketPriceLoading = false
+}) {
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isReminderLoading, setIsReminderLoading] = useState(false);
@@ -44,20 +50,24 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
 
   const tcgMinForProduct = getTcgMinPriceForSubType(product.tcg_sub_type_name || 'Normal');
   const displayPrice =
-    isTcgProduct && marketPriceMxn != null
-      ? Math.max(tcgMinForProduct, marketPriceMxn)
-      : isTcgProduct && (product.price != null && product.price > 0)
-        ? Math.max(tcgMinForProduct, product.price)
-        : product.price ?? 0;
+    isTcgProduct
+      ? marketPriceMxn != null
+        ? Math.max(tcgMinForProduct, marketPriceMxn)
+        : null
+      : product.price ?? 0;
 
   const hasPrice = displayPrice != null && displayPrice > 0;
+  const isTcgPriceBlocked = isTcgProduct && (marketPriceLoading || Boolean(marketPriceError) || !hasPrice);
+  const tcgPriceMessage = marketPriceLoading
+    ? 'Consultando precio actualizado desde TCG...'
+    : marketPriceError || 'No pudimos obtener el precio actualizado desde TCG. La compra esta deshabilitada temporalmente.';
   const stockQuantity = Number(product.stock_quantity || 0);
   const inCartQuantity = getCartQuantityByProductId(product.id);
   const remainingStock = Math.max(0, stockQuantity - inCartQuantity);
   const isOutOfStock = stockQuantity <= 0;
   const maxSelectableQuantity = Math.max(1, Math.min(10, remainingStock || 1));
   const isCartAtStockLimit = !isOutOfStock && remainingStock <= 0;
-  const canAddToCart = !(isTcgProduct && !hasPrice) && !isOutOfStock && !isCartAtStockLimit;
+  const canAddToCart = !isTcgPriceBlocked && !isOutOfStock && !isCartAtStockLimit;
 
   const handleQuantityChange = (newQuantity) => {
     const bounded = Math.max(1, Math.min(maxSelectableQuantity, Number(newQuantity) || 1));
@@ -93,6 +103,10 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
   }, [apiRequest, isAuthenticated, isOutOfStock, product.id]);
 
   const handleAddToCart = async () => {
+    if (isTcgPriceBlocked) {
+      toast.error(tcgPriceMessage);
+      return;
+    }
     if (!canAddToCart) return;
     if (quantity > remainingStock) {
       toast.error(`Solo puedes agregar ${remainingStock} unidad(es) más`);
@@ -100,9 +114,7 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
       return;
     }
     setIsAddingToCart(true);
-    const cartPrice = isTcgProduct && marketPriceMxn != null
-      ? Math.max(tcgMinForProduct, marketPriceMxn)
-      : (isTcgProduct ? Math.max(tcgMinForProduct, product.price ?? 0) : (product.price ?? 0));
+    const cartPrice = displayPrice;
 
     await addToCartWithSync({
       id: product.id,
@@ -120,15 +132,17 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
   };
 
   const handleBuyNow = async () => {
+    if (isTcgPriceBlocked) {
+      toast.error(tcgPriceMessage);
+      return;
+    }
     if (!canAddToCart) return;
     if (quantity > remainingStock) {
       toast.error(`Solo puedes agregar ${remainingStock} unidad(es) más`);
       handleQuantityChange(remainingStock);
       return;
     }
-    const cartPrice = isTcgProduct && marketPriceMxn != null
-      ? Math.max(tcgMinForProduct, marketPriceMxn)
-      : (isTcgProduct ? Math.max(tcgMinForProduct, product.price ?? 0) : (product.price ?? 0));
+    const cartPrice = displayPrice;
     await addToCartWithSync({
       id: product.id,
       name: product.name,
@@ -203,11 +217,26 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
 
       <div className={styles.pricing}>
         <div className={styles.price}>
-          {isTcgProduct && marketPriceMxn == null && (!product.price || product.price <= 0)
-            ? 'Consultar precio'
+          {isTcgProduct && marketPriceLoading
+            ? 'Consultando precio...'
+            : isTcgPriceBlocked
+              ? 'Precio no disponible'
             : formatPrice(displayPrice)}
         </div>
         <div className={styles.priceUnit}>por unidad</div>
+        {isTcgProduct && isTcgPriceBlocked && (
+          <div
+            className={marketPriceLoading ? styles.priceStatus : styles.priceError}
+            role={marketPriceLoading ? 'status' : 'alert'}
+          >
+            <Icon
+              name={marketPriceLoading ? 'sync' : 'error'}
+              size={16}
+              className={styles.priceStatusIcon}
+            />
+            <span>{tcgPriceMessage}</span>
+          </div>
+        )}
       </div>
 
       {ratingStats.totalReviews > 0 && (
@@ -288,7 +317,11 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
           <div className={styles.totalPrice}>
             <span className={styles.totalLabel}>Total:</span>
             <span className={styles.totalAmount}>
-              {hasPrice ? formatPrice(displayPrice * quantity) : 'Consultar'}
+              {isTcgProduct && marketPriceLoading
+                ? 'Consultando'
+                : hasPrice
+                  ? formatPrice(displayPrice * quantity)
+                  : 'No disponible'}
             </span>
           </div>
         </>
@@ -297,7 +330,7 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
       {!isOutOfStock && (
         <div className={styles.actions}>
           <button
-            className={styles.addToCartBtn}
+            className={`${styles.addToCartBtn} ${isTcgPriceBlocked ? styles.purchaseBlockedBtn : ''}`}
             onClick={handleAddToCart}
             disabled={isAddingToCart || !canAddToCart}
           >
@@ -315,7 +348,7 @@ export default function ProductSummary({ product, marketPriceMxn = null, isTcgPr
           </button>
 
           <button
-            className={styles.buyNowBtn}
+            className={`${styles.buyNowBtn} ${isTcgPriceBlocked ? styles.purchaseBlockedBtn : ''}`}
             onClick={handleBuyNow}
             disabled={!canAddToCart}
           >

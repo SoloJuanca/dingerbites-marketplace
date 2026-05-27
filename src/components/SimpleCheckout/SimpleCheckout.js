@@ -15,10 +15,11 @@ import {
   PAYMENT_PROOF_ACCEPT_ATTR,
   validatePaymentProofImageFile
 } from '../../lib/checkoutPaymentProofRules';
+import {
+  DELIVERY_SHIPPING_AMOUNT,
+  resolveShippingAmount
+} from '../../lib/shipping';
 import styles from './SimpleCheckout.module.css';
-
-const SHIPPING_COST_MXN = 120;
-const FREE_SHIPPING_MIN_SUBTOTAL_MXN = 2000;
 
 const PICKUP_POINTS = [
   'Galerías Valle Oriente, Monterrey Nuevo León',
@@ -210,11 +211,10 @@ export default function SimpleCheckout() {
   };
 
   const getShippingCost = () => {
-    if (formData.deliveryType !== 'delivery' || getSubtotal() > FREE_SHIPPING_MIN_SUBTOTAL_MXN) {
-      return 0;
-    }
-
-    return SHIPPING_COST_MXN;
+    return resolveShippingAmount({
+      subtotal: getSubtotal(),
+      deliveryType: formData.deliveryType
+    });
   };
 
   const getSubtotal = () => {
@@ -242,7 +242,10 @@ export default function SimpleCheckout() {
 
   useEffect(() => {
     const subtotal = getTotalPrice();
-    const shipping = formData.deliveryType === 'delivery' ? 120 : 0;
+    const shipping = resolveShippingAmount({
+      subtotal,
+      deliveryType: formData.deliveryType
+    });
     const discount = couponData?.discount_amount || 0;
     const total = subtotal + shipping - discount;
     const needsProof =
@@ -745,7 +748,7 @@ export default function SimpleCheckout() {
                     onChange={(e) => handleInputChange('deliveryType', e.target.value)}
                   />
                   <span className={styles.radioLabel}>
-                    <strong>Envío a Domicilio</strong> - $120 MXN
+                    <strong>Envío a Domicilio</strong> - {formatPrice(resolveShippingAmount({ subtotal: getSubtotal(), deliveryType: 'delivery' }))}
                   </span>
                 </label>
 

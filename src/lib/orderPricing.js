@@ -1,9 +1,13 @@
 import { db } from './firebaseAdmin';
+import {
+  DELIVERY_SHIPPING_AMOUNT,
+  resolveShippingAmount as resolveDeliveryShippingAmount
+} from './shipping';
 
 const PRODUCTS_COLLECTION = 'products';
 const SERVICES_COLLECTION = 'services';
 
-export const DELIVERY_SHIPPING_AMOUNT = 120;
+export { DELIVERY_SHIPPING_AMOUNT };
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
@@ -19,8 +23,8 @@ function normalizeQuantity(value) {
   return qty > 0 ? qty : 1;
 }
 
-export function resolveShippingAmount(shippingMethod) {
-  return shippingMethod === 'Envío a domicilio' ? DELIVERY_SHIPPING_AMOUNT : 0;
+export function resolveShippingAmount(shippingMethod, subtotal = 0) {
+  return resolveDeliveryShippingAmount({ shippingMethod, subtotal });
 }
 
 export async function buildPricedOrderItems(items = []) {
@@ -131,7 +135,7 @@ export function computeOrderTotals({
   discountAmount = 0
 }) {
   const safeSubtotal = roundMoney(subtotal);
-  const shippingAmount = roundMoney(resolveShippingAmount(shippingMethod));
+  const shippingAmount = roundMoney(resolveShippingAmount(shippingMethod, safeSubtotal));
   const safeDiscount = Math.min(roundMoney(discountAmount), safeSubtotal);
   const totalAmount = roundMoney(safeSubtotal + shippingAmount - safeDiscount);
 

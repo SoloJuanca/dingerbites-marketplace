@@ -5,7 +5,13 @@ import Icon from '../Icon/Icon';
 import { getTcgMinPriceForSubType } from '../../lib/currency';
 import styles from './ProductInfo.module.css';
 
-export default function ProductInfo({ product, marketPriceMxn = null, isTcgProduct = false }) {
+export default function ProductInfo({
+  product,
+  marketPriceMxn = null,
+  isTcgProduct = false,
+  marketPriceError = '',
+  marketPriceLoading = false
+}) {
   const [isClient, setIsClient] = useState(false);
   const [features, setFeatures] = useState([]);
 
@@ -39,16 +45,18 @@ export default function ProductInfo({ product, marketPriceMxn = null, isTcgProdu
         <div className={styles.titleSection}>
           <h1 className={styles.title}>{product.name}</h1>
           <p className={styles.price}>
-            {isTcgProduct && marketPriceMxn != null
+            {isTcgProduct && marketPriceLoading
+              ? 'Consultando precio TCG...'
+              : isTcgProduct && (marketPriceError || marketPriceMxn == null)
+                ? 'Precio TCG no disponible'
+              : isTcgProduct && marketPriceMxn != null
               ? formatPrice(
                 Math.max(
                   getTcgMinPriceForSubType(product.tcg_sub_type_name || 'Normal'),
                   marketPriceMxn
                 )
               )
-              : isTcgProduct && (!product.price || product.price <= 0)
-                ? 'Precio según mercado - Consultar'
-                : formatPrice(
+              : formatPrice(
                   isTcgProduct
                     ? Math.max(
                       getTcgMinPriceForSubType(product.tcg_sub_type_name || 'Normal'),

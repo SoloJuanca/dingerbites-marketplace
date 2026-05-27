@@ -15,6 +15,8 @@ import styles from './CatalogProductPage.module.css';
 function ProductData({ slug }) {
   const [product, setProduct] = useState(null);
   const [marketPriceMxn, setMarketPriceMxn] = useState(null);
+  const [marketPriceError, setMarketPriceError] = useState('');
+  const [marketPriceLoading, setMarketPriceLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -23,7 +25,10 @@ function ProductData({ slug }) {
       try {
         setLoading(true);
         setError(null);
+        setProduct(null);
         setMarketPriceMxn(null);
+        setMarketPriceError('');
+        setMarketPriceLoading(false);
 
         const response = await fetch(`/api/products/${slug}`);
 
@@ -37,15 +42,8 @@ function ProductData({ slug }) {
         }
 
         const productData = await response.json();
+        setMarketPriceLoading(Boolean(productData.tcg_product_id));
         setProduct(productData);
-
-        if (productData.tcg_product_id) {
-          const priceRes = await fetch(`/api/tcg/product/${productData.id}/market-price`);
-          if (priceRes.ok) {
-            const priceData = await priceRes.json();
-            setMarketPriceMxn(priceData.marketPriceMxn);
-          }
-        }
       } catch (err) {
         console.error('Error loading product:', err);
         setError('server_error');
@@ -58,6 +56,55 @@ function ProductData({ slug }) {
       loadProduct();
     }
   }, [slug]);
+
+  useEffect(() => {
+    if (!product) return;
+
+    if (!product.tcg_product_id) {
+      setMarketPriceMxn(null);
+      setMarketPriceError('');
+      setMarketPriceLoading(false);
+      return;
+    }
+
+    let active = true;
+
+    async function loadMarketPrice() {
+      setMarketPriceMxn(null);
+      setMarketPriceError('');
+      setMarketPriceLoading(true);
+
+      try {
+        const priceRes = await fetch(`/api/tcg/product/${product.id}/market-price`);
+        const priceData = await priceRes.json();
+
+        if (!priceRes.ok || priceData.marketPriceMxn == null) {
+          throw new Error(priceData.error || priceData.message || 'Precio TCG no disponible');
+        }
+
+        if (active) {
+          setMarketPriceMxn(priceData.marketPriceMxn);
+        }
+      } catch (priceError) {
+        console.error('Error loading TCG market price:', priceError);
+        if (active) {
+          setMarketPriceError(
+            'No pudimos obtener el precio actualizado desde TCG. La compra esta deshabilitada temporalmente.'
+          );
+        }
+      } finally {
+        if (active) {
+          setMarketPriceLoading(false);
+        }
+      }
+    }
+
+    loadMarketPrice();
+
+    return () => {
+      active = false;
+    };
+  }, [product]);
 
   if (loading) {
     return (
@@ -122,7 +169,13 @@ function ProductData({ slug }) {
                 isTcgProduct={!!product.tcg_product_id}
               />
 
-              <ProductInfo product={product} marketPriceMxn={marketPriceMxn} isTcgProduct={!!product.tcg_product_id} />
+              <ProductInfo
+                product={product}
+                marketPriceMxn={marketPriceMxn}
+                isTcgProduct={!!product.tcg_product_id}
+                marketPriceError={marketPriceError}
+                marketPriceLoading={marketPriceLoading}
+              />
 
               <section className={styles.mobileTrustFeatures} aria-label="Beneficios de compra">
                 <article className={styles.mobileTrustFeature}>
@@ -156,7 +209,13 @@ function ProductData({ slug }) {
             </div>
 
             <div className={styles.rightColumn}>
-              <ProductSummary product={product} marketPriceMxn={marketPriceMxn} isTcgProduct={!!product.tcg_product_id} />
+              <ProductSummary
+                product={product}
+                marketPriceMxn={marketPriceMxn}
+                isTcgProduct={!!product.tcg_product_id}
+                marketPriceError={marketPriceError}
+                marketPriceLoading={marketPriceLoading}
+              />
             </div>
           </div>
         </div>
@@ -166,6 +225,8 @@ function ProductData({ slug }) {
             product={product}
             marketPriceMxn={marketPriceMxn}
             isTcgProduct={!!product.tcg_product_id}
+            marketPriceError={marketPriceError}
+            marketPriceLoading={marketPriceLoading}
           />
         </div>
       </main>
