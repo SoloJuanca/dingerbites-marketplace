@@ -108,10 +108,6 @@ export default function ProductInfo({
             <span className={styles.detailLabel}>Categoría:</span>
             <span className={styles.detailValue}>{getCategoryLabel(product)}</span>
           </div>
-          <div className={styles.detailItem}>
-            <span className={styles.detailLabel}>Fecha de agregado:</span>
-            <span className={styles.detailValue}>{formatDate(product.created_at, isClient)}</span>
-          </div>
         </div>
       </div>
     </div>
