@@ -58,6 +58,7 @@ function catalogSearchKey(filters) {
     String(filters.minPrice || ''),
     String(filters.maxPrice || ''),
     filters.sortBy || 'newest',
+    filters.inStockOnly ?? 'true',
     q
   ].join('|');
 }

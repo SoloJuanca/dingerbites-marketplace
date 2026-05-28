@@ -160,7 +160,6 @@ export default function ProductCard({ product }) {
         </Link>
         <div className={styles.footer}>
           <span className={styles.price}>
-            {console.log(product)}
             {(product.category_slug === 'tcg')
               ? ''
               : formatPrice(displayPrice)}

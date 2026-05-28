@@ -3,7 +3,7 @@ import { authenticateAdmin } from '../../../../../lib/auth';
 import { db } from '../../../../../lib/firebaseAdmin';
 import { notifyBackInStockSubscribers } from '../../../../../lib/stockAlerts';
 import { isValidProductCondition, normalizeProductCondition } from '../../../../../lib/productCondition';
-import { deleteProductFromTypesense, indexProductToTypesense } from '../../../../../lib/search/typesenseSync';
+import { deleteProductFromTypesense, syncProductToTypesenseSafe } from '../../../../../lib/search/typesenseSync';
 
 const PRODUCTS_COLLECTION = 'products';
 const CATEGORIES_COLLECTION = 'product_categories';
@@ -275,7 +275,7 @@ export async function PUT(request, { params }) {
     await productRef.update(updateData);
     const updatedSnap = await productRef.get();
     const updatedProduct = { id: updatedSnap.id, ...updatedSnap.data() };
-    await indexProductToTypesense(updatedProduct);
+    const searchSync = await syncProductToTypesenseSafe(updatedProduct);
 
     try {
       await notifyBackInStockSubscribers({
@@ -291,6 +291,7 @@ export async function PUT(request, { params }) {
     return NextResponse.json({
       success: true,
       product: updatedProduct,
+      search_sync: searchSync,
       message: 'Product updated successfully'
     });
   } catch (error) {

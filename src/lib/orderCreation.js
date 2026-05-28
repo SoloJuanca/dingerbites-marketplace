@@ -18,6 +18,7 @@ import { normalizeEmail } from './security';
 import { CASH_ADVANCE_PROOF_MIN_TOTAL_MXN } from './checkoutPaymentProofRules';
 import { logSecurityEvent } from './auditLog';
 import { deductProductStockInTransaction } from './orderStock';
+import { syncOrderProductsToTypesense } from './search/typesenseSync';
 
 /**
  * Create order in Firestore with the same rules as POST /api/orders.
@@ -244,6 +245,12 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
     transaction.set(orderRef, orderPayload);
     return orderPayload;
   });
+
+  try {
+    await syncOrderProductsToTypesense(orderItems);
+  } catch (syncError) {
+    console.error('Failed to sync product stock to Typesense after order:', syncError);
+  }
 
   const orderData = {
     order_number: createdOrder.order_number,

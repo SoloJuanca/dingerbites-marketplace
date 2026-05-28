@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../../../lib/auth';
 import { db } from '../../../../../../lib/firebaseAdmin';
-import { indexProductToTypesense } from '../../../../../../lib/search/typesenseSync';
+import { syncProductToTypesenseSafe } from '../../../../../../lib/search/typesenseSync';
 
 // PATCH /api/admin/products/[id]/toggle-status - Toggle product active status
 export async function PATCH(request, { params }) {
@@ -32,11 +32,12 @@ export async function PATCH(request, { params }) {
     });
     const updatedSnap = await productRef.get();
     const updatedProduct = { id: updatedSnap.id, ...updatedSnap.data() };
-    await indexProductToTypesense(updatedProduct);
+    const searchSync = await syncProductToTypesenseSafe(updatedProduct);
 
     return NextResponse.json({
       success: true,
       product: updatedProduct,
+      search_sync: searchSync,
       message: `Product ${newStatus ? 'activated' : 'deactivated'} successfully`
     });
   } catch (error) {

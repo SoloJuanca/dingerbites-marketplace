@@ -7,11 +7,20 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function shouldFilterInStockOnly(filters = {}) {
+  const explicit = filters.inStockOnly;
+  if (String(explicit || '').toLowerCase() === 'false') return false;
+  if (String(explicit || '').toLowerCase() === 'true') return true;
+  // Public storefront search defaults to in-stock; admin search passes includeInactive.
+  const includeInactive = String(filters.includeInactive || '').toLowerCase() === 'true';
+  return !includeInactive;
+}
+
 function buildFilterBy(filters) {
   const filterList = [];
   const status = String(filters.status || '').trim();
   const includeInactive = String(filters.includeInactive || '').toLowerCase() === 'true';
-  const inStockOnly = String(filters.inStockOnly || '').toLowerCase() === 'true';
+  const inStockOnly = shouldFilterInStockOnly(filters);
 
   if (!includeInactive) {
     if (status === 'active') {
@@ -82,9 +91,9 @@ function mapSortBy(sortBy) {
   }
 }
 
-function normalizeTypesenseResult(result, page, limit) {
+function normalizeTypesenseResult(result, page, limit, options = {}) {
   const hits = Array.isArray(result?.hits) ? result.hits : [];
-  const products = hits.map((hit) => {
+  let products = hits.map((hit) => {
     const document = hit.document || {};
     return {
       id: document.id,
@@ -112,6 +121,10 @@ function normalizeTypesenseResult(result, page, limit) {
       updated_at: document.updated_at || null
     };
   });
+
+  if (options.inStockOnly) {
+    products = products.filter((product) => toNumber(product.stock_quantity, 0) > 0);
+  }
 
   const total = Number(result?.found || 0);
   const totalPages = Math.max(1, Math.ceil(total / limit));
@@ -177,8 +190,9 @@ export async function searchProducts(filters = {}, options = {}) {
       num_typos: 2,
       highlight_fields: 'name,description,brand_name,category_name'
     };
+    const inStockOnly = shouldFilterInStockOnly(filters);
     const result = await client.collections(collectionName).documents().search(searchParameters);
-    return normalizeTypesenseResult(result, page, limit);
+    return normalizeTypesenseResult(result, page, limit, { inStockOnly });
   } catch (error) {
     if (!shouldFallback) {
       console.error('Typesense search failed (no Firestore fallback allowed):', error);
@@ -208,9 +222,11 @@ export async function getSearchSuggestions(rawQuery, filters = {}) {
     sort_by: '_text_match:desc,popularity:desc'
   });
 
+  const inStockOnly = shouldFilterInStockOnly(filters);
   const suggestions = new Map();
   (result?.hits || []).forEach((hit) => {
     const document = hit.document || {};
+    if (inStockOnly && toNumber(document.stock_quantity, 0) <= 0) return;
     const categoryName = document.category_name || null;
 
     // Set/group suggestions (prefer when available)

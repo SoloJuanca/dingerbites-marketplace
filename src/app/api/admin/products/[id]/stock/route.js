@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../../../lib/auth';
 import { db } from '../../../../../../lib/firebaseAdmin';
 import { notifyBackInStockSubscribers } from '../../../../../../lib/stockAlerts';
+import { syncProductToTypesenseSafe } from '../../../../../../lib/search/typesenseSync';
 
 // PATCH /api/admin/products/[id]/stock - Update product stock
 export async function PATCH(request, { params }) {
@@ -63,9 +64,12 @@ export async function PATCH(request, { params }) {
       console.error('Failed to notify back-in-stock subscribers:', notifyError);
     }
 
+    const searchSync = await syncProductToTypesenseSafe(updatedProduct);
+
     return NextResponse.json({
       success: true,
       product: updatedProduct,
+      search_sync: searchSync,
       message: `Stock updated successfully for ${existingProduct.name || 'Product'}`,
       previousStock,
       newStock: stockQuantity

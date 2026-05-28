@@ -24,7 +24,8 @@ function normalizeFilters(searchParams, categorySlug) {
     minPrice: safeParams.minPrice || '',
     maxPrice: safeParams.maxPrice || '',
     sortBy: safeParams.sortBy || 'newest',
-    search: safeParams.q || safeParams.search || ''
+    search: safeParams.q || safeParams.search || '',
+    inStockOnly: safeParams.inStockOnly ?? 'true'
   };
 }
 
@@ -107,7 +108,8 @@ export default async function CatalogSlugPage({ params, searchParams }) {
         minPrice: filters.minPrice,
         maxPrice: filters.maxPrice,
         sortBy: filters.sortBy,
-        q: filters.search
+        q: filters.search,
+        inStockOnly: filters.inStockOnly
       },
       { allowFallback: true }
     )

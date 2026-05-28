@@ -18,9 +18,16 @@ function toNum(value, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function shouldFilterInStockOnly(filters = {}) {
+  const explicit = filters.inStockOnly;
+  if (String(explicit || '').toLowerCase() === 'false') return false;
+  if (String(explicit || '').toLowerCase() === 'true') return true;
+  return true;
+}
+
 function buildTypesenseFilterBy(filters = {}) {
   const parts = ['is_active:=true'];
-  const inStockOnly = String(filters.inStockOnly ?? '').toLowerCase() === 'true';
+  const inStockOnly = shouldFilterInStockOnly(filters);
   if (inStockOnly) parts.push('stock_quantity:>0');
 
   const appendArray = (field, value) => {
@@ -349,7 +356,7 @@ export async function getProducts(filters = {}) {
   try {
     const page = Math.max(1, toNum(filters.page, 1));
     const limit = Math.max(1, toNum(filters.limit, 8));
-    const inStockOnly = String(filters.inStockOnly || '').toLowerCase() === 'true';
+    const inStockOnly = shouldFilterInStockOnly(filters);
     const tcgCategoryIds = filters.tcgCategoryId
       ? String(filters.tcgCategoryId).split(',').map((s) => s.trim()).filter(Boolean)
       : [];

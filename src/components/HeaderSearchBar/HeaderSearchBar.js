@@ -86,6 +86,7 @@ export default function HeaderSearchBar() {
   const buildCatalogUrl = useCallback(() => {
     const params = new URLSearchParams();
     params.set('page', '1');
+    params.set('inStockOnly', 'true');
     if (categorySlug) {
       params.set('category', categorySlug);
     }
@@ -134,6 +135,7 @@ export default function HeaderSearchBar() {
         setQuery(selected.label);
         const params = new URLSearchParams();
         params.set('page', '1');
+        params.set('inStockOnly', 'true');
         if (categorySlug) params.set('category', categorySlug);
         if (selected.tcgCategoryId) params.set('tcgCategoryId', selected.tcgCategoryId);
         if (selected.tcgGroupId) params.set('tcgGroupId', selected.tcgGroupId);
@@ -224,6 +226,7 @@ export default function HeaderSearchBar() {
                 ev.preventDefault();
                 const params = new URLSearchParams();
                 params.set('page', '1');
+                params.set('inStockOnly', 'true');
                 if (categorySlug) params.set('category', categorySlug);
                 params.set('q', trimmedQuery);
                 router.push(`/catalog?${params.toString()}`);
@@ -249,6 +252,7 @@ export default function HeaderSearchBar() {
                   setQuery(suggestion.label);
                   const params = new URLSearchParams();
                   params.set('page', '1');
+                  params.set('inStockOnly', 'true');
                   if (categorySlug) params.set('category', categorySlug);
                   if (suggestion.tcgCategoryId) params.set('tcgCategoryId', suggestion.tcgCategoryId);
                   if (suggestion.tcgGroupId) params.set('tcgGroupId', suggestion.tcgGroupId);
