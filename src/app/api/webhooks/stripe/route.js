@@ -87,7 +87,9 @@ async function handleCheckoutSessionCompleted(event, stripe) {
     requestMeta,
     options: {
       skipEmail: false,
-      stripeCheckoutSessionId: sessionId
+      stripeCheckoutSessionId: sessionId,
+      prePricedOrderItems: pending.priced_order_items ?? null,
+      prePricedServiceItems: pending.priced_service_items ?? null
     }
   });
 

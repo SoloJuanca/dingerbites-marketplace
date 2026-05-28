@@ -89,8 +89,21 @@ export async function POST(request) {
     const authUserId = authUser?.id || null;
     const trustedUserId = authUserId || user_id || null;
 
-    const orderItems = await buildPricedOrderItems(items || []);
-    const orderServiceItems = await buildPricedServiceItems(service_items || []);
+    let orderItems;
+    let orderServiceItems;
+    try {
+      orderItems = await buildPricedOrderItems(items || []);
+      orderServiceItems = await buildPricedServiceItems(service_items || []);
+    } catch (pricingErr) {
+      if (pricingErr?.code === 'TCG_PRICE_UNAVAILABLE') {
+        return jsonError(
+          pricingErr.message || 'No se pudo obtener el precio actualizado de una carta TCG.',
+          400,
+          'TCG_PRICE_UNAVAILABLE'
+        );
+      }
+      throw pricingErr;
+    }
     const subtotal = computeSubtotal(orderItems, orderServiceItems);
 
     if (subtotal <= 0) {
@@ -165,6 +178,8 @@ export async function POST(request) {
       expected_subtotal: totals.subtotal,
       expected_shipping_amount: totals.shipping_amount,
       expected_discount_amount: totals.discount_amount,
+      priced_order_items: orderItems,
+      priced_service_items: orderServiceItems,
       stripe_payment_intent_id: null,
       stripe_checkout_session_id: null,
       status: 'pending'

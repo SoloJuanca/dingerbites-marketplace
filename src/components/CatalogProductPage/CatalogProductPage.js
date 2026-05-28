@@ -12,10 +12,14 @@ import ProductStickyPurchaseBar from '../ProductStickyPurchaseBar/ProductStickyP
 import Icon from '../Icon/Icon';
 import styles from './CatalogProductPage.module.css';
 
-function ProductData({ slug }) {
+function ProductData({
+  slug,
+  initialMarketPriceMxn = null,
+  initialMarketPriceError = null
+}) {
   const [product, setProduct] = useState(null);
-  const [marketPriceMxn, setMarketPriceMxn] = useState(null);
-  const [marketPriceError, setMarketPriceError] = useState('');
+  const [marketPriceMxn, setMarketPriceMxn] = useState(initialMarketPriceMxn);
+  const [marketPriceError, setMarketPriceError] = useState(initialMarketPriceError || '');
   const [marketPriceLoading, setMarketPriceLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -26,9 +30,11 @@ function ProductData({ slug }) {
         setLoading(true);
         setError(null);
         setProduct(null);
-        setMarketPriceMxn(null);
-        setMarketPriceError('');
-        setMarketPriceLoading(false);
+        setMarketPriceMxn(initialMarketPriceMxn);
+        setMarketPriceError(initialMarketPriceError || '');
+        setMarketPriceLoading(
+          Boolean(initialMarketPriceMxn == null && !initialMarketPriceError)
+        );
 
         const response = await fetch(`/api/products/${slug}`);
 
@@ -42,7 +48,14 @@ function ProductData({ slug }) {
         }
 
         const productData = await response.json();
-        setMarketPriceLoading(Boolean(productData.tcg_product_id));
+        const isTcg = Boolean(productData.tcg_product_id);
+        if (isTcg && initialMarketPriceMxn == null && !initialMarketPriceError) {
+          setMarketPriceLoading(true);
+        } else if (isTcg && (initialMarketPriceMxn != null || initialMarketPriceError)) {
+          setMarketPriceLoading(false);
+        } else {
+          setMarketPriceLoading(false);
+        }
         setProduct(productData);
       } catch (err) {
         console.error('Error loading product:', err);
@@ -55,7 +68,7 @@ function ProductData({ slug }) {
     if (slug) {
       loadProduct();
     }
-  }, [slug]);
+  }, [slug, initialMarketPriceMxn, initialMarketPriceError]);
 
   useEffect(() => {
     if (!product) return;
@@ -235,7 +248,11 @@ function ProductData({ slug }) {
   );
 }
 
-export default function CatalogProductPage({ slug }) {
+export default function CatalogProductPage({
+  slug,
+  initialMarketPriceMxn = null,
+  initialMarketPriceError = null
+}) {
   return (
     <Suspense
       fallback={
@@ -252,7 +269,11 @@ export default function CatalogProductPage({ slug }) {
         </div>
       }
     >
-      <ProductData slug={slug} />
+      <ProductData
+        slug={slug}
+        initialMarketPriceMxn={initialMarketPriceMxn}
+        initialMarketPriceError={initialMarketPriceError}
+      />
     </Suspense>
   );
 }

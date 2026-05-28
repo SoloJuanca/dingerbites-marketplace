@@ -57,6 +57,8 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
   const skipEmail = options.skipEmail === true;
   const stripeCheckoutSessionId = options.stripeCheckoutSessionId || null;
   const stripePaymentIntentId = options.stripePaymentIntentId || null;
+  const prePricedOrderItems = options.prePricedOrderItems ?? null;
+  const prePricedServiceItems = options.prePricedServiceItems ?? null;
 
   const isPosOrder = order_origin === 'pos' || pos_in_person === true;
   const normalizedCustomerEmail = normalizeEmail(
@@ -129,8 +131,14 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
     }
   }
 
-  const orderItems = await buildPricedOrderItems(items || []);
-  const orderServiceItems = await buildPricedServiceItems(service_items || []);
+  const orderItems =
+    prePricedOrderItems != null
+      ? prePricedOrderItems
+      : await buildPricedOrderItems(items || []);
+  const orderServiceItems =
+    prePricedServiceItems != null
+      ? prePricedServiceItems
+      : await buildPricedServiceItems(service_items || []);
   const subtotal = computeSubtotal(orderItems, orderServiceItems);
 
   if (subtotal <= 0) {

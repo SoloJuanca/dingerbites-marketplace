@@ -1,24 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { useCart } from '../../lib/CartContext';
 import { useAuth } from '../../lib/AuthContext';
-import OrderConfirmation from '../OrderConfirmation/OrderConfirmation';
 import AddressManager from '../AddressManager/AddressManager';
 import StripeEmbeddedPayment from '../StripeEmbeddedPayment/StripeEmbeddedPayment';
-import {
-  CASH_ADVANCE_PROOF_MIN_TOTAL_MXN,
-  PAYMENT_PROOF_ACCEPT_ATTR,
-  validatePaymentProofImageFile
-} from '../../lib/checkoutPaymentProofRules';
-import {
-  DELIVERY_SHIPPING_AMOUNT,
-  resolveShippingAmount
-} from '../../lib/shipping';
+import { resolveShippingAmount } from '../../lib/shipping';
 import styles from './SimpleCheckout.module.css';
 
 const PICKUP_POINTS = [
@@ -39,14 +29,10 @@ export default function SimpleCheckout() {
     postalCode: '',
     deliveryType: 'delivery',
     pickupPoint: '',
-    paymentMethod: 'transfer', // Default to transfer for deliveries
     notes: ''
   });
 
   const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [orderConfirmed, setOrderConfirmed] = useState(false);
-  const [orderData, setOrderData] = useState(null);
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [showAddressManager, setShowAddressManager] = useState(false);
   const [useNewAddress, setUseNewAddress] = useState(false);
@@ -61,13 +47,9 @@ export default function SimpleCheckout() {
   const [stripeLoading, setStripeLoading] = useState(false);
   const [stripeError, setStripeError] = useState(null);
   const prevPaymentIntentIdRef = useRef(null);
-  const cashAdvanceProofInputRef = useRef(null);
-  const [cashAdvanceProofFile, setCashAdvanceProofFile] = useState(null);
-  const [cashAdvanceProofPreview, setCashAdvanceProofPreview] = useState(null);
 
-  const { items, clearCart, getTotalPrice } = useCart();
+  const { items, getTotalPrice } = useCart();
   const { user, isAuthenticated, apiRequest } = useAuth();
-  const router = useRouter();
 
   // Pre-llenar datos si el usuario está autenticado
   useEffect(() => {
@@ -147,11 +129,8 @@ export default function SimpleCheckout() {
 
   const handleInputChange = (field, value) => {
     const updates = { [field]: value };
-    if (field === 'deliveryType') {
-      if (value === 'delivery') {
-        updates.paymentMethod = 'transfer';
-        updates.pickupPoint = '';
-      }
+    if (field === 'deliveryType' && value === 'delivery') {
+      updates.pickupPoint = '';
     }
     setFormData(prev => ({ ...prev, ...updates }));
 
@@ -198,14 +177,6 @@ export default function SimpleCheckout() {
       }
     }
 
-    const needsCashAdvanceProof =
-      formData.paymentMethod === 'cash' &&
-      formData.deliveryType === 'pickup' &&
-      getTotal() >= CASH_ADVANCE_PROOF_MIN_TOTAL_MXN;
-    if (needsCashAdvanceProof && !cashAdvanceProofFile) {
-      newErrors.cashAdvanceProof = 'Adjunta la captura del comprobante del pago del 50%.';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -227,58 +198,6 @@ export default function SimpleCheckout() {
 
   const getTotal = () => {
     return getSubtotal() + getShippingCost() - getDiscount();
-  };
-
-  const clearCashAdvanceProof = () => {
-    setCashAdvanceProofFile(null);
-    setCashAdvanceProofPreview((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return null;
-    });
-    if (cashAdvanceProofInputRef.current) {
-      cashAdvanceProofInputRef.current.value = '';
-    }
-  };
-
-  useEffect(() => {
-    const subtotal = getTotalPrice();
-    const shipping = resolveShippingAmount({
-      subtotal,
-      deliveryType: formData.deliveryType
-    });
-    const discount = couponData?.discount_amount || 0;
-    const total = subtotal + shipping - discount;
-    const needsProof =
-      formData.paymentMethod === 'cash' &&
-      formData.deliveryType === 'pickup' &&
-      total >= CASH_ADVANCE_PROOF_MIN_TOTAL_MXN;
-    if (!needsProof) {
-      setCashAdvanceProofFile(null);
-      setCashAdvanceProofPreview((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return null;
-      });
-      if (cashAdvanceProofInputRef.current) {
-        cashAdvanceProofInputRef.current.value = '';
-      }
-    }
-  }, [formData.paymentMethod, formData.deliveryType, items, couponData, getTotalPrice]);
-
-  const handleCashAdvanceProofChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const check = validatePaymentProofImageFile(file);
-    if (!check.ok) {
-      toast.error(check.message);
-      e.target.value = '';
-      return;
-    }
-    setCashAdvanceProofPreview((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return URL.createObjectURL(file);
-    });
-    setCashAdvanceProofFile(file);
-    setErrors((prev) => ({ ...prev, cashAdvanceProof: '' }));
   };
 
   const validateCoupon = async () => {
@@ -376,28 +295,11 @@ export default function SimpleCheckout() {
     return parts.join(', ');
   };
 
-  const getStockConflicts = () => {
-    return items
-      .map((item) => {
-        const stock = Number(item.stock_quantity);
-        if (!Number.isFinite(stock)) return null;
-        if (item.quantity > stock) {
-          return {
-            name: item.name,
-            available: Math.max(0, stock)
-          };
-        }
-        return null;
-      })
-      .filter(Boolean);
-  };
-
   const buildCheckoutOrderPayload = () => ({
     user_id: isAuthenticated ? user.id : null,
     items: items.map((item) => ({
       product_id: item.id,
-      quantity: item.quantity,
-      price: item.price
+      quantity: item.quantity
     })),
     customer_email: formData.email,
     customer_phone: formData.phone,
@@ -420,7 +322,7 @@ export default function SimpleCheckout() {
   };
 
   useEffect(() => {
-    if (checkoutStep !== 2 || formData.paymentMethod !== 'stripe') {
+    if (checkoutStep !== 2) {
       prevPaymentIntentIdRef.current = null;
       setStripeClientSecret(null);
       setStripePublishableKey(null);
@@ -478,7 +380,6 @@ export default function SimpleCheckout() {
     };
   }, [
     checkoutStep,
-    formData.paymentMethod,
     couponData,
     formData.deliveryType,
     formData.pickupPoint,
@@ -497,151 +398,6 @@ export default function SimpleCheckout() {
     isAuthenticated,
     user?.id
   ]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (checkoutStep !== 2 || formData.paymentMethod === 'stripe') {
-      return;
-    }
-
-    // Verificar que hay productos en el carrito
-    if (!items || items.length === 0) {
-      toast.error('No hay productos en el carrito');
-      return;
-    }
-
-    const stockConflicts = getStockConflicts();
-    if (stockConflicts.length > 0) {
-      const firstConflict = stockConflicts[0];
-      toast.error(`Stock insuficiente para ${firstConflict.name}. Disponible: ${firstConflict.available}`);
-      return;
-    }
-
-    if (!validateForm()) {
-      toast.error('Por favor completa todos los campos obligatorios');
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const subtotal = getSubtotal();
-      const shippingAmount = getShippingCost();
-      const totalAmount = getTotal();
-
-      let advancePaymentProofUrl = null;
-      const needsAdvanceProof =
-        formData.paymentMethod === 'cash' &&
-        formData.deliveryType === 'pickup' &&
-        totalAmount >= CASH_ADVANCE_PROOF_MIN_TOTAL_MXN;
-
-      if (needsAdvanceProof) {
-        if (!cashAdvanceProofFile) {
-          toast.error('Adjunta la captura del comprobante del pago del 50%.');
-          return;
-        }
-        const fd = new FormData();
-        fd.append('file', cashAdvanceProofFile);
-        const uploadRes = await fetch('/api/upload/order-payment-proof', {
-          method: 'POST',
-          body: fd
-        });
-        const uploadData = await uploadRes.json().catch(() => ({}));
-        if (!uploadRes.ok) {
-          toast.error(uploadData.error || 'No se pudo subir el comprobante. Intenta de nuevo.');
-          return;
-        }
-        advancePaymentProofUrl = uploadData.url;
-      }
-
-      const orderData = {
-        ...buildCheckoutOrderPayload(),
-        payment_method:
-          formData.paymentMethod === 'cash' ? 'Pago contra entrega' : 'Transferencia bancaria',
-        subtotal,
-        shipping_amount: shippingAmount,
-        total_amount: totalAmount
-      };
-
-      if (advancePaymentProofUrl) {
-        orderData.advance_payment_proof_url = advancePaymentProofUrl;
-      }
-
-      // Crear orden en la base de datos
-      let orderResponse;
-      if (isAuthenticated) {
-        orderResponse = await apiRequest('/api/orders', {
-          method: 'POST',
-          body: JSON.stringify(orderData)
-        });
-      } else {
-        orderResponse = await fetch('/api/orders', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(orderData)
-        });
-      }
-
-      if (!orderResponse.ok) {
-        const errData = await orderResponse.json().catch(() => ({}));
-        const errMessage = errData?.error || 'No se pudo crear la orden';
-        toast.error(errMessage);
-        return;
-      }
-
-      const orderResult = await orderResponse.json();
-      const orderNumber = orderResult?.order_number || `TEMP-${Date.now()}`;
-
-      // Limpiar carrito después de la orden exitosa
-      clearCart();
-
-      setOrderData({
-        orderNumber,
-        customerName: formData.name,
-        customerEmail: formData.email,
-        customerPhone: formData.phone,
-        total: totalAmount,
-        deliveryType: formData.deliveryType,
-        pickupPoint: formData.pickupPoint || null,
-        paymentMethod: formData.paymentMethod,
-        estimatedDelivery: formData.deliveryType === 'delivery' ? '1-2 días hábiles' : 'Disponible para recoger'
-      });
-
-      setOrderConfirmed(true);
-
-      if (isAuthenticated) {
-        toast.success(`¡Orden ${orderNumber} creada exitosamente!`);
-      } else {
-        toast.success('¡Orden enviada exitosamente!');
-      }
-
-    } catch (error) {
-      console.error('Error creating order:', error);
-      toast.error('Hubo un error al crear la orden. Por favor intenta nuevamente.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Mostrar confirmación si el pedido fue exitoso
-  if (orderConfirmed && orderData) {
-    return (
-      <OrderConfirmation 
-        orderNumber={orderData.orderNumber}
-        customerName={orderData.customerName}
-        customerEmail={orderData.customerEmail}
-        customerPhone={orderData.customerPhone}
-        total={orderData.total}
-        deliveryType={orderData.deliveryType}
-        pickupPoint={orderData.pickupPoint}
-        paymentMethod={orderData.paymentMethod}
-        estimatedDelivery={orderData.estimatedDelivery}
-      />
-    );
-  }
 
   return (
     <div className={styles.simpleCheckout}>
@@ -676,7 +432,7 @@ export default function SimpleCheckout() {
         <p>
           {checkoutStep === 1
             ? 'Ingresa tus datos y el tipo de entrega'
-            : 'Revisa tu pedido y elige cómo pagar'}
+            : 'Revisa tu pedido y paga con tarjeta'}
         </p>
       </div>
 
@@ -1022,166 +778,27 @@ export default function SimpleCheckout() {
             </div>
 
             <div className={styles.section}>
-              <h2>Método de pago</h2>
-
-              {formData.deliveryType === 'delivery' && (
-                <div className={styles.paymentNotice}>
-                  <p>Para envíos a domicilio puedes pagar con transferencia o tarjeta.</p>
-                </div>
+              <h2>Pago con tarjeta</h2>
+              <p className={styles.paymentNotice}>
+                Pago seguro con tarjeta de crédito o débito.
+              </p>
+              {stripeLoading && (
+                <p className={styles.stripeLoading}>Preparando formulario de pago…</p>
               )}
-
-              <div className={styles.radioGroup}>
-                <label className={`${styles.radioOption} ${formData.deliveryType === 'delivery' ? styles.disabled : ''}`}>
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="cash"
-                    checked={formData.paymentMethod === 'cash'}
-                    onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
-                    disabled={formData.deliveryType === 'delivery'}
-                  />
-                  <span className={styles.radioLabel}>
-                    <strong>Pago contra entrega</strong>
-                    <small>
-                      {formData.deliveryType === 'delivery'
-                        ? 'No disponible para envíos'
-                        : 'Paga cuando recibas tu pedido'}
-                    </small>
-                  </span>
-                </label>
-
-                <label className={styles.radioOption}>
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="transfer"
-                    checked={formData.paymentMethod === 'transfer'}
-                    onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
-                  />
-                  <span className={styles.radioLabel}>
-                    <strong>Transferencia bancaria</strong>
-                    <small>Banco BBVA</small>
-                  </span>
-                </label>
-
-                <label className={styles.radioOption}>
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="stripe"
-                    checked={formData.paymentMethod === 'stripe'}
-                    onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
-                  />
-                  <span className={styles.radioLabel}>
-                    <strong>Tarjeta</strong>
-                    <small>Pago seguro en esta página</small>
-                  </span>
-                </label>
-              </div>
-
-              {formData.paymentMethod === 'cash' && formData.deliveryType === 'pickup' && (
-                <div className={styles.cashOnDeliveryRules}>
-                  {getTotal() < CASH_ADVANCE_PROOF_MIN_TOTAL_MXN ? (
-                    <p>El pedido deberá pagarse en su totalidad al momento de la entrega.</p>
-                  ) : (
-                    <>
-                      <p>
-                        En ese mismo momento envía una captura de pantalla del pago del 50% del total de la
-                        orden. Te confirmaremos por correo electrónico o por mensaje de texto (si registraste
-                        teléfono) que recibimos el pago y acordaremos la fecha de entrega. El 50% restante lo
-                        pagas al momento de la entrega.
-                      </p>
-                      <div className={styles.proofUpload}>
-                        <span className={styles.proofUploadLabel} id="cash-advance-proof-label">
-                          Comprobante del 50% <span className={styles.requiredMark}>(obligatorio)</span>
-                        </span>
-                        <label
-                          className={`${styles.proofDropZone} ${errors.cashAdvanceProof ? styles.proofDropZoneError : ''}`}
-                          htmlFor="cash-advance-proof-input"
-                        >
-                          <input
-                            ref={cashAdvanceProofInputRef}
-                            id="cash-advance-proof-input"
-                            type="file"
-                            accept={PAYMENT_PROOF_ACCEPT_ATTR}
-                            className={styles.proofFileInput}
-                            onChange={handleCashAdvanceProofChange}
-                            aria-labelledby="cash-advance-proof-label"
-                            aria-describedby="cash-advance-proof-hint"
-                            aria-invalid={errors.cashAdvanceProof ? 'true' : 'false'}
-                          />
-                          <span className={styles.proofDropZoneText}>
-                            {cashAdvanceProofFile
-                              ? cashAdvanceProofFile.name
-                              : 'Haz clic para elegir imagen o arrastra el archivo aquí'}
-                          </span>
-                        </label>
-                        <p id="cash-advance-proof-hint" className={styles.proofHint}>
-                          Formatos: JPG, PNG o WebP. Tamaño máximo 5 MB.
-                        </p>
-                        {errors.cashAdvanceProof && (
-                          <p className={styles.proofError} role="alert">
-                            {errors.cashAdvanceProof}
-                          </p>
-                        )}
-                        {cashAdvanceProofPreview && (
-                          <div className={styles.proofPreview}>
-                            <img
-                              src={cashAdvanceProofPreview}
-                              alt="Vista previa del comprobante"
-                              className={styles.proofPreviewImg}
-                            />
-                            <button
-                              type="button"
-                              className={styles.proofRemoveButton}
-                              onClick={clearCashAdvanceProof}
-                            >
-                              Quitar imagen
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
+              {stripeError && (
+                <p className={styles.stripeError} role="alert">
+                  {stripeError}
+                </p>
+              )}
+              {!stripeLoading && stripeClientSecret && stripePublishableKey && (
+                <StripeEmbeddedPayment
+                  key={stripeClientSecret}
+                  clientSecret={stripeClientSecret}
+                  publishableKey={stripePublishableKey}
+                  returnPath="/checkout/success"
+                />
               )}
             </div>
-
-            {formData.paymentMethod === 'stripe' && (
-              <div className={styles.section}>
-                <h2>Pago con tarjeta</h2>
-                {stripeLoading && (
-                  <p className={styles.stripeLoading}>Preparando formulario de pago…</p>
-                )}
-                {stripeError && (
-                  <p className={styles.stripeError} role="alert">
-                    {stripeError}
-                  </p>
-                )}
-                {!stripeLoading && stripeClientSecret && stripePublishableKey && (
-                  <StripeEmbeddedPayment
-                    key={stripeClientSecret}
-                    clientSecret={stripeClientSecret}
-                    publishableKey={stripePublishableKey}
-                    returnPath="/checkout/success"
-                  />
-                )}
-              </div>
-            )}
-
-            {formData.paymentMethod !== 'stripe' && (
-              <button
-                type="button"
-                className={styles.submitButton}
-                disabled={isSubmitting || !items || items.length === 0}
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleSubmit(e);
-                }}
-              >
-                {isSubmitting ? 'Procesando...' : 'Confirmar pedido'}
-              </button>
-            )}
           </div>
           )}
         </div>
@@ -1190,7 +807,6 @@ export default function SimpleCheckout() {
         <div className={styles.summarySection}>
           <div className={styles.orderSummary}>
             <h2>Resumen del Pedido</h2>
-            {console.log(items)}
             <div className={styles.items}>
               {items.map((item, index) => (
                 <div key={index} className={styles.item}>

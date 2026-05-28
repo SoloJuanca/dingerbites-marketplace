@@ -93,7 +93,9 @@ export async function ensureOrderForPaymentIntent(stripe, piId, requestMeta = {}
       requestMeta: meta,
       options: {
         skipEmail: false,
-        stripePaymentIntentId: piId
+        stripePaymentIntentId: piId,
+        prePricedOrderItems: pending.priced_order_items ?? null,
+        prePricedServiceItems: pending.priced_service_items ?? null
       }
     });
   } catch (err) {

@@ -3,6 +3,7 @@ import {
   DELIVERY_SHIPPING_AMOUNT,
   resolveShippingAmount as resolveDeliveryShippingAmount
 } from './shipping';
+import { getTcgMarketPriceForProduct, TcgMarketPriceError } from './tcgMarketPrice';
 
 const PRODUCTS_COLLECTION = 'products';
 const SERVICES_COLLECTION = 'services';
@@ -58,7 +59,22 @@ export async function buildPricedOrderItems(items = []) {
       throw new Error(`Product is inactive: ${item.product_id}`);
     }
 
-    const unitPrice = roundMoney(toNumber(product.price, 0));
+    let unitPrice;
+    if (product.tcg_product_id != null) {
+      try {
+        const tcgPrice = await getTcgMarketPriceForProduct(product);
+        unitPrice = roundMoney(tcgPrice.marketPriceMxn);
+      } catch (err) {
+        if (err instanceof TcgMarketPriceError) {
+          const tcgErr = new Error(err.message || 'Precio TCG no disponible');
+          tcgErr.code = 'TCG_PRICE_UNAVAILABLE';
+          throw tcgErr;
+        }
+        throw err;
+      }
+    } else {
+      unitPrice = roundMoney(toNumber(product.price, 0));
+    }
     const quantity = normalizeQuantity(item.quantity);
     pricedItems.push({
       product_id: item.product_id,

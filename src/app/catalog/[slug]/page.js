@@ -4,6 +4,7 @@ import Footer from '../../../components/Footer/Footer';
 import CatalogClient from '../../../components/Catalog/CatalogClient';
 import CatalogProductPage from '../../../components/CatalogProductPage/CatalogProductPage';
 import { getCategories, getBrands, getPriceRange, getProductBySlug } from '../../../lib/firebaseProducts';
+import { getTcgMarketPriceForProduct } from '../../../lib/tcgMarketPrice';
 import { PRODUCT_CONDITIONS, PRODUCT_CONDITION_LABELS } from '../../../lib/productCondition';
 import { searchProducts } from '../../../lib/search/typesenseSearch';
 
@@ -78,7 +79,26 @@ export default async function CatalogSlugPage({ params, searchParams }) {
 
   const product = await getProductBySlug(slug);
   if (product) {
-    return <CatalogProductPage slug={slug} />;
+    let initialMarketPriceMxn = null;
+    let initialMarketPriceError = null;
+
+    if (product.tcg_product_id) {
+      try {
+        const tcgPrice = await getTcgMarketPriceForProduct(product);
+        initialMarketPriceMxn = tcgPrice.marketPriceMxn;
+      } catch (err) {
+        initialMarketPriceError =
+          err?.message || 'No pudimos obtener el precio actualizado desde TCG.';
+      }
+    }
+
+    return (
+      <CatalogProductPage
+        slug={slug}
+        initialMarketPriceMxn={initialMarketPriceMxn}
+        initialMarketPriceError={initialMarketPriceError}
+      />
+    );
   }
 
   const categories = await getCategories();

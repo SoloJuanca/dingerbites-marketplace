@@ -41,7 +41,8 @@ export async function getCartItems(userId, sessionId) {
       product_id: row.product_id,
       name: product?.name,
       slug: product?.slug,
-      price: toNum(product?.price, 0),
+      price:
+        row.variant_price != null ? toNum(row.variant_price) : toNum(product?.price, 0),
       stock_quantity: toNum(product?.stock_quantity, 0),
       image_url: imageUrl,
       variant_id: row.product_variant_id || null,
