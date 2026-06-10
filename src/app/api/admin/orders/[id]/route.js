@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../../lib/auth';
-import { getOrderById, updateOrderStatus } from '../../../../../lib/firebaseOrders';
+import { getOrderById, updateOrderStatus, getOrderStatusById } from '../../../../../lib/firebaseOrders';
+import { cancelAwaitingOxxoOrder } from '../../../../../lib/oxxoOrders';
 
 export async function PUT(request, { params }) {
   try {
@@ -20,6 +21,16 @@ export async function PUT(request, { params }) {
     const existingOrder = await getOrderById(id);
     if (!existingOrder) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    const targetStatus = await getOrderStatusById(status_id);
+    if (
+      targetStatus?.name === 'cancelled' &&
+      existingOrder.payment_status === 'awaiting_oxxo'
+    ) {
+      await cancelAwaitingOxxoOrder(id, { cancelStripePi: true });
+      const refreshed = await getOrderById(id);
+      return NextResponse.json(refreshed);
     }
 
     const updated = await updateOrderStatus(id, status_id);

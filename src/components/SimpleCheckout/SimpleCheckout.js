@@ -778,10 +778,15 @@ export default function SimpleCheckout() {
             </div>
 
             <div className={styles.section}>
-              <h2>Pago con tarjeta</h2>
+              <h2>Pago con tarjeta u OXXO</h2>
               <p className={styles.paymentNotice}>
-                Pago seguro con tarjeta de crédito o débito.
+                Pago seguro con tarjeta de crédito o débito. OXXO disponible en pedidos de $10 a $10,000 MXN.
               </p>
+              {getTotal() > 10000 && (
+                <p className={styles.paymentNotice}>
+                  OXXO no está disponible para este monto; usa tarjeta para completar tu compra.
+                </p>
+              )}
               {stripeLoading && (
                 <p className={styles.stripeLoading}>Preparando formulario de pago…</p>
               )}

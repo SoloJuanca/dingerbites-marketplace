@@ -1,0 +1,60 @@
+.page {
+  min-height: 60vh;
+  padding: 32px 16px 64px;
+  background: #f8fafc;
+}
+
+.container {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.header h1 {
+  margin: 0 0 8px;
+  font-size: 1.5rem;
+  color: #0f172a;
+}
+
+.header p {
+  margin: 0;
+  color: #64748b;
+}
+
+.stateWrap {
+  text-align: center;
+  padding: 48px 16px;
+}
+
+.link {
+  display: inline-block;
+  margin-top: 16px;
+  color: #6b21a8;
+  font-weight: 600;
+}
+
+.successBox {
+  margin-top: 24px;
+  padding: 20px;
+  background: #dcfce7;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.successBox p {
+  margin: 0 0 12px;
+  color: #166534;
+  font-weight: 600;
+}
+
+.hint {
+  margin-top: 24px;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}

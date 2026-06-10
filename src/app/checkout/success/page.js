@@ -75,12 +75,22 @@ function StripeSuccessContent() {
             return;
           }
 
+          if (data.awaiting_payment && data.order) {
+            const oxxoUrl = `/checkout/oxxo?payment_intent=${encodeURIComponent(paymentIntentId)}`;
+            window.location.replace(oxxoUrl);
+            return;
+          }
+
           if (data.order_ready && data.order) {
             clearCart();
             setState({ loading: false, error: null, order: data.order, hint: '' });
             if (!successToastShownRef.current) {
               successToastShownRef.current = true;
-              toast.success('¡Pedido registrado correctamente!');
+              toast.success(
+                data.order.payment_status === 'paid' || data.paid
+                  ? '¡Pedido registrado correctamente!'
+                  : 'Ficha OXXO generada. Completa el pago en tienda.'
+              );
             }
             return;
           }

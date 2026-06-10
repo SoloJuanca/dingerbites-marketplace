@@ -16,6 +16,7 @@ import {
   PENDING_STRIPE_CHECKOUT_TTL_MS
 } from '../../../../lib/pendingStripeCheckout';
 import { assertStockAvailableForOrderItems } from '../../../../lib/orderStock';
+import { isOxxoEligibleTotal } from '../../../../lib/oxxoOrders';
 
 /**
  * POST /api/checkout/payment-intent
@@ -197,14 +198,14 @@ export async function POST(request) {
       }
     }
 
+    const oxxoEligible = isOxxoEligibleTotal(totals.total_amount);
+    const paymentMethodTypes = oxxoEligible ? ['card', 'oxxo'] : ['card'];
+
     try {
       const paymentIntent = await stripe.paymentIntents.create({
         amount: expectedAmountCents,
         currency: 'mxn',
-        automatic_payment_methods: {
-          enabled: true,
-          allow_redirects: 'always'
-        },
+        payment_method_types: paymentMethodTypes,
         receipt_email: normalizedCustomerEmail,
         metadata: {
           pending_checkout_id: pendingRef.id
@@ -221,7 +222,8 @@ export async function POST(request) {
         clientSecret: paymentIntent.client_secret,
         payment_intent_id: paymentIntent.id,
         pending_checkout_id: pendingRef.id,
-        publishableKey: publishable
+        publishableKey: publishable,
+        oxxo_eligible: oxxoEligible
       });
     } catch (stripeErr) {
       console.error('Stripe paymentIntents.create failed:', stripeErr);

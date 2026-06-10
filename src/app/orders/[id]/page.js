@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../../../lib/AuthContext';
 import Header from '../../../components/Header/Header';
 import Footer from '../../../components/Footer/Footer';
+import OxxoVoucher from '../../../components/OxxoVoucher/OxxoVoucher';
 import styles from './orders-detail.module.css';
 
 const STATUS_COLORS = {
@@ -179,6 +180,20 @@ export default function ClientOrderDetail() {
           </div>
 
           <div className={styles.content}>
+            {(order.payment_status === 'awaiting_oxxo' || order.payment_status === 'paid') &&
+              order.oxxo_hosted_voucher_url && (
+              <section className={styles.section}>
+                <OxxoVoucher
+                  orderNumber={order.order_number}
+                  totalAmount={order.total_amount}
+                  hostedVoucherUrl={order.oxxo_hosted_voucher_url}
+                  referenceNumber={order.oxxo_reference_number}
+                  expiresAt={order.oxxo_expires_at}
+                  isPaid={order.payment_status === 'paid'}
+                />
+              </section>
+            )}
+
             {/* Order Items */}
             <section className={styles.section}>
               <h2 className={styles.sectionTitle}>Productos</h2>

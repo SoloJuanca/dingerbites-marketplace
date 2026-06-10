@@ -1,0 +1,88 @@
+.wrap {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  background: #fffbeb;
+}
+
+.title {
+  margin: 0 0 8px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.subtitle {
+  margin: 0 0 16px;
+  color: #475569;
+  font-size: 0.9375rem;
+}
+
+.meta {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.metaRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 0.9375rem;
+}
+
+.metaLabel {
+  color: #64748b;
+}
+
+.metaValue {
+  font-weight: 600;
+  color: #0f172a;
+  text-align: right;
+}
+
+.barcodeWrap {
+  text-align: center;
+  margin: 16px 0;
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px dashed #cbd5e1;
+}
+
+.barcodeImg {
+  max-width: 100%;
+  height: auto;
+}
+
+.linkButton {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 10px 20px;
+  background: #0f172a;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.linkButton:hover {
+  background: #1e293b;
+}
+
+.hint {
+  margin: 16px 0 0;
+  font-size: 0.875rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.paidBanner {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: #dcfce7;
+  color: #166534;
+  border-radius: 8px;
+  font-weight: 600;
+}

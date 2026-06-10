@@ -1,6 +1,7 @@
 import { createOrderFromPayload } from './orderCreation';
 import { db } from './firebaseAdmin';
 import { PENDING_STRIPE_CHECKOUTS_COLLECTION } from './pendingStripeCheckout';
+import { findOrderByPaymentIntentId, markOxxoOrderPaid } from './oxxoOrders';
 
 /**
  * Ensures a Firestore order exists for a succeeded PaymentIntent by reading the pending
@@ -9,26 +10,27 @@ import { PENDING_STRIPE_CHECKOUTS_COLLECTION } from './pendingStripeCheckout';
  * @param {import('stripe').Stripe} stripe
  * @param {string} piId
  * @param {{ ip?: string, userAgent?: string, requestId?: string }} requestMeta
- * @returns {Promise<
- *   | { status: 'exists'; order: object }
- *   | { status: 'created'; order: object }
- *   | { status: 'not_succeeded'; payment_intent_status: string }
- *   | { status: 'skipped'; reason: 'missing_metadata' | 'pending_missing' }
- *   | { status: 'error'; reason: string; message?: string }
- * >}
+ * @returns {Promise<object>}
  */
 export async function ensureOrderForPaymentIntent(stripe, piId, requestMeta = {}) {
-  const existingSnap = await db
-    .collection('orders')
-    .where('stripe_payment_intent_id', '==', piId)
-    .limit(1)
-    .get();
+  const fullPi = await stripe.paymentIntents.retrieve(piId);
+  const existingOrder = await findOrderByPaymentIntentId(piId);
 
-  if (!existingSnap.empty) {
-    return { status: 'exists', order: existingSnap.docs[0].data() };
+  if (existingOrder) {
+    if (existingOrder.payment_status === 'awaiting_oxxo' && fullPi.status === 'succeeded') {
+      const updated = await markOxxoOrderPaid(existingOrder.id, { paymentIntentId: piId });
+      return { status: 'updated', order: updated };
+    }
+    if (existingOrder.payment_status === 'cancelled') {
+      return {
+        status: 'error',
+        reason: 'order_cancelled',
+        payment_intent_status: fullPi.status
+      };
+    }
+    return { status: 'exists', order: existingOrder };
   }
 
-  const fullPi = await stripe.paymentIntents.retrieve(piId);
   if (fullPi.status !== 'succeeded') {
     return { status: 'not_succeeded', payment_intent_status: fullPi.status };
   }
@@ -42,13 +44,9 @@ export async function ensureOrderForPaymentIntent(stripe, piId, requestMeta = {}
   const pendingDoc = await pendingRef.get();
 
   if (!pendingDoc.exists) {
-    const retrySnap = await db
-      .collection('orders')
-      .where('stripe_payment_intent_id', '==', piId)
-      .limit(1)
-      .get();
-    if (!retrySnap.empty) {
-      return { status: 'exists', order: retrySnap.docs[0].data() };
+    const retryOrder = await findOrderByPaymentIntentId(piId);
+    if (retryOrder) {
+      return { status: 'exists', order: retryOrder };
     }
     return { status: 'skipped', reason: 'pending_missing' };
   }
@@ -64,18 +62,21 @@ export async function ensureOrderForPaymentIntent(stripe, piId, requestMeta = {}
     return { status: 'error', reason: 'amount_mismatch' };
   }
 
-  const dupSnap = await db
-    .collection('orders')
-    .where('stripe_payment_intent_id', '==', piId)
-    .limit(1)
-    .get();
-  if (!dupSnap.empty) {
-    return { status: 'exists', order: dupSnap.docs[0].data() };
+  const dupOrder = await findOrderByPaymentIntentId(piId);
+  if (dupOrder) {
+    if (dupOrder.payment_status === 'awaiting_oxxo') {
+      const updated = await markOxxoOrderPaid(dupOrder.id, { paymentIntentId: piId });
+      return { status: 'updated', order: updated };
+    }
+    return { status: 'exists', order: dupOrder };
   }
 
   const orderBody = {
     ...pending.order_body,
-    user_id: pending.auth_user_id || pending.order_body?.user_id || null
+    user_id: pending.auth_user_id || pending.order_body?.user_id || null,
+    payment_method: 'Stripe',
+    payment_status: 'paid',
+    stripe_payment_method_type: 'card'
   };
 
   const authUser = pending.auth_user_id ? { id: pending.auth_user_id } : null;
@@ -114,15 +115,10 @@ export async function ensureOrderForPaymentIntent(stripe, piId, requestMeta = {}
 
   await pendingRef.delete().catch(() => {});
 
-  const finalSnap = await db
-    .collection('orders')
-    .where('stripe_payment_intent_id', '==', piId)
-    .limit(1)
-    .get();
-
-  if (finalSnap.empty) {
+  const finalOrder = await findOrderByPaymentIntentId(piId);
+  if (!finalOrder) {
     return { status: 'error', reason: 'order_not_found_after_create' };
   }
 
-  return { status: 'created', order: finalSnap.docs[0].data() };
+  return { status: 'created', order: finalOrder };
 }

@@ -3,6 +3,7 @@ import { createOrderFromPayload } from '../../../../lib/orderCreation';
 import { db } from '../../../../lib/firebaseAdmin';
 import { getStripe, isStripeConfigured } from '../../../../lib/stripeServer';
 import { ensureOrderForPaymentIntent } from '../../../../lib/stripePaymentIntentFinalize';
+import { handleOxxoPaymentIntentCanceled } from '../../../../lib/oxxoOrders';
 import { PENDING_STRIPE_CHECKOUTS_COLLECTION } from '../../../../lib/pendingStripeCheckout';
 
 export const runtime = 'nodejs';
@@ -110,7 +111,7 @@ async function handlePaymentIntentSucceeded(event, stripe) {
   if (result.status === 'exists') {
     return NextResponse.json({ received: true, duplicate: true });
   }
-  if (result.status === 'created') {
+  if (result.status === 'created' || result.status === 'updated') {
     return NextResponse.json({ received: true });
   }
   if (result.status === 'not_succeeded') {
@@ -172,6 +173,13 @@ export async function POST(request) {
     }
     if (event.type === 'payment_intent.succeeded') {
       return await handlePaymentIntentSucceeded(event, stripe);
+    }
+    if (event.type === 'payment_intent.canceled' || event.type === 'payment_intent.payment_failed') {
+      const piId = event.data.object?.id;
+      if (piId) {
+        await handleOxxoPaymentIntentCanceled(piId);
+      }
+      return NextResponse.json({ received: true });
     }
   } catch (err) {
     console.error('Webhook handler error:', err);

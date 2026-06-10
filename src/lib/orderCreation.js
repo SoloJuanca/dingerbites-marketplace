@@ -51,10 +51,16 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
     coupon_code,
     order_origin,
     pos_in_person,
-    advance_payment_proof_url
+    advance_payment_proof_url,
+    payment_status,
+    stripe_payment_method_type,
+    oxxo_hosted_voucher_url,
+    oxxo_reference_number,
+    oxxo_expires_at
   } = body;
 
   const skipEmail = options.skipEmail === true;
+  const skipStockDeduct = options.skipStockDeduct === true;
   const stripeCheckoutSessionId = options.stripeCheckoutSessionId || null;
   const stripePaymentIntentId = options.stripePaymentIntentId || null;
   const prePricedOrderItems = options.prePricedOrderItems ?? null;
@@ -192,7 +198,11 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
       }
     }
 
-    await deductProductStockInTransaction(transaction, orderItems, now);
+    let stockReserved = false;
+    if (!skipStockDeduct) {
+      await deductProductStockInTransaction(transaction, orderItems, now);
+      stockReserved = orderItems.length > 0;
+    }
 
     // After stock reads, we can safely apply transactional coupon writes (no more reads after this point).
     if (couponPrepared) {
@@ -216,6 +226,15 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
       customer_phone: customer_phone || null,
       customer_name: customer_name || null,
       payment_method: payment_method || null,
+      payment_status:
+        payment_status ||
+        (stripePaymentIntentId && String(payment_method || '').includes('OXXO')
+          ? 'awaiting_oxxo'
+          : stripePaymentIntentId
+            ? 'paid'
+            : null),
+      stripe_payment_method_type: stripe_payment_method_type || null,
+      stock_reserved: stockReserved,
       shipping_method: shipping_method || null,
       pickup_point: pickup_point || null,
       order_origin: order_origin || null,
@@ -249,6 +268,15 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
     if (proofUrl) {
       orderPayload.advance_payment_proof_url = proofUrl;
     }
+    if (oxxo_hosted_voucher_url) {
+      orderPayload.oxxo_hosted_voucher_url = oxxo_hosted_voucher_url;
+    }
+    if (oxxo_reference_number) {
+      orderPayload.oxxo_reference_number = oxxo_reference_number;
+    }
+    if (oxxo_expires_at) {
+      orderPayload.oxxo_expires_at = oxxo_expires_at;
+    }
 
     transaction.set(orderRef, orderPayload);
     return orderPayload;
@@ -262,12 +290,17 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
 
   const orderData = {
     order_number: createdOrder.order_number,
+    order_id: orderRef.id,
     customer_name,
     customer_email: normalizedCustomerEmail,
     customer_phone,
     total_amount: createdOrder.total_amount,
     payment_method,
+    payment_status: createdOrder.payment_status || null,
     shipping_method,
+    oxxo_hosted_voucher_url: createdOrder.oxxo_hosted_voucher_url || null,
+    oxxo_reference_number: createdOrder.oxxo_reference_number || null,
+    oxxo_expires_at: createdOrder.oxxo_expires_at || null,
     items: createdOrder.items || [],
     service_items: createdOrder.service_items || [],
     address,

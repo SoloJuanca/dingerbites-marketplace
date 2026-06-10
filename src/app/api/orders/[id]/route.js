@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getOrderById, updateOrderStatus, updateOrderDeliverySchedule, cancelOrder, getOrderStatusById } from '../../../../lib/firebaseOrders';
+import {
+  getOrderById,
+  updateOrderStatus,
+  updateOrderDeliverySchedule,
+  cancelOrder,
+  getOrderStatusById
+} from '../../../../lib/firebaseOrders';
 import { authenticateUser, isAdmin } from '../../../../lib/auth';
+import { cancelAwaitingOxxoOrder } from '../../../../lib/oxxoOrders';
 
 function canAccessOrder(user, order) {
   if (!user || !order) return false;
@@ -74,6 +81,15 @@ export async function PUT(request, { params }) {
           { status: 404 }
         );
       }
+
+      if (
+        statusExists.name === 'cancelled' &&
+        existingOrder.payment_status === 'awaiting_oxxo'
+      ) {
+        await cancelAwaitingOxxoOrder(id, { cancelStripePi: true });
+        const refreshed = await getOrderById(id);
+        return NextResponse.json(refreshed);
+      }
     }
 
     const shippingInfo = {};
@@ -126,6 +142,15 @@ export async function DELETE(request, { params }) {
         { status: 404 }
       );
     }
+    if (existingOrder.payment_status === 'awaiting_oxxo') {
+      await cancelAwaitingOxxoOrder(id, { cancelStripePi: true });
+      const refreshed = await getOrderById(id);
+      return NextResponse.json({
+        message: 'Order cancelled successfully. Stock restored.',
+        order: refreshed
+      });
+    }
+
     const cancelledOrder = await cancelOrder(id);
     return NextResponse.json({
       message: 'Order cancelled successfully',

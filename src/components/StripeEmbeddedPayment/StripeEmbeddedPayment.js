@@ -56,6 +56,35 @@ function PaymentForm({ returnPath }) {
     }
 
     if (paymentIntent) {
+      const isOxxoVoucher =
+        paymentIntent.status === 'requires_action' &&
+        paymentIntent.next_action?.type === 'oxxo_display_details';
+
+      if (isOxxoVoucher) {
+        try {
+          const registerRes = await fetch('/api/checkout/oxxo-register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payment_intent_id: paymentIntent.id })
+          });
+          const registerData = await registerRes.json().catch(() => ({}));
+          if (!registerRes.ok) {
+            throw new Error(registerData.error || 'No se pudo generar la ficha OXXO');
+          }
+          toast.success('Ficha OXXO lista. Guárdala para pagar en tienda.');
+          const oxxoUrl = new URL(`${origin}/checkout/oxxo`, origin);
+          oxxoUrl.searchParams.set('payment_intent', paymentIntent.id);
+          window.location.replace(oxxoUrl.toString());
+          return;
+        } catch (registerErr) {
+          const msg = registerErr.message || 'No se pudo registrar el pago OXXO';
+          setMessage(msg);
+          toast.error(msg);
+          setBusy(false);
+          return;
+        }
+      }
+
       if (paymentIntent.status === 'succeeded' || paymentIntent.status === 'processing') {
         toast.success(
           paymentIntent.status === 'processing'
@@ -64,7 +93,6 @@ function PaymentForm({ returnPath }) {
         );
         const url = new URL(successUrl, origin);
         url.searchParams.set('payment_intent', paymentIntent.id);
-        // replace: evita que "Atrás" vuelva al checkout con el carrito ya vaciado tras confirmar en /success
         window.location.replace(url.toString());
         return;
       }

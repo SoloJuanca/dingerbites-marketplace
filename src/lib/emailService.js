@@ -497,6 +497,73 @@ export function generateCustomerEmailContent(orderData) {
  * @param {Object} orderData - Datos del pedido
  * @returns {Promise<Object>} - Resultado del envío
  */
+export async function sendOxxoPendingOrderEmail({
+  customer_email,
+  customer_name,
+  order_number,
+  total_amount,
+  voucher_url,
+  oxxo_hosted_voucher_url,
+  oxxo_reference_number,
+  oxxo_expires_at
+}) {
+  if (!customer_email) {
+    return { success: false, error: 'Recipient email is required' };
+  }
+
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount);
+
+  const expiresLabel = oxxo_expires_at
+    ? new Date(oxxo_expires_at).toLocaleString('es-MX', {
+        dateStyle: 'long',
+        timeStyle: 'short'
+      })
+    : 'la fecha indicada en tu ficha';
+
+  const barcodeBlock = oxxo_hosted_voucher_url
+    ? `<p style="text-align: center; margin: 24px 0;">
+        <img src="${oxxo_hosted_voucher_url}" alt="Código de barras OXXO" style="max-width: 100%; height: auto;" />
+       </p>`
+    : '';
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #2d3748; background: #f7fafc; padding: 24px;">
+      <div style="max-width: 600px; margin: 0 auto; background: #fff; padding: 32px; border-radius: 8px;">
+        <h1 style="margin-top: 0;">Paga tu pedido en OXXO</h1>
+        <p>Hola ${customer_name || 'cliente'},</p>
+        <p>Tu pedido <strong>${order_number}</strong> está reservado. Total a pagar: <strong>${formatCurrency(total_amount)}</strong>.</p>
+        <p>Referencia: <strong>${oxxo_reference_number || '—'}</strong></p>
+        <p>Válido hasta: ${expiresLabel}</p>
+        ${barcodeBlock}
+        <p style="text-align: center;">
+          <a href="${voucher_url}" style="display: inline-block; background: #0f172a; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+            Ver ficha de pago
+          </a>
+        </p>
+        <p style="font-size: 14px; color: #718096;">Presenta esta ficha en cualquier tienda OXXO y paga en efectivo. Te confirmaremos por correo cuando recibamos el pago.</p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const customerResult = await sendEmail({
+    to: [{ email: customer_email, name: customer_name || 'Cliente' }],
+    subject: `Ficha OXXO - Pedido ${order_number}`,
+    htmlContent
+  });
+
+  const adminResult = await sendEmail({
+    to: [{ email: ADMIN_EMAIL, name: 'Administrador' }],
+    subject: `Pedido OXXO pendiente - ${order_number}`,
+    htmlContent: `<p>Pedido ${order_number} aguarda pago OXXO. Total: ${formatCurrency(total_amount)}. <a href="${voucher_url}">Ver ficha</a></p>`
+  });
+
+  return { customerEmail: customerResult, adminEmail: adminResult };
+}
+
 export async function sendOrderNotifications(orderData) {
   const results = {
     adminEmail: { success: false },

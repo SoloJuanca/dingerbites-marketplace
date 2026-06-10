@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../../../lib/AuthContext';
 import AdminLayout from '../../../../components/admin/AdminLayout/AdminLayout';
+import OxxoVoucher from '../../../../components/OxxoVoucher/OxxoVoucher';
 import styles from './order-detail.module.css';
 
 export default function AdminOrderDetail() {
@@ -286,6 +287,21 @@ export default function AdminOrderDetail() {
               )}
             </div>
           </div>
+
+          {(order.payment_status === 'awaiting_oxxo' || order.payment_status === 'paid') &&
+            order.oxxo_hosted_voucher_url && (
+            <div className={styles.section}>
+              <h2>Ficha OXXO</h2>
+              <OxxoVoucher
+                orderNumber={order.order_number}
+                totalAmount={order.total_amount}
+                hostedVoucherUrl={order.oxxo_hosted_voucher_url}
+                referenceNumber={order.oxxo_reference_number}
+                expiresAt={order.oxxo_expires_at}
+                isPaid={order.payment_status === 'paid'}
+              />
+            </div>
+          )}
 
           {/* Customer Information */}
           <div className={styles.section}>

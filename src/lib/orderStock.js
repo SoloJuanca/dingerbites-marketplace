@@ -149,3 +149,71 @@ export async function assertStockAvailableForOrderItems(orderItems) {
     }
   }
 }
+
+/**
+ * Restores product stock inside an existing Firestore transaction (inverse of deduct).
+ */
+export async function restoreProductStockInTransaction(transaction, orderItems, nowIso) {
+  const byProduct = quantitiesByProductId(orderItems);
+  if (byProduct.size === 0) return;
+
+  const entries = [...byProduct.entries()].map(([productId, restoreQty]) => ({
+    productId: String(productId),
+    restoreQty,
+    ref: db.collection(PRODUCTS_COLLECTION).doc(String(productId))
+  }));
+
+  const docs = await Promise.all(entries.map((item) => transaction.get(item.ref)));
+
+  for (let i = 0; i < entries.length; i += 1) {
+    const { restoreQty, ref } = entries[i];
+    const doc = docs[i];
+    if (!doc.exists) continue;
+
+    const available = Math.max(0, Math.floor(toNum(doc.data().stock_quantity, 0)));
+    transaction.update(ref, {
+      stock_quantity: available + restoreQty,
+      updated_at: nowIso
+    });
+  }
+}
+
+/**
+ * Restores stock for an order that reserved inventory (OXXO pending). Idempotent via stock_reserved flag.
+ */
+export async function restoreProductStockForOrder(orderId) {
+  const orderRef = db.collection('orders').doc(String(orderId));
+  const orderSnap = await orderRef.get();
+  if (!orderSnap.exists) {
+    const err = new Error('Order not found');
+    err.code = 'ORDER_NOT_FOUND';
+    throw err;
+  }
+
+  const order = orderSnap.data();
+  if (order.stock_reserved !== true) {
+    return { restored: false, reason: 'not_reserved' };
+  }
+
+  const orderItems = order.items || [];
+  const now = new Date().toISOString();
+
+  await db.runTransaction(async (transaction) => {
+    const fresh = await transaction.get(orderRef);
+    if (!fresh.exists || fresh.data().stock_reserved !== true) return;
+    await restoreProductStockInTransaction(transaction, orderItems, now);
+    transaction.update(orderRef, {
+      stock_reserved: false,
+      updated_at: now
+    });
+  });
+
+  try {
+    const { syncOrderProductsToTypesense } = await import('./search/typesenseSync');
+    await syncOrderProductsToTypesense(orderItems);
+  } catch (syncError) {
+    console.error('Failed to sync stock to Typesense after restore:', syncError);
+  }
+
+  return { restored: true };
+}
