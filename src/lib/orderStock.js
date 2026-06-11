@@ -29,8 +29,10 @@ function quantitiesByProductId(orderItems) {
  * @param {import('firebase-admin/firestore').Transaction} transaction
  * @param {Array<{ product_id: string, quantity: number, product_name?: string }>} orderItems
  * @param {string} nowIso - ISO timestamp for product updated_at
+ * @param {{ allowInsufficientStock?: boolean }} [options]
  */
-export async function deductProductStockInTransaction(transaction, orderItems, nowIso) {
+export async function deductProductStockInTransaction(transaction, orderItems, nowIso, options = {}) {
+  const allowInsufficientStock = options.allowInsufficientStock === true;
   const byProduct = quantitiesByProductId(orderItems);
   if (byProduct.size === 0) return;
 
@@ -49,6 +51,7 @@ export async function deductProductStockInTransaction(transaction, orderItems, n
     const doc = docs[i];
 
     if (!doc.exists) {
+      if (allowInsufficientStock) continue;
       const err = new Error(`Producto no encontrado: ${productId}`);
       err.code = 'PRODUCT_NOT_FOUND';
       err.details = { productId, requested: requestedQty, available: 0 };
@@ -58,7 +61,7 @@ export async function deductProductStockInTransaction(transaction, orderItems, n
     const data = doc.data();
     const name = data.name || productId;
 
-    if (data.is_active === false) {
+    if (data.is_active === false && !allowInsufficientStock) {
       const err = new Error(`El producto "${name}" ya no está disponible.`);
       err.code = 'INSUFFICIENT_STOCK';
       err.details = {
@@ -72,7 +75,7 @@ export async function deductProductStockInTransaction(transaction, orderItems, n
 
     const available = Math.max(0, Math.floor(toNum(data.stock_quantity, 0)));
 
-    if (available < requestedQty) {
+    if (available < requestedQty && !allowInsufficientStock) {
       const err = new Error(
         `Stock insuficiente para "${name}". Disponible: ${available}, solicitado: ${requestedQty}.`
       );
@@ -86,10 +89,13 @@ export async function deductProductStockInTransaction(transaction, orderItems, n
       throw err;
     }
 
-    updates.push({
-      ref,
-      nextStock: available - requestedQty
-    });
+    const nextStock = Math.max(0, available - requestedQty);
+    if (nextStock !== available) {
+      updates.push({
+        ref,
+        nextStock
+      });
+    }
   }
 
   for (const update of updates) {

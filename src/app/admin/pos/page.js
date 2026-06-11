@@ -366,22 +366,18 @@ export default function AdminPOS() {
       const shouldSendEmail = Boolean(explicitCustomerEmail);
       const orderPayload = {
         user_id: user?.id || null,
-        items: cartItems.map((item) =>
-          item.isManual
+        items: cartItems.map((item) => ({
+          product_id: item.id || null,
+          quantity: item.quantity,
+          price: item.price,
+          ...(item.isManual
             ? {
-                product_id: null,
                 name: item.name,
                 sku: item.sku,
-                quantity: item.quantity,
-                price: item.price,
                 is_manual: true
               }
-            : {
-                product_id: item.id,
-                quantity: item.quantity,
-                price: item.price
-              }
-        ),
+            : {})
+        })),
         customer_email: normalizedCustomerEmail,
         customer_phone: normalizedCustomerPhone || null,
         customer_name: customer.name.trim() || null,
@@ -404,7 +400,8 @@ export default function AdminPOS() {
       });
 
       if (!response.ok) {
-        throw new Error('No fue posible crear el pedido');
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || 'No fue posible crear el pedido');
       }
 
       const result = await response.json();
@@ -433,7 +430,7 @@ export default function AdminPOS() {
       );
     } catch (error) {
       console.error('Error creating POS order:', error);
-      toast.error('No se pudo crear el pedido');
+      toast.error(error?.message || 'No se pudo crear el pedido');
     } finally {
       setSubmitting(false);
     }

@@ -19,6 +19,11 @@ import { CASH_ADVANCE_PROOF_MIN_TOTAL_MXN } from './checkoutPaymentProofRules';
 import { logSecurityEvent } from './auditLog';
 import { deductProductStockInTransaction } from './orderStock';
 import { syncOrderProductsToTypesense } from './search/typesenseSync';
+import {
+  buildShippingAddressSnapshotFromRecord,
+  buildShippingAddressSnapshotFromText,
+  isPickupShippingMethod
+} from './orderAddress';
 
 /**
  * Create order in Firestore with the same rules as POST /api/orders.
@@ -85,7 +90,22 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
   }
 
   let finalUserId = authUser?.id || user_id || null;
-  let finalShippingAddressId = shipping_address_id;
+  let finalShippingAddressId = shipping_address_id || null;
+  let shippingAddressSnapshot = null;
+
+  if (!isPickupShippingMethod(shipping_method)) {
+    if (finalShippingAddressId) {
+      const addrDoc = await db
+        .collection('user_addresses')
+        .doc(String(finalShippingAddressId))
+        .get();
+      if (addrDoc.exists) {
+        shippingAddressSnapshot = buildShippingAddressSnapshotFromRecord(addrDoc.data());
+      }
+    } else if (address && String(address).trim()) {
+      shippingAddressSnapshot = buildShippingAddressSnapshotFromText(address);
+    }
+  }
 
   if (!finalUserId && normalizedCustomerEmail) {
     let existingUser = await getUserByEmail(normalizedCustomerEmail);
@@ -192,7 +212,9 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
       }
     }
 
-    await deductProductStockInTransaction(transaction, orderItems, now);
+    await deductProductStockInTransaction(transaction, orderItems, now, {
+      allowInsufficientStock: isPosOrder
+    });
 
     // After stock reads, we can safely apply transactional coupon writes (no more reads after this point).
     if (couponPrepared) {
@@ -210,6 +232,7 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
       discount_amount: totals.discount_amount,
       total_amount: totals.total_amount,
       shipping_address_id: finalShippingAddressId || null,
+      shipping_address: shippingAddressSnapshot,
       billing_address_id: billing_address_id || null,
       notes: notes || null,
       customer_email: normalizedCustomerEmail,

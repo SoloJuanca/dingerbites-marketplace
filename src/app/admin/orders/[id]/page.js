@@ -21,6 +21,7 @@ export default function AdminOrderDetail() {
   const [shippingUrl, setShippingUrl] = useState('');
   const [scheduledDeliveryDate, setScheduledDeliveryDate] = useState('');
   const [scheduledDeliveryTime, setScheduledDeliveryTime] = useState('');
+  const [orderNotes, setOrderNotes] = useState('');
 
   useEffect(() => {
     if (params.id) {
@@ -43,6 +44,7 @@ export default function AdminOrderDetail() {
         setShippingUrl(data.order?.tracking_url ?? '');
         setScheduledDeliveryDate(data.order?.scheduled_delivery_date ? data.order.scheduled_delivery_date.split('T')[0] : '');
         setScheduledDeliveryTime(data.order?.scheduled_delivery_time ?? '');
+        setOrderNotes(data.order?.notes ?? '');
       } else {
         toast.error('Error al cargar el pedido');
         router.push('/admin/orders');
@@ -98,7 +100,6 @@ export default function AdminOrderDetail() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          status_id: order.status_id,
           tracking_id: shippingTrackingId.trim() || null,
           carrier_company: shippingCarrier.trim() || null,
           tracking_url: shippingUrl.trim() || null
@@ -109,10 +110,36 @@ export default function AdminOrderDetail() {
         toast.success('Información de envío guardada');
         loadOrder();
       } else {
-        toast.error('Error al guardar la información de envío');
+        const errorData = await response.json().catch(() => null);
+        toast.error(errorData?.error || 'Error al guardar la información de envío');
       }
     } catch (error) {
       console.error('Error saving shipping info:', error);
+      toast.error('Error al conectar con el servidor');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleSaveOrderNotes = async () => {
+    try {
+      setUpdating(true);
+      const response = await apiRequest(`/api/orders/${params.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_notes: orderNotes.trim() || null
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Comentario del pedido guardado');
+        loadOrder();
+      } else {
+        toast.error('Error al guardar el comentario');
+      }
+    } catch (error) {
+      console.error('Error saving order notes:', error);
       toast.error('Error al conectar con el servidor');
     } finally {
       setUpdating(false);
@@ -126,7 +153,6 @@ export default function AdminOrderDetail() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          status_id: order.status_id,
           scheduled_delivery_date: scheduledDeliveryDate || null,
           scheduled_delivery_time: scheduledDeliveryTime.trim() || null
         })
@@ -162,6 +188,29 @@ export default function AdminOrderDetail() {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const isDeliveryOrder = (orderData) => orderData?.shipping_method === 'Envío a domicilio';
+
+  const isPickupOrder = (orderData) =>
+    orderData?.shipping_method === 'Recoger en punto' ||
+    orderData?.shipping_method === 'Recoger en tienda' ||
+    Boolean(orderData?.pickup_point);
+
+  const getShippingAddressLabel = (orderData) => {
+    if (!orderData) return null;
+    if (orderData.shipping_address_formatted) return orderData.shipping_address_formatted;
+    if (orderData.shipping_address?.formatted) return orderData.shipping_address.formatted;
+
+    const parts = [
+      orderData.shipping_address?.address_line_1,
+      orderData.shipping_address?.address_line_2,
+      orderData.shipping_address?.city,
+      orderData.shipping_address?.state,
+      orderData.shipping_address?.postal_code
+    ].filter((part) => part && String(part).trim());
+
+    return parts.length > 0 ? parts.join(', ') : null;
   };
 
   const getStatusColor = (statusName) => {
@@ -307,6 +356,132 @@ export default function AdminOrderDetail() {
             </div>
           </div>
 
+          {/* Shipping / pickup address */}
+          <div className={styles.section}>
+            <h2>Información de envío</h2>
+            <div className={styles.deliveryInfo}>
+              <div className={styles.deliveryItem}>
+                <label>Método:</label>
+                <span>{order.shipping_method || 'No especificado'}</span>
+              </div>
+              {isPickupOrder(order) && (
+                <div className={styles.deliveryItem}>
+                  <label>Punto de recolección:</label>
+                  <span>{order.pickup_point || 'No especificado'}</span>
+                </div>
+              )}
+              {isDeliveryOrder(order) && (
+                <div className={styles.deliveryItem}>
+                  <label>Dirección de entrega:</label>
+                  <span>{getShippingAddressLabel(order) || 'Sin dirección registrada'}</span>
+                </div>
+              )}
+              {isDeliveryOrder(order) && order.shipping_address?.phone && (
+                <div className={styles.deliveryItem}>
+                  <label>Teléfono de entrega:</label>
+                  <span>{order.shipping_address.phone}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Fecha/Horario de Entrega Propuesto */}
+          <div className={styles.section}>
+            <h2>Fecha/Horario de Entrega Propuesto</h2>
+            <p className={styles.sectionHint}>
+              Agenda el día y horario de entrega. El cliente recibirá un mensaje y podrá aceptar o rechazar.
+            </p>
+            <div className={styles.shippingForm}>
+              <div className={styles.shippingField}>
+                <label htmlFor="scheduled_delivery_date">Fecha de entrega</label>
+                <input
+                  id="scheduled_delivery_date"
+                  type="date"
+                  value={scheduledDeliveryDate}
+                  onChange={(e) => setScheduledDeliveryDate(e.target.value)}
+                  className={styles.shippingInput}
+                  disabled={updating}
+                />
+              </div>
+              <div className={styles.shippingField}>
+                <label htmlFor="scheduled_delivery_time">Horario (ej. 10:00 - 12:00)</label>
+                <input
+                  id="scheduled_delivery_time"
+                  type="text"
+                  value={scheduledDeliveryTime}
+                  onChange={(e) => setScheduledDeliveryTime(e.target.value)}
+                  placeholder="10:00 - 12:00"
+                  className={styles.shippingInput}
+                  disabled={updating}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleSaveDeliverySchedule}
+                disabled={updating}
+                className={styles.saveShippingButton}
+              >
+                {updating ? 'Guardando...' : 'Guardar horario de entrega'}
+              </button>
+            </div>
+          </div>
+
+          {/* Shipping tracking (delivery orders) */}
+          {isDeliveryOrder(order) && (
+            <div className={styles.section}>
+              <h2>Guía y rastreo</h2>
+              <p className={styles.sectionHint}>
+                Añade número de guía, paquetería y enlace de rastreo cuando hayas enviado el pedido.
+              </p>
+              <div className={styles.shippingForm}>
+                <div className={styles.shippingField}>
+                  <label htmlFor="tracking_id">Número de guía / Tracking ID</label>
+                  <input
+                    id="tracking_id"
+                    type="text"
+                    value={shippingTrackingId}
+                    onChange={(e) => setShippingTrackingId(e.target.value)}
+                    placeholder="Ej: 1234567890"
+                    className={styles.shippingInput}
+                    disabled={updating}
+                  />
+                </div>
+                <div className={styles.shippingField}>
+                  <label htmlFor="carrier_company">Paquetería</label>
+                  <input
+                    id="carrier_company"
+                    type="text"
+                    value={shippingCarrier}
+                    onChange={(e) => setShippingCarrier(e.target.value)}
+                    placeholder="Ej: DHL, FedEx, Estafeta"
+                    className={styles.shippingInput}
+                    disabled={updating}
+                  />
+                </div>
+                <div className={styles.shippingField}>
+                  <label htmlFor="tracking_url">URL de rastreo (opcional)</label>
+                  <input
+                    id="tracking_url"
+                    type="text"
+                    value={shippingUrl}
+                    onChange={(e) => setShippingUrl(e.target.value)}
+                    placeholder="https://... (opcional)"
+                    className={styles.shippingInput}
+                    disabled={updating}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveShippingInfo}
+                  disabled={updating}
+                  className={styles.saveShippingButton}
+                >
+                  {updating ? 'Guardando...' : 'Guardar información de envío'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Order Items */}
           <div className={styles.section}>
             <h2>Productos del Pedido</h2>
@@ -392,56 +567,35 @@ export default function AdminOrderDetail() {
             </div>
           </div>
 
-          {/* Fecha/Horario de Entrega Propuesto */}
+          {/* Notes */}
           <div className={styles.section}>
-            <h2>Fecha/Horario de Entrega Propuesto</h2>
-            <p className={styles.sectionHint}>
-              Agenda el día y horario de entrega. El cliente recibirá un mensaje y podrá aceptar o rechazar.
-            </p>
+            <h2>Comentario del pedido</h2>
+            {(order.order_origin === 'pos' || order.pos_in_person) && (
+              <p className={styles.sectionHint}>Pedido creado desde el POS. Puedes editar el comentario aquí.</p>
+            )}
             <div className={styles.shippingForm}>
               <div className={styles.shippingField}>
-                <label htmlFor="scheduled_delivery_date">Fecha de entrega</label>
-                <input
-                  id="scheduled_delivery_date"
-                  type="date"
-                  value={scheduledDeliveryDate}
-                  onChange={(e) => setScheduledDeliveryDate(e.target.value)}
-                  className={styles.shippingInput}
-                  disabled={updating}
-                />
-              </div>
-              <div className={styles.shippingField}>
-                <label htmlFor="scheduled_delivery_time">Horario (ej. 10:00 - 12:00)</label>
-                <input
-                  id="scheduled_delivery_time"
-                  type="text"
-                  value={scheduledDeliveryTime}
-                  onChange={(e) => setScheduledDeliveryTime(e.target.value)}
-                  placeholder="10:00 - 12:00"
-                  className={styles.shippingInput}
+                <label htmlFor="order_notes">Notas internas</label>
+                <textarea
+                  id="order_notes"
+                  value={orderNotes}
+                  onChange={(e) => setOrderNotes(e.target.value)}
+                  placeholder="Comentarios, referencias o instrucciones del pedido"
+                  className={styles.notesTextarea}
+                  rows={4}
                   disabled={updating}
                 />
               </div>
               <button
                 type="button"
-                onClick={handleSaveDeliverySchedule}
+                onClick={handleSaveOrderNotes}
                 disabled={updating}
                 className={styles.saveShippingButton}
               >
-                {updating ? 'Guardando...' : 'Guardar horario de entrega'}
+                {updating ? 'Guardando...' : 'Guardar comentario'}
               </button>
             </div>
           </div>
-
-          {/* Notes */}
-          {order.notes && (
-            <div className={styles.section}>
-              <h2>Notas del Pedido</h2>
-              <div className={styles.notes}>
-                <p>{order.notes}</p>
-              </div>
-            </div>
-          )}
 
           {/* Status Update */}
           <div className={styles.section}>
@@ -463,59 +617,6 @@ export default function AdminOrderDetail() {
             </div>
           </div>
 
-          {/* Shipping info (optional): sent to shipping, tracking */}
-          <div className={styles.section}>
-            <h2>Información de envío (opcional)</h2>
-            <p className={styles.sectionHint}>
-              Añade número de guía, paquetería y enlace de rastreo cuando hayas enviado el pedido.
-            </p>
-            <div className={styles.shippingForm}>
-              <div className={styles.shippingField}>
-                <label htmlFor="tracking_id">Número de guía / Tracking ID</label>
-                <input
-                  id="tracking_id"
-                  type="text"
-                  value={shippingTrackingId}
-                  onChange={(e) => setShippingTrackingId(e.target.value)}
-                  placeholder="Ej: 1234567890"
-                  className={styles.shippingInput}
-                  disabled={updating}
-                />
-              </div>
-              <div className={styles.shippingField}>
-                <label htmlFor="carrier_company">Paquetería</label>
-                <input
-                  id="carrier_company"
-                  type="text"
-                  value={shippingCarrier}
-                  onChange={(e) => setShippingCarrier(e.target.value)}
-                  placeholder="Ej: DHL, FedEx, Estafeta"
-                  className={styles.shippingInput}
-                  disabled={updating}
-                />
-              </div>
-              <div className={styles.shippingField}>
-                <label htmlFor="tracking_url">URL de rastreo</label>
-                <input
-                  id="tracking_url"
-                  type="url"
-                  value={shippingUrl}
-                  onChange={(e) => setShippingUrl(e.target.value)}
-                  placeholder="https://..."
-                  className={styles.shippingInput}
-                  disabled={updating}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={handleSaveShippingInfo}
-                disabled={updating}
-                className={styles.saveShippingButton}
-              >
-                {updating ? 'Guardando...' : 'Guardar información de envío'}
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </AdminLayout>

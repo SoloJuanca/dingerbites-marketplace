@@ -1,5 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getOrderById, updateOrderStatus, updateOrderDeliverySchedule, cancelOrder, getOrderStatusById } from '../../../../lib/firebaseOrders';
+import {
+  getOrderById,
+  updateOrderStatus,
+  updateOrderShippingInfo,
+  updateOrderNotes,
+  updateOrderDeliverySchedule,
+  cancelOrder,
+  getOrderStatusById
+} from '../../../../lib/firebaseOrders';
 import { authenticateUser, isAdmin } from '../../../../lib/auth';
 
 function canAccessOrder(user, order) {
@@ -56,7 +64,16 @@ export async function PUT(request, { params }) {
 
     const { id } = await params;
     const body = await request.json().catch(() => ({}));
-    const { status_id, notes, tracking_id, carrier_company, tracking_url, scheduled_delivery_date, scheduled_delivery_time } = body || {};
+    const {
+      status_id,
+      notes,
+      order_notes,
+      tracking_id,
+      carrier_company,
+      tracking_url,
+      scheduled_delivery_date,
+      scheduled_delivery_time
+    } = body || {};
 
     const existingOrder = await getOrderById(id);
     if (!existingOrder) {
@@ -66,7 +83,10 @@ export async function PUT(request, { params }) {
       );
     }
 
-    if (status_id) {
+    const isStatusChange =
+      status_id && String(status_id) !== String(existingOrder.status_id || '');
+
+    if (isStatusChange) {
       const statusExists = await getOrderStatusById(status_id);
       if (!statusExists) {
         return NextResponse.json(
@@ -81,6 +101,16 @@ export async function PUT(request, { params }) {
     if (carrier_company !== undefined) shippingInfo.carrier_company = carrier_company == null ? null : String(carrier_company).trim() || null;
     if (tracking_url !== undefined) shippingInfo.tracking_url = tracking_url == null ? null : String(tracking_url).trim() || null;
 
+    let updated = existingOrder;
+
+    if (order_notes !== undefined) {
+      const notesResult = await updateOrderNotes(id, order_notes);
+      if (!notesResult) {
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      }
+      updated = notesResult;
+    }
+
     if (scheduled_delivery_date !== undefined || scheduled_delivery_time !== undefined) {
       const scheduleResult = await updateOrderDeliverySchedule(id, {
         scheduled_delivery_date: scheduled_delivery_date || null,
@@ -89,14 +119,31 @@ export async function PUT(request, { params }) {
       if (!scheduleResult) {
         return NextResponse.json({ error: 'Order not found' }, { status: 404 });
       }
+      updated = scheduleResult;
     }
 
-    const updated = await updateOrderStatus(
-      id,
-      status_id || existingOrder.status_id,
-      notes,
-      Object.keys(shippingInfo).length ? shippingInfo : undefined
-    );
+    const hasShippingFields = Object.keys(shippingInfo).length > 0;
+    const isShippingOnlyUpdate = hasShippingFields && !isStatusChange && notes === undefined;
+
+    if (isShippingOnlyUpdate) {
+      const shippingResult = await updateOrderShippingInfo(id, shippingInfo);
+      if (!shippingResult) {
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      }
+      updated = shippingResult;
+    } else if (isStatusChange || notes !== undefined || hasShippingFields) {
+      const statusResult = await updateOrderStatus(
+        id,
+        status_id || existingOrder.status_id,
+        notes,
+        hasShippingFields ? shippingInfo : undefined
+      );
+      if (!statusResult) {
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      }
+      updated = statusResult;
+    }
+
     return NextResponse.json(updated);
   } catch (error) {
     console.error('Error updating order:', error);

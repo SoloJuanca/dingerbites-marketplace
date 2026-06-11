@@ -306,6 +306,10 @@ export default function SimpleCheckout() {
     customer_name: formData.name,
     shipping_method:
       formData.deliveryType === 'delivery' ? 'Envío a domicilio' : 'Recoger en punto',
+    shipping_address_id:
+      formData.deliveryType === 'delivery' && selectedAddress && !useNewAddress
+        ? selectedAddress.id
+        : null,
     notes: formData.notes || '',
     address:
       formData.deliveryType === 'delivery' ? formatAddress() : formData.pickupPoint || null,
@@ -818,6 +822,26 @@ export default function SimpleCheckout() {
             </div>
 
             <div className={styles.totals}>
+              <div className={styles.totalRow}>
+                <span>Entrega:</span>
+                <span>
+                  {formData.deliveryType === 'delivery'
+                    ? 'Envío a domicilio'
+                    : 'Recoger en punto'}
+                </span>
+              </div>
+              {formData.deliveryType === 'delivery' && formatAddress() && (
+                <div className={styles.totalRow}>
+                  <span>Dirección:</span>
+                  <span>{formatAddress()}</span>
+                </div>
+              )}
+              {formData.deliveryType === 'pickup' && formData.pickupPoint && (
+                <div className={styles.totalRow}>
+                  <span>Punto:</span>
+                  <span>{formData.pickupPoint}</span>
+                </div>
+              )}
               <div className={styles.totalRow}>
                 <span>Subtotal:</span>
                 <span>{formatPrice(getSubtotal())}</span>

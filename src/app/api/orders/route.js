@@ -104,6 +104,9 @@ export async function POST(request) {
     if (code === 'EMPTY_ORDER') {
       return jsonError('No valid items in the order', 400, 'EMPTY_ORDER');
     }
+    if (code === 'INSUFFICIENT_STOCK' || code === 'PRODUCT_NOT_FOUND') {
+      return jsonError(message, 400, code);
+    }
 
     const isKnownValidation =
       message.includes('not found') ||

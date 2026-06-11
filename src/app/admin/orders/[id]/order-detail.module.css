@@ -208,6 +208,27 @@
 }
 
 /* Notes */
+.notesTextarea {
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 16px;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 96px;
+}
+
+.notesTextarea:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+}
+
+.notesTextarea:disabled {
+  background: #f3f4f6;
+  cursor: not-allowed;
+}
+
 .notes {
   background: #f9fafb;
   padding: 16px;

@@ -1,6 +1,10 @@
 import { randomUUID } from 'crypto';
 
 import { db } from './firebaseAdmin';
+import {
+  buildShippingAddressSnapshotFromRecord,
+  formatShippingAddressForDisplay
+} from './orderAddress';
 
 const ORDERS_COLLECTION = 'orders';
 const ORDER_STATUSES_COLLECTION = 'order_statuses';
@@ -111,14 +115,30 @@ export async function getOrderById(orderId) {
     : { exists: false };
   const user = userDoc.exists ? userDoc.data() : null;
 
+  let shippingAddress = order.shipping_address || null;
+  if (!shippingAddress && order.shipping_address_id) {
+    const addrDoc = await db
+      .collection('user_addresses')
+      .doc(String(order.shipping_address_id))
+      .get();
+    if (addrDoc.exists) {
+      shippingAddress = buildShippingAddressSnapshotFromRecord(addrDoc.data());
+    }
+  }
+
+  const shippingAddressFormatted = formatShippingAddressForDisplay(shippingAddress);
+
   return {
     ...order,
     status_name: status?.name ?? order.status_id ?? null,
     status_color: status?.color ?? null,
     customer_email: (order.customer_email || user?.email) ?? null,
+    customer_name: order.customer_name || null,
     first_name: user?.first_name ?? null,
     last_name: user?.last_name ?? null,
     phone: user?.phone ?? null,
+    shipping_address: shippingAddress,
+    shipping_address_formatted: shippingAddressFormatted,
     items: Array.isArray(order.items) ? order.items : [],
     serviceItems: Array.isArray(order.service_items) ? order.service_items : [],
     history: Array.isArray(order.history) ? order.history : []
@@ -190,19 +210,69 @@ export async function setReviewTokenUsed(orderId) {
   });
 }
 
+/** Update customer/POS order notes without changing status or history. */
+export async function updateOrderNotes(orderId, notes) {
+  const orderRef = db.collection(ORDERS_COLLECTION).doc(String(orderId));
+  const orderDoc = await orderRef.get();
+  if (!orderDoc.exists) return null;
+
+  const now = new Date().toISOString();
+  const normalizedNotes =
+    notes == null || String(notes).trim() === '' ? null : String(notes).trim();
+
+  await orderRef.update({
+    notes: normalizedNotes,
+    updated_at: now
+  });
+
+  const updated = await orderRef.get();
+  return { id: updated.id, ...updated.data() };
+}
+
+/** Update tracking fields without changing status or appending history. */
+export async function updateOrderShippingInfo(orderId, shippingInfo = {}) {
+  const orderRef = db.collection(ORDERS_COLLECTION).doc(String(orderId));
+  const orderDoc = await orderRef.get();
+  if (!orderDoc.exists) return null;
+
+  const now = new Date().toISOString();
+  const updateData = { updated_at: now };
+
+  if (shippingInfo.tracking_id !== undefined) {
+    updateData.tracking_id = shippingInfo.tracking_id || null;
+  }
+  if (shippingInfo.carrier_company !== undefined) {
+    updateData.carrier_company = shippingInfo.carrier_company || null;
+  }
+  if (shippingInfo.tracking_url !== undefined) {
+    updateData.tracking_url = shippingInfo.tracking_url || null;
+  }
+
+  if (Object.keys(updateData).length === 1) {
+    return { id: orderDoc.id, ...orderDoc.data() };
+  }
+
+  await orderRef.update(updateData);
+  const updated = await orderRef.get();
+  return { id: updated.id, ...updated.data() };
+}
+
 /** Update order status and append to history. Optional: tracking_id, carrier_company, tracking_url */
-export async function updateOrderStatus(orderId, statusId, notes, shippingInfo = {}) {
+export async function updateOrderStatus(orderId, statusId, historyNotes, shippingInfo = {}) {
   const orderRef = db.collection(ORDERS_COLLECTION).doc(String(orderId));
   const orderDoc = await orderRef.get();
   if (!orderDoc.exists) return null;
   const order = orderDoc.data();
   const now = new Date().toISOString();
   const history = Array.isArray(order.history) ? [...order.history] : [];
-  history.push({ status_id: statusId, notes: notes || 'Status updated', created_at: now });
+  history.push({
+    status_id: statusId,
+    notes: historyNotes || 'Status updated',
+    created_at: now
+  });
 
   const updateData = {
     status_id: statusId,
-    notes: notes !== undefined ? notes : order.notes,
     history,
     updated_at: now
   };

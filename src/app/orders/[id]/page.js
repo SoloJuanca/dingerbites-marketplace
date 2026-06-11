@@ -257,6 +257,18 @@ export default function ClientOrderDetail() {
                     <span className={styles.detailValue}>{order.shipping_method}</span>
                   </div>
                 )}
+                {order.pickup_point && (
+                  <div className={styles.detailItem}>
+                    <span className={styles.detailLabel}>Punto de recolección</span>
+                    <span className={styles.detailValue}>{order.pickup_point}</span>
+                  </div>
+                )}
+                {order.shipping_address_formatted && (
+                  <div className={styles.detailItem}>
+                    <span className={styles.detailLabel}>Dirección de entrega</span>
+                    <span className={styles.detailValue}>{order.shipping_address_formatted}</span>
+                  </div>
+                )}
                 {(order.tracking_id || order.tracking_number) && (
                   <div className={styles.detailItem}>
                     <span className={styles.detailLabel}>Número de seguimiento</span>
