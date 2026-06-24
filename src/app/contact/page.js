@@ -6,7 +6,7 @@ import Footer from '../../components/Footer/Footer';
 import Icon from '../../components/Icon/Icon';
 import styles from './contact.module.css';
 
-const WHATSAPP_NUMBER = '528116132754';
+const WHATSAPP_NUMBER = '528124496289';
 
 export default function ContactPage() {
   const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}`;

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Icon from '../Icon/Icon';
 import styles from './ContactInfo.module.css';
 
-const WHATSAPP_NUMBER = '528116132754';
+const WHATSAPP_NUMBER = '528124496289';
 
 export default function ContactInfo() {
   const [whatLookingFor, setWhatLookingFor] = useState('');
