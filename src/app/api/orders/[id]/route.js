@@ -10,6 +10,8 @@ import {
 } from '../../../../lib/firebaseOrders';
 import { authenticateUser, isAdmin } from '../../../../lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 function canAccessOrder(user, order) {
   if (!user || !order) return false;
   if (isAdmin(user)) return true;

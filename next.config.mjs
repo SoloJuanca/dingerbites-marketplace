@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
+    // Images are optimized at upload time (resize + WebP) and served directly
+    // from Firebase, so per-request Vercel Image Optimization is disabled to
+    // avoid its transformation fees (the source of the 402 errors).
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',

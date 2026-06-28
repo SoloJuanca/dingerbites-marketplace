@@ -237,7 +237,6 @@ export default function AdminBannersPage() {
                       width={560}
                       height={280}
                       className={styles.cardImage}
-                      unoptimized
                     />
                   ) : (
                     <div className={styles.imagePlaceholder}>Sin imagen</div>

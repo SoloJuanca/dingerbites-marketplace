@@ -197,22 +197,6 @@ export default function AdminOrderDetail() {
     orderData?.shipping_method === 'Recoger en tienda' ||
     Boolean(orderData?.pickup_point);
 
-  const getShippingAddressLabel = (orderData) => {
-    if (!orderData) return null;
-    if (orderData.shipping_address_formatted) return orderData.shipping_address_formatted;
-    if (orderData.shipping_address?.formatted) return orderData.shipping_address.formatted;
-
-    const parts = [
-      orderData.shipping_address?.address_line_1,
-      orderData.shipping_address?.address_line_2,
-      orderData.shipping_address?.city,
-      orderData.shipping_address?.state,
-      orderData.shipping_address?.postal_code
-    ].filter((part) => part && String(part).trim());
-
-    return parts.length > 0 ? parts.join(', ') : null;
-  };
-
   const getStatusColor = (statusName) => {
     const statusColors = {
       'pending': '#fbbf24',
@@ -373,7 +357,7 @@ export default function AdminOrderDetail() {
               {isDeliveryOrder(order) && (
                 <div className={styles.deliveryItem}>
                   <label>Dirección de entrega:</label>
-                  <span>{getShippingAddressLabel(order) || 'Sin dirección registrada'}</span>
+                  <span>{order.shipping_address_formatted || 'Sin dirección registrada'}</span>
                 </div>
               )}
               {isDeliveryOrder(order) && order.shipping_address?.phone && (

@@ -1,12 +1,44 @@
 import { randomUUID } from 'crypto';
 
 import { db } from './firebaseAdmin';
-import {
-  buildShippingAddressSnapshotFromRecord,
-  formatShippingAddressForDisplay
-} from './orderAddress';
 
+const USER_ADDRESSES_COLLECTION = 'user_addresses';
 const ORDERS_COLLECTION = 'orders';
+
+function formatAddressLines(addr) {
+  if (!addr) return null;
+
+  const parts = [
+    addr.address_line_1,
+    addr.address_line_2,
+    addr.city,
+    addr.state,
+    addr.postal_code
+  ].filter((part) => part && String(part).trim());
+
+  return parts.length > 0 ? parts.join(', ') : null;
+}
+
+async function loadShippingAddressFromId(shippingAddressId) {
+  if (!shippingAddressId) {
+    return { shipping_address: null, shipping_address_formatted: null };
+  }
+
+  const addrDoc = await db
+    .collection(USER_ADDRESSES_COLLECTION)
+    .doc(String(shippingAddressId))
+    .get();
+
+  if (!addrDoc.exists) {
+    return { shipping_address: null, shipping_address_formatted: null };
+  }
+
+  const shipping_address = { id: addrDoc.id, ...addrDoc.data() };
+  return {
+    shipping_address,
+    shipping_address_formatted: formatAddressLines(shipping_address)
+  };
+}
 const ORDER_STATUSES_COLLECTION = 'order_statuses';
 
 function toDate(value) {
@@ -115,18 +147,8 @@ export async function getOrderById(orderId) {
     : { exists: false };
   const user = userDoc.exists ? userDoc.data() : null;
 
-  let shippingAddress = order.shipping_address || null;
-  if (!shippingAddress && order.shipping_address_id) {
-    const addrDoc = await db
-      .collection('user_addresses')
-      .doc(String(order.shipping_address_id))
-      .get();
-    if (addrDoc.exists) {
-      shippingAddress = buildShippingAddressSnapshotFromRecord(addrDoc.data());
-    }
-  }
-
-  const shippingAddressFormatted = formatShippingAddressForDisplay(shippingAddress);
+  const { shipping_address: shippingAddress, shipping_address_formatted: shippingAddressFormatted } =
+    await loadShippingAddressFromId(order.shipping_address_id);
 
   return {
     ...order,

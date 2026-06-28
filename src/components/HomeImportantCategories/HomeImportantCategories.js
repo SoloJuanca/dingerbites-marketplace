@@ -58,7 +58,6 @@ export default function HomeImportantCategories() {
                       width={640}
                       height={360}
                       className={styles.image}
-                      unoptimized
                     />
                   </div>
                   <h3 className={styles.cardTitle}>{category.name}</h3>

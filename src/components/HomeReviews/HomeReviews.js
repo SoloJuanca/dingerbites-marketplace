@@ -23,7 +23,6 @@ export default function HomeReviews({ reviews = [] }) {
                     width={320}
                     height={200}
                     className={styles.reviewImage}
-                    unoptimized
                   />
                 </div>
               )}

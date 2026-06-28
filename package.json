@@ -11,7 +11,9 @@
     "backfill:tcg:dry": "node scripts/backfill-tcg-riftbound.mjs",
     "backfill:tcg:apply": "node scripts/backfill-tcg-riftbound.mjs --apply",
     "typesense:init": "node scripts/search/initTypesenseCollection.mjs",
-    "typesense:backfill": "node scripts/search/backfillProductsToTypesense.mjs"
+    "typesense:backfill": "node scripts/search/backfillProductsToTypesense.mjs",
+    "optimize:images:dry": "node scripts/backfill-image-optimization.mjs",
+    "optimize:images:apply": "node scripts/backfill-image-optimization.mjs --apply"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^6.1.0",
@@ -28,6 +30,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-hot-toast": "^2.5.2",
+    "sharp": "^0.34.5",
     "stripe": "^17.7.0",
     "typesense": "^3.0.3"
   },

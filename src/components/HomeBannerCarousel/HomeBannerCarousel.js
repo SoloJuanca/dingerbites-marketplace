@@ -58,7 +58,6 @@ export default function HomeBannerCarousel({ banners = [] }) {
               height={420}
               className={styles.image}
               priority
-              unoptimized
             />
             {hasOverlayCopy && (
               <div className={styles.overlay}>

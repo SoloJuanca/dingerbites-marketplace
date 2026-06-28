@@ -129,7 +129,7 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
       if (address && shipping_method === 'Envío a domicilio') {
         const now = new Date().toISOString();
         const addressRef = db.collection('user_addresses').doc();
-        await addressRef.set({
+        const guestAddressRecord = {
           user_id: finalUserId,
           address_type: 'shipping',
           is_default: true,
@@ -143,11 +143,29 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
           phone: customer_phone || null,
           created_at: now,
           updated_at: now
-        });
+        };
+        await addressRef.set(guestAddressRecord);
         finalShippingAddressId = addressRef.id;
+        if (!shippingAddressSnapshot) {
+          shippingAddressSnapshot = buildShippingAddressSnapshotFromRecord(guestAddressRecord);
+        }
       }
     } else {
       finalUserId = existingUser.id;
+    }
+  }
+
+  if (
+    !shippingAddressSnapshot &&
+    finalShippingAddressId &&
+    !isPickupShippingMethod(shipping_method)
+  ) {
+    const addrDoc = await db
+      .collection('user_addresses')
+      .doc(String(finalShippingAddressId))
+      .get();
+    if (addrDoc.exists) {
+      shippingAddressSnapshot = buildShippingAddressSnapshotFromRecord(addrDoc.data());
     }
   }
 

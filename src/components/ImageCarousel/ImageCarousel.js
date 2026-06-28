@@ -64,7 +64,6 @@ export default function ImageCarousel({ images, productName, isTcgProduct = fals
           className={`${styles.mainImage} ${isTcgProduct ? styles.tcgMainImage : ''}`}
           priority={currentIndex === 0}
           sizes="(max-width: 480px) calc(100vw - 64px), (max-width: 768px) calc(100vw - 80px), (max-width: 1024px) calc(100vw - 96px), 760px"
-          unoptimized={isTcgProduct}
         />
         
         {imageList.length > 1 && (
@@ -117,7 +116,6 @@ export default function ImageCarousel({ images, productName, isTcgProduct = fals
                 width={80}
                 height={80}
                 className={`${styles.thumbnailImage} ${isTcgProduct ? styles.thumbnailContain : ''}`}
-                unoptimized={isTcgProduct}
               />
             </button>
           ))}

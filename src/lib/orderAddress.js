@@ -44,7 +44,9 @@ export function buildShippingAddressSnapshotFromText(formattedAddress) {
 
 export function formatShippingAddressForDisplay(shippingAddress) {
   if (!shippingAddress) return null;
-  if (shippingAddress.formatted) return shippingAddress.formatted;
+  if (shippingAddress.formatted && String(shippingAddress.formatted).trim()) {
+    return String(shippingAddress.formatted).trim();
+  }
 
   const parts = [
     shippingAddress.address_line_1,
@@ -55,4 +57,8 @@ export function formatShippingAddressForDisplay(shippingAddress) {
   ].filter((part) => part && String(part).trim());
 
   return parts.length > 0 ? parts.join(', ') : null;
+}
+
+export function hasDisplayableShippingAddress(shippingAddress) {
+  return Boolean(formatShippingAddressForDisplay(shippingAddress));
 }

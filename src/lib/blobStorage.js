@@ -1,16 +1,53 @@
+import sharp from 'sharp';
 import { storage } from './firebaseAdmin';
 
-// Upload image to Firebase Storage
-export async function uploadImage(file, folder = 'products') {
+// Default optimization target: a single ~1600px WebP per image is crisp on
+// retina at our largest render (banners ~1200px, product detail ~760px @2x)
+// while staying ~10x smaller than typical originals.
+const DEFAULT_MAX_WIDTH = 1600;
+const DEFAULT_QUALITY = 80;
+
+// Resize (never upscale) + convert to WebP. Returns the optimized buffer.
+async function optimizeToWebp(inputBuffer, { maxWidth = DEFAULT_MAX_WIDTH, quality = DEFAULT_QUALITY } = {}) {
+  return sharp(inputBuffer, { failOn: 'none' })
+    .rotate() // honor EXIF orientation before stripping metadata
+    .resize({ width: maxWidth, withoutEnlargement: true })
+    .webp({ quality })
+    .toBuffer();
+}
+
+function baseFileName(name) {
+  return String(name || 'image')
+    .replace(/\.[^./\\]+$/, '')
+    .replace(/\s+/g, '-')
+    .toLowerCase() || 'image';
+}
+
+// Upload image to Firebase Storage, optimizing (resize + WebP) before saving so
+// it can be served directly without per-request optimization (no Vercel image fees).
+export async function uploadImage(file, folder = 'products', options = {}) {
   try {
     const bucket = storage.bucket();
-    const safeName = file.name.replace(/\s+/g, '-').toLowerCase();
-    const pathname = `${folder}/${Date.now()}-${safeName}`;
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const originalBuffer = Buffer.from(await file.arrayBuffer());
+
+    let outputBuffer = originalBuffer;
+    let contentType = file.type || 'application/octet-stream';
+    let extension = (String(file.name || '').split('.').pop() || 'bin').toLowerCase();
+
+    try {
+      outputBuffer = await optimizeToWebp(originalBuffer, options);
+      contentType = 'image/webp';
+      extension = 'webp';
+    } catch (optimizeError) {
+      // Fall back to storing the original bytes so uploads never hard-fail.
+      console.error('Image optimization failed, storing original file:', optimizeError);
+    }
+
+    const pathname = `${folder}/${Date.now()}-${baseFileName(file.name)}.${extension}`;
     const storageFile = bucket.file(pathname);
 
-    await storageFile.save(fileBuffer, {
-      contentType: file.type,
+    await storageFile.save(outputBuffer, {
+      contentType,
       metadata: {
         cacheControl: 'public, max-age=31536000'
       }
