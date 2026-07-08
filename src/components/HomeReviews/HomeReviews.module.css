@@ -1,6 +1,7 @@
 .reviews {
   padding: 80px 0;
   background: #fff;
+  overflow: hidden;
 }
 
 .container {
@@ -17,136 +18,163 @@
   text-align: center;
 }
 
-.reviewsGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 32px;
-}
-
-.reviewCard {
-  background: #f7fafc;
-  padding: 32px;
-  border-radius: 16px;
-  border-left: 4px solid var(--brand-primary);
-  overflow: hidden;
-}
-
-.reviewImageWrap {
+/* ---- Column-based infinite horizontal marquee ---- */
+.marquee {
   width: 100%;
-  margin: -32px -32px 16px -32px;
-  border-radius: 16px 16px 0 0;
   overflow: hidden;
-  aspect-ratio: 16 / 10;
-  background: #e2e8f0;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 6%,
+    #000 94%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 6%,
+    #000 94%,
+    transparent 100%
+  );
 }
 
-.reviewImage {
+.track {
+  display: flex;
+  align-items: flex-start;
+  width: max-content;
+  padding: 16px 0;
+  animation: scrollLeft var(--marquee-duration, 40s) linear infinite;
+}
+
+.marquee:hover .track {
+  animation-play-state: paused;
+}
+
+@keyframes scrollLeft {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    /* Track holds two identical copies; -50% moves exactly one copy */
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* ---- Column: two stacked cards, tight so no gap is left below ---- */
+.column {
+  flex: 0 0 auto;
+  width: 336px;
+  /* margin (not gap) keeps the loop period uniform for a seamless join */
+  margin-right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ---- Review card ---- */
+.card {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 8px 24px rgba(45, 55, 72, 0.08);
+  position: relative;
+}
+
+.grad0 {
+  background: linear-gradient(135deg, #ede9fe 0%, #e0e7ff 100%);
+}
+.grad1 {
+  background: linear-gradient(135deg, #e0f2fe 0%, #ede9fe 100%);
+}
+.grad2 {
+  background: linear-gradient(135deg, #fce7f3 0%, #ede9fe 100%);
+}
+.grad3 {
+  background: linear-gradient(135deg, #e0e7ff 0%, #ddd6fe 100%);
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.stars {
+  display: flex;
+  gap: 2px;
+}
+
+.star {
+  color: #fbbf24;
+}
+
+.imageWrap {
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: rgba(255, 255, 255, 0.4);
+  margin-bottom: 16px;
+}
+
+.image {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.reviewHeader {
-  margin-bottom: 16px;
-}
-
-.reviewStars {
-  display: flex;
-  gap: 4px;
-}
-
-.starIcon {
-  color: var(--brand-accent);
-}
-
-.reviewText {
-  font-size: 16px;
+.text {
+  font-size: 15px;
   color: #4a5568;
   line-height: 1.6;
-  margin-bottom: 24px;
-  font-style: italic;
+  margin: 0 0 24px 0;
 }
 
-.reviewAuthor {
-  border-top: 1px solid #e2e8f0;
-  padding-top: 16px;
+.author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+}
+
+.authorMeta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .authorName {
-  display: block;
-  font-size: 16px;
-  color: #2d3748;
-  margin-bottom: 4px;
-}
-
-.authorLocation {
-  font-size: 14px;
-  color: #718096;
-}
-
-.loadingText {
-  text-align: center;
-  color: #718096;
-  margin: 0 0 32px 0;
-}
-
-.ctaBox {
-  margin-top: 48px;
-  padding: 32px;
-  background: #f5f3ff;
-  border-radius: 16px;
-  border: 2px dashed var(--brand-primary);
-  text-align: center;
-}
-
-.ctaText {
-  font-size: 20px;
-  font-weight: 700;
-  color: #2d3748;
-  margin: 0 0 8px 0;
-}
-
-.ctaSubtext {
-  font-size: 14px;
-  color: #4a5568;
-  margin: 0 0 24px 0;
-  max-width: 480px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.ctaButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 28px;
-  background: var(--brand-primary);
-  color: #fff;
-  border-radius: 12px;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  text-decoration: none;
-  transition: background 0.2s ease;
+  color: #2d3748;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.ctaButton:hover {
-  background: var(--brand-primary-hover);
-}
-
-.ctaShare {
-  font-size: 12px;
+.authorSubtitle {
+  font-size: 13px;
   color: #718096;
-  margin: 16px 0 0 0;
 }
 
-.ctaShare strong {
-  color: var(--brand-primary);
-}
-
-@media (max-width: 1024px) {
-  .reviewsGrid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
+@media (prefers-reduced-motion: reduce) {
+  .track {
+    animation: none;
   }
 }
 
@@ -160,9 +188,10 @@
     margin-bottom: 32px;
   }
 
-  .reviewsGrid {
-    grid-template-columns: 1fr;
-    gap: 24px;
+  .column {
+    width: 300px;
+    margin-right: 16px;
+    gap: 16px;
   }
 }
 
@@ -176,7 +205,11 @@
     margin-bottom: 24px;
   }
 
-  .reviewCard {
-    padding: 24px;
+  .column {
+    width: 280px;
+  }
+
+  .card {
+    padding: 20px;
   }
 }
