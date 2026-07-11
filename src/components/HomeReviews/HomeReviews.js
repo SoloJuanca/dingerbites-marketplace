@@ -1,71 +1,12 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import Image from 'next/image';
+import Link from 'next/link';
 import Icon from '../Icon/Icon';
+import ReviewCard from '../ReviewCard/ReviewCard';
 import styles from './HomeReviews.module.css';
 
-const GRADIENT_VARIANTS = 4;
 const AUTO_SCROLL_SPEED = 0.5; // px per frame
-
-function formatReviewDate(value) {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toISOString().slice(0, 10);
-}
-
-function ReviewCard({ review, gradientIndex }) {
-  const name = review.author_name || review.name || 'Cliente';
-  const initial = name.trim().charAt(0).toUpperCase() || 'C';
-  const location = review.location || review.author_location || '';
-  const date = formatReviewDate(review.created_at);
-  const subtitle = [location, date].filter(Boolean).join(' · ');
-  const gradientClass = styles[`grad${gradientIndex % GRADIENT_VARIANTS}`];
-
-  return (
-    <article className={`${styles.card} ${gradientClass}`}>
-      <div className={styles.cardTop}>
-        <div className={styles.stars}>
-          {[...Array(5)].map((_, i) => (
-            <Icon
-              key={i}
-              name="star"
-              size={16}
-              className={styles.star}
-              filled={i < (review.rating || 0)}
-            />
-          ))}
-        </div>
-      </div>
-
-      {review.image_url && (
-        <div className={styles.imageWrap}>
-          <Image
-            src={review.image_url}
-            alt=""
-            width={320}
-            height={180}
-            className={styles.image}
-            draggable={false}
-          />
-        </div>
-      )}
-
-      <p className={styles.text}>{review.comment || ''}</p>
-
-      <div className={styles.author}>
-        <span className={styles.avatar}>{initial}</span>
-        <div className={styles.authorMeta}>
-          <strong className={styles.authorName}>{name}</strong>
-          {subtitle && (
-            <span className={styles.authorSubtitle}>{subtitle}</span>
-          )}
-        </div>
-      </div>
-    </article>
-  );
-}
 
 /** Group reviews into vertical columns so stacked cards fill the gaps */
 function buildColumns(reviews, perColumn) {
@@ -255,6 +196,13 @@ export default function HomeReviews({ reviews = [] }) {
         >
           <Icon name="chevron_right" size={24} />
         </button>
+      </div>
+
+      <div className={styles.footer}>
+        <Link href="/reviews" className={styles.moreButton}>
+          Ver más reseñas
+          <Icon name="arrow_forward" size={20} />
+        </Link>
       </div>
     </section>
   );
