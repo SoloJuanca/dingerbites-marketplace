@@ -18,10 +18,10 @@
   text-align: center;
 }
 
-/* ---- Column-based infinite horizontal marquee ---- */
+/* ---- Column-based draggable slider with auto-scroll ---- */
 .marquee {
+  position: relative;
   width: 100%;
-  overflow: hidden;
   -webkit-mask-image: linear-gradient(
     90deg,
     transparent 0,
@@ -38,26 +38,62 @@
   );
 }
 
+.viewport {
+  width: 100%;
+  overflow: hidden;
+  cursor: grab;
+  /* Let vertical page scroll pass through; we handle horizontal drag in JS */
+  touch-action: pan-y;
+}
+
+.viewport.dragging {
+  cursor: grabbing;
+}
+
 .track {
   display: flex;
   align-items: flex-start;
   width: max-content;
   padding: 16px 0;
-  animation: scrollLeft var(--marquee-duration, 40s) linear infinite;
+  will-change: transform;
 }
 
-.marquee:hover .track {
-  animation-play-state: paused;
+/* ---- Navigation arrows (hidden on touch/mobile) ---- */
+.navButton {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  color: #2d3748;
+  box-shadow: 0 4px 16px rgba(45, 55, 72, 0.16);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
-@keyframes scrollLeft {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    /* Track holds two identical copies; -50% moves exactly one copy */
-    transform: translate3d(-50%, 0, 0);
-  }
+.navButton:hover {
+  background: #f5f3ff;
+  transform: translateY(-50%) scale(1.06);
+}
+
+.navButton:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+.navPrev {
+  left: 16px;
+}
+
+.navNext {
+  right: 16px;
 }
 
 /* ---- Column: two stacked cards, tight so no gap is left below ---- */
@@ -172,10 +208,15 @@
   color: #718096;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .track {
-    animation: none;
-  }
+/* Avoid text/image selection while dragging with the mouse */
+.dragging,
+.dragging * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.dragging .image {
+  pointer-events: none;
 }
 
 @media (max-width: 768px) {
@@ -188,10 +229,16 @@
     margin-bottom: 32px;
   }
 
+  /* Single row on mobile */
   .column {
     width: 300px;
     margin-right: 16px;
     gap: 16px;
+  }
+
+  /* Navigation via swipe on touch devices */
+  .navButton {
+    display: none;
   }
 }
 
