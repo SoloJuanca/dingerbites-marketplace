@@ -134,6 +134,9 @@ export default function LoginPage() {
             {errors.password && (
               <span className={styles.errorText}>{errors.password}</span>
             )}
+            <Link href="/auth/forgot-password" className={styles.forgotLink}>
+              ¿Olvidaste tu contraseña?
+            </Link>
           </div>
 
           {errors.submit && (

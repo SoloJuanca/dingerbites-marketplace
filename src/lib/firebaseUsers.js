@@ -101,3 +101,75 @@ export async function updateUser(userId, updates) {
     wrapFirestoreError(error, 'update user');
   }
 }
+
+export async function setPasswordResetToken(userId, { tokenHash, expiresAt }) {
+  try {
+    const docRef = db.collection(USERS_COLLECTION).doc(String(userId));
+    const existing = await docRef.get();
+    if (!existing.exists) return null;
+
+    await docRef.update({
+      reset_password_token_hash: tokenHash,
+      reset_password_expires_at: expiresAt,
+      reset_password_used_at: null,
+      updated_at: new Date().toISOString()
+    });
+
+    return normalizeUser(await docRef.get());
+  } catch (error) {
+    wrapFirestoreError(error, 'set password reset token');
+  }
+}
+
+export async function getUserByResetTokenHash(tokenHash) {
+  const normalizedHash = String(tokenHash || '').trim();
+  if (!normalizedHash) return null;
+
+  try {
+    const snapshot = await db
+      .collection(USERS_COLLECTION)
+      .where('reset_password_token_hash', '==', normalizedHash)
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) return null;
+
+    const user = normalizeUser(snapshot.docs[0]);
+
+    if (user.reset_password_used_at) return null;
+
+    const expiresAt = user.reset_password_expires_at
+      ? new Date(user.reset_password_expires_at).getTime()
+      : 0;
+    if (!expiresAt || expiresAt < Date.now()) return null;
+
+    return user;
+  } catch (error) {
+    wrapFirestoreError(error, 'read user by reset token');
+  }
+}
+
+export async function clearPasswordResetToken(userId, { newPasswordHash }) {
+  try {
+    const docRef = db.collection(USERS_COLLECTION).doc(String(userId));
+    const existing = await docRef.get();
+    if (!existing.exists) return null;
+
+    const now = new Date().toISOString();
+    const payload = {
+      reset_password_token_hash: null,
+      reset_password_expires_at: null,
+      reset_password_used_at: now,
+      updated_at: now
+    };
+
+    if (newPasswordHash) {
+      payload.password_hash = newPasswordHash;
+    }
+
+    await docRef.update(payload);
+    return normalizeUser(await docRef.get());
+  } catch (error) {
+    wrapFirestoreError(error, 'clear password reset token');
+  }
+}

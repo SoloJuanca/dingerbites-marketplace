@@ -680,6 +680,72 @@ export async function sendNewQuestionAdminNotificationEmail({ productName, produ
   });
 }
 
+export function generatePasswordResetEmailContent({ customerName, resetUrl }) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Restablece tu contraseña</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 32px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="color: #2d3748; margin: 0; font-size: 28px;">Restablece tu contraseña</h1>
+          <p style="color: #718096; margin-top: 8px;">Dingerbites</p>
+        </div>
+
+        <p style="margin-bottom: 16px; color: #4a5568;">
+          Hola ${customerName || 'cliente'}, recibimos una solicitud para restablecer la contraseña de tu cuenta.
+        </p>
+        <p style="margin-bottom: 24px; color: #4a5568;">
+          Haz clic en el siguiente botón para crear una nueva contraseña. Este enlace expira en <strong>24 horas</strong>.
+        </p>
+
+        <div style="text-align: center; margin-bottom: 24px;">
+          <a href="${resetUrl}" style="display: inline-block; background-color: #6b21a8; color: #ffffff; text-decoration: none; font-weight: 600; padding: 12px 24px; border-radius: 8px;">
+            Restablecer contraseña
+          </a>
+        </div>
+
+        <p style="margin-bottom: 8px; color: #718096; font-size: 14px;">
+          Si el botón no funciona, copia y pega este enlace en tu navegador:
+        </p>
+        <p style="margin: 0 0 24px 0; color: #3182ce; font-size: 14px; word-break: break-all;">
+          ${resetUrl}
+        </p>
+
+        <div style="background-color: #f7fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <p style="margin: 0; color: #4a5568; font-size: 14px;">
+            Si no solicitaste este cambio, puedes ignorar este correo. Tu contraseña actual seguirá siendo válida.
+          </p>
+        </div>
+
+        <p style="color: #718096; margin-top: 24px; font-size: 14px; text-align: center;">
+          Dingerbites - Tu tienda online de confianza
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+export async function sendPasswordResetEmail({ email, name, resetUrl }) {
+  if (!email) {
+    return { success: false, error: 'Recipient email is required' };
+  }
+
+  return sendEmail({
+    to: [{ email, name: name || 'Cliente' }],
+    subject: 'Restablece tu contraseña - Dingerbites',
+    htmlContent: generatePasswordResetEmailContent({
+      customerName: name,
+      resetUrl
+    })
+  });
+}
+
 export async function sendQuestionAnsweredUserEmail({ email, customerName, productName, productSlug, question, answer }) {
   if (!email) {
     return { success: false, error: 'Recipient email is required' };
