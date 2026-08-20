@@ -76,13 +76,25 @@ export async function buildPricedOrderItems(items = []) {
       unitPrice = roundMoney(toNumber(product.price, 0));
     }
     const quantity = normalizeQuantity(item.quantity);
+    const unitCost =
+      product.cost_price !== null && product.cost_price !== undefined
+        ? roundMoney(toNumber(product.cost_price, 0))
+        : null;
+    const productImage =
+      product.image ||
+      (Array.isArray(product.images) && product.images.length > 0
+        ? product.images[0]?.url || product.images[0]
+        : null) ||
+      null;
     pricedItems.push({
       product_id: item.product_id,
       product_variant_id: null,
       product_name: product.name || 'Producto',
       product_sku: product.sku || null,
+      product_image: productImage ? String(productImage) : null,
       quantity,
       unit_price: unitPrice,
+      unit_cost: unitCost,
       total_price: roundMoney(unitPrice * quantity),
       category_id: product.category_id || null,
       subcategory_id: product.subcategory_id || null,

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import ProductCard from '../ProductCard/ProductCard';
 import Pagination from '../Pagination/Pagination';
 import Icon from '../Icon/Icon';
+import { trackViewItemList } from '../../lib/analytics';
 import styles from './ProductGrid.module.css';
 
 export default function ProductGrid({
@@ -107,6 +108,14 @@ export default function ProductGrid({
     inStockOnly,
     initialData
   ]);
+
+  // Analytics: report the product list being viewed.
+  useEffect(() => {
+    if (loading || !products || products.length === 0) return;
+    const listName = search ? `search:${search}` : category || 'catalog';
+    trackViewItemList(products, listName);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products, loading]);
 
   if (loading) {
     return (

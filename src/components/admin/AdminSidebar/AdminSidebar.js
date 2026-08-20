@@ -67,6 +67,18 @@ export default function AdminSidebar({ isOpen, onToggle, collapsed = false, onCo
       href: '/admin/reports/payment-methods'
     },
     {
+      id: 'earnings',
+      label: 'Ganancias',
+      icon: 'savings',
+      href: '/admin/reports/earnings'
+    },
+    {
+      id: 'expenses',
+      label: 'Gastos',
+      icon: 'receipt_long',
+      href: '/admin/expenses'
+    },
+    {
       id: 'pos',
       label: 'Punto de venta',
       icon: 'point_of_sale',

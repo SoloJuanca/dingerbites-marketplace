@@ -9,6 +9,11 @@ import { useAuth } from '../../lib/AuthContext';
 import AddressManager from '../AddressManager/AddressManager';
 import StripeEmbeddedPayment from '../StripeEmbeddedPayment/StripeEmbeddedPayment';
 import { resolveShippingAmount } from '../../lib/shipping';
+import {
+  trackBeginCheckout,
+  trackAddShippingInfo,
+  trackAddPaymentInfo
+} from '../../lib/analytics';
 import styles from './SimpleCheckout.module.css';
 
 const PICKUP_POINTS = [
@@ -47,9 +52,20 @@ export default function SimpleCheckout() {
   const [stripeLoading, setStripeLoading] = useState(false);
   const [stripeError, setStripeError] = useState(null);
   const prevPaymentIntentIdRef = useRef(null);
+  const beginCheckoutFiredRef = useRef(false);
+  const paymentInfoFiredRef = useRef(false);
 
   const { items, getTotalPrice } = useCart();
   const { user, isAuthenticated, apiRequest } = useAuth();
+
+  // Analytics: begin_checkout once when the checkout mounts with items.
+  useEffect(() => {
+    if (beginCheckoutFiredRef.current) return;
+    if (!items || items.length === 0) return;
+    beginCheckoutFiredRef.current = true;
+    trackBeginCheckout(items, getTotalPrice());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
 
   // Pre-llenar datos si el usuario está autenticado
   useEffect(() => {
@@ -322,12 +338,19 @@ export default function SimpleCheckout() {
       toast.error('Por favor completa todos los campos obligatorios');
       return;
     }
+    // Analytics: shipping info completed.
+    trackAddShippingInfo(
+      items,
+      getTotal(),
+      formData.deliveryType === 'delivery' ? 'delivery' : 'pickup'
+    );
     setCheckoutStep(2);
   };
 
   useEffect(() => {
     if (checkoutStep !== 2) {
       prevPaymentIntentIdRef.current = null;
+      paymentInfoFiredRef.current = false;
       setStripeClientSecret(null);
       setStripePublishableKey(null);
       setStripeError(null);
@@ -367,6 +390,11 @@ export default function SimpleCheckout() {
         }
         setStripeClientSecret(data.clientSecret);
         setStripePublishableKey(data.publishableKey);
+        // Analytics: payment info step reached (payment form ready) — once per session.
+        if (!paymentInfoFiredRef.current) {
+          paymentInfoFiredRef.current = true;
+          trackAddPaymentInfo(items, getTotal(), 'card');
+        }
       } catch (err) {
         if (!cancelled) {
           setStripeError(err.message || 'Error de red');

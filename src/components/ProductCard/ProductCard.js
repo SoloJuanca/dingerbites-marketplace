@@ -8,6 +8,7 @@ import { useCart } from '../../lib/CartContext';
 import { useAuth } from '../../lib/AuthContext';
 import { useWishlist } from '../../lib/WishlistContext';
 import { getTcgMinPriceForSubType } from '../../lib/currency';
+import { trackSelectItem } from '../../lib/analytics';
 import Icon from '../Icon/Icon';
 import styles from './ProductCard.module.css';
 
@@ -91,6 +92,16 @@ export default function ProductCard({ product }) {
     }, 600);
   };
 
+  const handleSelectItem = () => {
+    trackSelectItem({
+      id: product.id,
+      name: product.name,
+      price: displayPrice,
+      category_id: product.category_id,
+      category_name: product.category_name
+    });
+  };
+
   const handleWishlistToggle = async () => {
     if (!isAuthenticated) {
       toast.error('Inicia sesión para agregar productos a tu lista de deseos');
@@ -133,7 +144,7 @@ export default function ProductCard({ product }) {
   return (
     <div className={styles.card}>
       <div className={styles.imageContainer}>
-        <Link href={`/catalog/${product.slug}`} className={styles.imageWrapper}>
+        <Link href={`/catalog/${product.slug}`} className={styles.imageWrapper} onClick={handleSelectItem}>
           <Image
             src={product.image}
             alt={product.name}
@@ -155,7 +166,7 @@ export default function ProductCard({ product }) {
         </button>
       </div>
       <div className={styles.content}>
-        <Link href={`/catalog/${product.slug}`} className={styles.nameLink}>
+        <Link href={`/catalog/${product.slug}`} className={styles.nameLink} onClick={handleSelectItem}>
           <h3 className={styles.name}>{product.name}</h3>
         </Link>
         <div className={styles.footer}>

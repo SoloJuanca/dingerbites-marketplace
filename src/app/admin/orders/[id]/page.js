@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../../../lib/AuthContext';
 import AdminLayout from '../../../../components/admin/AdminLayout/AdminLayout';
@@ -190,12 +191,30 @@ export default function AdminOrderDetail() {
     });
   };
 
-  const isDeliveryOrder = (orderData) => orderData?.shipping_method === 'Envío a domicilio';
+  const isDeliveryOrder = (orderData) =>
+    orderData?.shipping_method === 'Envío a domicilio' ||
+    Boolean(orderData?.shipping_address_formatted) ||
+    Boolean(orderData?.shipping_address);
 
   const isPickupOrder = (orderData) =>
     orderData?.shipping_method === 'Recoger en punto' ||
     orderData?.shipping_method === 'Recoger en tienda' ||
     Boolean(orderData?.pickup_point);
+
+  const getDeliveryAddressText = (orderData) => {
+    if (orderData?.shipping_address_formatted) return orderData.shipping_address_formatted;
+    const addr = orderData?.shipping_address;
+    if (!addr || typeof addr !== 'object') return null;
+    if (addr.formatted) return addr.formatted;
+    const parts = [
+      addr.address_line_1,
+      addr.address_line_2,
+      addr.city,
+      addr.state,
+      addr.postal_code
+    ].filter((part) => part && String(part).trim());
+    return parts.length > 0 ? parts.join(', ') : null;
+  };
 
   const getStatusColor = (statusName) => {
     const statusColors = {
@@ -355,15 +374,25 @@ export default function AdminOrderDetail() {
                 </div>
               )}
               {isDeliveryOrder(order) && (
-                <div className={styles.deliveryItem}>
+                <div className={`${styles.deliveryItem} ${styles.deliveryAddress}`}>
                   <label>Dirección de entrega:</label>
-                  <span>{order.shipping_address_formatted || 'Sin dirección registrada'}</span>
+                  <span>{getDeliveryAddressText(order) || 'Sin dirección registrada'}</span>
                 </div>
               )}
               {isDeliveryOrder(order) && order.shipping_address?.phone && (
                 <div className={styles.deliveryItem}>
                   <label>Teléfono de entrega:</label>
                   <span>{order.shipping_address.phone}</span>
+                </div>
+              )}
+              {isDeliveryOrder(order) && (order.shipping_address?.first_name || order.shipping_address?.last_name) && (
+                <div className={styles.deliveryItem}>
+                  <label>Destinatario:</label>
+                  <span>
+                    {[order.shipping_address.first_name, order.shipping_address.last_name]
+                      .filter(Boolean)
+                      .join(' ')}
+                  </span>
                 </div>
               )}
             </div>
@@ -472,7 +501,30 @@ export default function AdminOrderDetail() {
             {orderItems.length > 0 ? (
               <div className={styles.orderItems}>
                 {orderItems.map((item, index) => (
-                  <div key={index} className={styles.orderItem}>
+                  <div key={item.product_id || index} className={styles.orderItem}>
+                    <div className={styles.itemMedia}>
+                      {item.product_image ? (
+                        <a
+                          href={item.product_image}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={styles.itemImageLink}
+                          title="Ver imagen completa"
+                        >
+                          <Image
+                            src={item.product_image}
+                            alt={item.product_name || 'Producto'}
+                            width={72}
+                            height={72}
+                            className={styles.itemImage}
+                          />
+                        </a>
+                      ) : (
+                        <div className={styles.itemImagePlaceholder} aria-hidden>
+                          <span className="material-symbols-outlined">inventory_2</span>
+                        </div>
+                      )}
+                    </div>
                     <div className={styles.itemInfo}>
                       <h4>{item.product_name || 'Producto'}</h4>
                       <p><strong>SKU:</strong> {item.product_sku || item.variant_sku || 'N/A'}</p>

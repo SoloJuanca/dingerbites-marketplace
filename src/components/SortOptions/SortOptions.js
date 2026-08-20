@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { trackFilterApplied } from '../../lib/analytics';
 import styles from './SortOptions.module.css';
 
 export default function SortOptions({ currentSort, currentInStockOnly = 'true' }) {
@@ -28,6 +29,7 @@ export default function SortOptions({ currentSort, currentInStockOnly = 'true' }
       params.delete('sortBy');
     }
 
+    trackFilterApplied('sort', newSort || 'default', { source: 'sort_options' });
     router.push(`${pathname}?${params.toString()}`);
   };
 
@@ -36,6 +38,7 @@ export default function SortOptions({ currentSort, currentInStockOnly = 'true' }
     const checked = e.target.checked;
     params.delete('page');
     params.set('inStockOnly', checked ? 'true' : 'false');
+    trackFilterApplied('in_stock', checked ? 'true' : 'false', { source: 'sort_options' });
     router.push(`${pathname}?${params.toString()}`);
   };
 

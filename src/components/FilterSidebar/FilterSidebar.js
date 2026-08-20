@@ -3,6 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import Icon from '../Icon/Icon';
+import { trackFilterApplied } from '../../lib/analytics';
 import styles from './FilterSidebar.module.css';
 
 export default function FilterSidebar({ 
@@ -170,8 +171,10 @@ export default function FilterSidebar({
         // Si es array, convertir a string separado por comas
         const stringValue = Array.isArray(value) ? value.join(',') : value;
         params.set(key, stringValue);
+        trackFilterApplied(key, stringValue, { source: 'sidebar' });
       } else {
         params.delete(key);
+        trackFilterApplied(key, '', { source: 'sidebar', action: 'clear' });
       }
     });
 
@@ -193,6 +196,9 @@ export default function FilterSidebar({
 
     // Subcategorías del catálogo tradicional no aplican cuando se explora TCG API
     if (isTcgSelected) params.delete('subcategory');
+
+    trackFilterApplied('tcgCategoryId', catValue, { source: 'sidebar' });
+    trackFilterApplied('tcgGroupId', groupValue, { source: 'sidebar' });
 
     router.push(`${pathname}?${params.toString()}`);
   };

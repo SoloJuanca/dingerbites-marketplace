@@ -80,6 +80,9 @@ export const viewport = {
   maximumScale: 1,
 };
 
+const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || 'GTM-NCLN9F9C';
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID || '';
+
 export default function RootLayout({ children }) {
   return (
     <html lang="es" className={poppins.variable}>
@@ -90,9 +93,26 @@ export default function RootLayout({ children }) {
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-NCLN9F9C');`}
+})(window,document,'script','dataLayer','${GTM_ID}');`}
         </Script>
         {/* End Google Tag Manager */}
+        {/* Google Analytics 4 (gtag.js) */}
+        {GA_ID && (
+          <>
+            <Script
+              id="ga4-src"
+              strategy="afterInteractive"
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+            />
+            <Script id="ga4-init" strategy="afterInteractive">
+              {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${GA_ID}');`}
+            </Script>
+          </>
+        )}
+        {/* End Google Analytics 4 */}
         <link 
           rel="stylesheet" 
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" 
@@ -102,7 +122,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         {/* Google Tag Manager (noscript) */}
         <noscript>
           <iframe
-            src="https://www.googletagmanager.com/ns.html?id=GTM-NCLN9F9C"
+            src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
             height="0"
             width="0"
             style={{ display: 'none', visibility: 'hidden' }}

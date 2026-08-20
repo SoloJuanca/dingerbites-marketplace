@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { useCart } from '../../../lib/CartContext';
+import { trackPurchase } from '../../../lib/analytics';
 import OrderConfirmation from '../../../components/OrderConfirmation/OrderConfirmation';
 import styles from './success.module.css';
 
@@ -15,6 +16,7 @@ function StripeSuccessContent() {
   const redirectStatus = searchParams.get('redirect_status');
   const { clearCart } = useCart();
   const successToastShownRef = useRef(false);
+  const purchaseTrackedRef = useRef(false);
   const [state, setState] = useState({
     loading: true,
     error: null,
@@ -78,6 +80,11 @@ function StripeSuccessContent() {
           if (data.order_ready && data.order) {
             clearCart();
             setState({ loading: false, error: null, order: data.order, hint: '' });
+            // Analytics: purchase — fire once even if polling resolves twice.
+            if (!purchaseTrackedRef.current) {
+              purchaseTrackedRef.current = true;
+              trackPurchase(data.order);
+            }
             if (!successToastShownRef.current) {
               successToastShownRef.current = true;
               toast.success('¡Pedido registrado correctamente!');

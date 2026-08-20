@@ -133,10 +133,52 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 16px;
   padding: 16px;
   background: #f9fafb;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
+}
+
+.itemMedia {
+  flex-shrink: 0;
+}
+
+.itemImageLink {
+  display: block;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  transition: opacity 150ms ease;
+}
+
+.itemImageLink:hover {
+  opacity: 0.85;
+}
+
+.itemImage {
+  display: block;
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+}
+
+.itemImagePlaceholder {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+}
+
+.itemInfo {
+  flex: 1;
+  min-width: 0;
 }
 
 .itemInfo h4 {
@@ -155,6 +197,7 @@
   font-size: 16px;
   color: #111827;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 /* Financial Summary */
@@ -193,7 +236,8 @@
 .deliveryItem {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 16px;
   padding: 12px 0;
   border-bottom: 1px solid #f3f4f6;
 }
@@ -201,10 +245,18 @@
 .deliveryItem label {
   font-weight: 600;
   color: #374151;
+  flex-shrink: 0;
 }
 
 .deliveryItem span {
   color: #111827;
+  text-align: right;
+}
+
+.deliveryAddress span {
+  max-width: 480px;
+  line-height: 1.5;
+  word-break: break-word;
 }
 
 /* Notes */
@@ -416,12 +468,23 @@
   }
   
   .orderItem {
-    flex-direction: column;
+    flex-wrap: wrap;
     gap: 12px;
+  }
+
+  .itemInfo {
+    flex: 1 1 160px;
   }
   
   .itemTotal {
     align-self: flex-end;
+    width: 100%;
+    text-align: right;
+  }
+
+  .deliveryAddress span {
+    max-width: 100%;
+    text-align: left;
   }
   
   .financialSummary {
@@ -432,6 +495,10 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
+  }
+
+  .deliveryItem span {
+    text-align: left;
   }
   
   .statusUpdate {

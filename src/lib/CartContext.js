@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
+import { trackAddToCart, trackRemoveFromCart } from './analytics';
 
 const CartContext = createContext();
 
@@ -84,6 +85,13 @@ const initialState = {
 
 export function CartProvider({ children }) {
   const [state, dispatch] = useReducer(cartReducer, initialState);
+
+  // Keep a ref to the latest items so analytics can enrich events without
+  // adding state.items to callback deps (which would recreate the callbacks).
+  const itemsRef = useRef(state.items);
+  useEffect(() => {
+    itemsRef.current = state.items;
+  }, [state.items]);
 
   const mapDbCartItem = useCallback((item) => ({
     id: item.product_id,
@@ -194,6 +202,8 @@ export function CartProvider({ children }) {
 
   // Add item to cart with database sync
   const addToCartWithSync = useCallback(async (product, user, apiRequest, quantity = 1) => {
+    // Analytics: fire once regardless of guest/authenticated sync path.
+    trackAddToCart(product, quantity);
     if (user && apiRequest) {
       try {
         const response = await apiRequest('/api/cart', {
@@ -238,6 +248,9 @@ export function CartProvider({ children }) {
 
   // Remove item from cart with database sync
   const removeFromCartWithSync = useCallback(async (productId, user, apiRequest) => {
+    // Analytics: enrich the event with the current cart item when available.
+    const removedItem = itemsRef.current.find((i) => String(i.id) === String(productId));
+    trackRemoveFromCart(removedItem || { id: productId }, removedItem?.quantity || 1);
     if (user && apiRequest) {
       try {
         // First find the cart item by product ID

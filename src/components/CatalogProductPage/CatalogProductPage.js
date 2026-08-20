@@ -10,6 +10,7 @@ import ProductSummary from '../ProductSummary/ProductSummary';
 import ProductQuestions from '../ProductQuestions/ProductQuestions';
 import ProductStickyPurchaseBar from '../ProductStickyPurchaseBar/ProductStickyPurchaseBar';
 import Icon from '../Icon/Icon';
+import { trackViewItem } from '../../lib/analytics';
 import styles from './CatalogProductPage.module.css';
 
 function ProductData({
@@ -69,6 +70,20 @@ function ProductData({
       loadProduct();
     }
   }, [slug, initialMarketPriceMxn, initialMarketPriceError]);
+
+  // Analytics: fire view_item once per product loaded.
+  useEffect(() => {
+    if (!product?.id) return;
+    trackViewItem({
+      id: product.id,
+      name: product.name,
+      price: product.tcg_product_id && marketPriceMxn != null ? marketPriceMxn : product.price,
+      category_id: product.category_id,
+      category_name: product.category_name,
+      brand_name: product.brand_name
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id]);
 
   useEffect(() => {
     if (!product) return;

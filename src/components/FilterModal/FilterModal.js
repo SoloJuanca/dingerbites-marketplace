@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Icon from '../Icon/Icon';
+import { trackFilterApplied } from '../../lib/analytics';
 import styles from './FilterModal.module.css';
 
 export default function FilterModal({ 
@@ -173,8 +174,10 @@ export default function FilterModal({
         // Si es array, convertir a string separado por comas
         const stringValue = Array.isArray(value) ? value.join(',') : value;
         params.set(key, stringValue);
+        trackFilterApplied(key, stringValue, { source: 'modal' });
       } else {
         params.delete(key);
+        trackFilterApplied(key, '', { source: 'modal', action: 'clear' });
       }
     });
 
@@ -196,6 +199,9 @@ export default function FilterModal({
     else params.delete('tcgGroupId');
 
     if (isTcgSelected) params.delete('subcategory');
+
+    trackFilterApplied('tcgCategoryId', catValue, { source: 'modal' });
+    trackFilterApplied('tcgGroupId', groupValue, { source: 'modal' });
 
     router.push(`${pathname}?${params.toString()}`);
     onClose();

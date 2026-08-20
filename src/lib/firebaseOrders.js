@@ -1,9 +1,11 @@
 import { randomUUID } from 'crypto';
 
 import { db } from './firebaseAdmin';
+import { formatShippingAddressForDisplay } from './orderAddress';
 
 const USER_ADDRESSES_COLLECTION = 'user_addresses';
 const ORDERS_COLLECTION = 'orders';
+const PRODUCTS_COLLECTION = 'products';
 
 function formatAddressLines(addr) {
   if (!addr) return null;
@@ -17,6 +19,17 @@ function formatAddressLines(addr) {
   ].filter((part) => part && String(part).trim());
 
   return parts.length > 0 ? parts.join(', ') : null;
+}
+
+function resolveProductImageUrl(product) {
+  if (!product) return null;
+  if (product.image && String(product.image).trim()) return String(product.image).trim();
+  if (Array.isArray(product.images) && product.images.length > 0) {
+    const first = product.images[0];
+    const url = typeof first === 'string' ? first : first?.url;
+    if (url && String(url).trim()) return String(url).trim();
+  }
+  return null;
 }
 
 async function loadShippingAddressFromId(shippingAddressId) {
@@ -38,6 +51,57 @@ async function loadShippingAddressFromId(shippingAddressId) {
     shipping_address,
     shipping_address_formatted: formatAddressLines(shipping_address)
   };
+}
+
+/**
+ * Prefer address from user_addresses by id; fall back to the snapshot stored on the order.
+ * (getOrderById previously overwrote the snapshot with null when the id lookup failed.)
+ */
+function resolveShippingAddress(order, loadedFromId) {
+  const fromId = loadedFromId?.shipping_address || null;
+  const fromIdFormatted = loadedFromId?.shipping_address_formatted || null;
+  const snapshot = order?.shipping_address && typeof order.shipping_address === 'object'
+    ? order.shipping_address
+    : null;
+
+  const shipping_address = fromId || snapshot || null;
+  const shipping_address_formatted =
+    fromIdFormatted ||
+    formatShippingAddressForDisplay(shipping_address) ||
+    (typeof order?.address === 'string' && order.address.trim() ? order.address.trim() : null);
+
+  return { shipping_address, shipping_address_formatted };
+}
+
+async function enrichOrderItemsWithImages(items = []) {
+  if (!Array.isArray(items) || items.length === 0) return [];
+
+  const productIds = [
+    ...new Set(items.map((item) => item?.product_id).filter(Boolean).map(String))
+  ];
+
+  if (productIds.length === 0) {
+    return items.map((item) => ({
+      ...item,
+      product_image: item.product_image || null
+    }));
+  }
+
+  const productDocs = await Promise.all(
+    productIds.map((id) => db.collection(PRODUCTS_COLLECTION).doc(String(id)).get())
+  );
+  const productById = new Map(
+    productDocs.filter((doc) => doc.exists).map((doc) => [doc.id, doc.data()])
+  );
+
+  return items.map((item) => {
+    if (item?.product_image) return item;
+    const product = item?.product_id ? productById.get(String(item.product_id)) : null;
+    return {
+      ...item,
+      product_image: resolveProductImageUrl(product)
+    };
+  });
 }
 const ORDER_STATUSES_COLLECTION = 'order_statuses';
 
@@ -147,8 +211,15 @@ export async function getOrderById(orderId) {
     : { exists: false };
   const user = userDoc.exists ? userDoc.data() : null;
 
-  const { shipping_address: shippingAddress, shipping_address_formatted: shippingAddressFormatted } =
-    await loadShippingAddressFromId(order.shipping_address_id);
+  const loadedFromId = await loadShippingAddressFromId(order.shipping_address_id);
+  const { shipping_address, shipping_address_formatted } = resolveShippingAddress(
+    order,
+    loadedFromId
+  );
+
+  const items = await enrichOrderItemsWithImages(
+    Array.isArray(order.items) ? order.items : []
+  );
 
   return {
     ...order,
@@ -159,9 +230,9 @@ export async function getOrderById(orderId) {
     first_name: user?.first_name ?? null,
     last_name: user?.last_name ?? null,
     phone: user?.phone ?? null,
-    shipping_address: shippingAddress,
-    shipping_address_formatted: shippingAddressFormatted,
-    items: Array.isArray(order.items) ? order.items : [],
+    shipping_address,
+    shipping_address_formatted,
+    items,
     serviceItems: Array.isArray(order.service_items) ? order.service_items : [],
     history: Array.isArray(order.history) ? order.history : []
   };

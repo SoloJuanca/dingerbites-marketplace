@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import Icon from '../Icon/Icon';
+import { trackSearch } from '../../lib/analytics';
 import styles from './HeaderSearchBar.module.css';
 
 export default function HeaderSearchBar() {
@@ -99,13 +100,15 @@ export default function HeaderSearchBar() {
   }, [categorySlug, query]);
 
   const goToCatalog = useCallback(() => {
+    const trimmed = query.trim();
+    if (trimmed) trackSearch(trimmed);
     router.push(buildCatalogUrl());
     setSuggestions([]);
     setActiveIndex(-1);
     setIsLoadingSuggestions(false);
     setIsFocused(false);
     inputRef.current?.blur?.();
-  }, [router, buildCatalogUrl]);
+  }, [router, buildCatalogUrl, query]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -133,6 +136,7 @@ export default function HeaderSearchBar() {
         e.preventDefault();
         const selected = suggestions[activeIndex];
         setQuery(selected.label);
+        trackSearch(selected.label);
         const params = new URLSearchParams();
         params.set('page', '1');
         params.set('inStockOnly', 'true');
@@ -224,6 +228,7 @@ export default function HeaderSearchBar() {
               className={styles.suggestionItem}
               onMouseDown={(ev) => {
                 ev.preventDefault();
+                trackSearch(trimmedQuery);
                 const params = new URLSearchParams();
                 params.set('page', '1');
                 params.set('inStockOnly', 'true');
@@ -250,6 +255,7 @@ export default function HeaderSearchBar() {
                 onMouseDown={(ev) => {
                   ev.preventDefault();
                   setQuery(suggestion.label);
+                  trackSearch(suggestion.label);
                   const params = new URLSearchParams();
                   params.set('page', '1');
                   params.set('inStockOnly', 'true');
