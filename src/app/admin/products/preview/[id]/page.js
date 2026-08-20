@@ -92,7 +92,12 @@ export default function PreviewProductPage() {
         <div className={styles.container}>
           <div className={styles.productLayout}>
             <div className={styles.leftColumn}>
-              <ImageCarousel images={product.images} productName={product.name} />
+              <ImageCarousel
+                images={product.images}
+                productName={product.name}
+                isTcgProduct={!!product.tcg_product_id}
+                productId={product.id}
+              />
               <ProductInfo
                 product={product}
                 marketPriceMxn={null}

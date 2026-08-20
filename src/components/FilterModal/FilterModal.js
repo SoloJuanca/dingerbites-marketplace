@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Icon from '../Icon/Icon';
 import { trackFilterApplied } from '../../lib/analytics';
+import { CATALOG_MODE_TCG } from '../../lib/catalogFilters';
+import { pushCatalogFilters } from '../../lib/catalogNavigation';
 import styles from './FilterModal.module.css';
 
 export default function FilterModal({ 
+  catalogMode = 'general',
   categories = [],
   manufacturerBrands = [],
   franchiseBrands = [],
@@ -27,7 +30,6 @@ export default function FilterModal({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const pathname = usePathname();
   const [minPrice, setMinPrice] = useState(currentMinPrice || '');
   const [maxPrice, setMaxPrice] = useState(currentMaxPrice || '');
   
@@ -38,7 +40,7 @@ export default function FilterModal({
   const selectedFranchiseBrands = currentFranchiseBrand ? currentFranchiseBrand.split(',') : [];
   const selectedBrands = currentBrand ? currentBrand.split(',') : [];
   const selectedConditions = currentCondition ? currentCondition.split(',') : [];
-  const isTcgSelected = selectedCategories.includes('tcg');
+  const isTcgSelected = catalogMode === CATALOG_MODE_TCG;
   const selectedTcgCategoryIds = (currentTcgCategoryId || searchParams.get('tcgCategoryId') || '')
     .split(',')
     .map((v) => v.trim())
@@ -164,46 +166,32 @@ export default function FilterModal({
   }, [isOpen, isTcgSelected, selectedTcgCategoryIds.join(',')]);
 
   const updateFilters = (newFilters) => {
-    const params = new URLSearchParams(searchParams);
-    
-    // Resetear página cuando se cambian filtros
-    params.delete('page');
-    
     Object.entries(newFilters).forEach(([key, value]) => {
       if (value && value.length > 0) {
-        // Si es array, convertir a string separado por comas
         const stringValue = Array.isArray(value) ? value.join(',') : value;
-        params.set(key, stringValue);
         trackFilterApplied(key, stringValue, { source: 'modal' });
       } else {
-        params.delete(key);
         trackFilterApplied(key, '', { source: 'modal', action: 'clear' });
       }
     });
 
-    router.push(`${pathname}?${params.toString()}`);
+    pushCatalogFilters(router, searchParams, newFilters);
     onClose();
   };
 
   const updateTcgFilters = ({ tcgCategoryIds, tcgGroupIds }) => {
-    const params = new URLSearchParams(searchParams);
-    params.delete('page');
-
     const catValue = Array.isArray(tcgCategoryIds) ? tcgCategoryIds.map(String).filter(Boolean).join(',') : '';
     const groupValue = Array.isArray(tcgGroupIds) ? tcgGroupIds.map(String).filter(Boolean).join(',') : '';
-
-    if (catValue) params.set('tcgCategoryId', catValue);
-    else params.delete('tcgCategoryId');
-
-    if (groupValue) params.set('tcgGroupId', groupValue);
-    else params.delete('tcgGroupId');
-
-    if (isTcgSelected) params.delete('subcategory');
 
     trackFilterApplied('tcgCategoryId', catValue, { source: 'modal' });
     trackFilterApplied('tcgGroupId', groupValue, { source: 'modal' });
 
-    router.push(`${pathname}?${params.toString()}`);
+    pushCatalogFilters(router, searchParams, {
+      mode: CATALOG_MODE_TCG,
+      tcgCategoryId: catValue,
+      tcgGroupId: groupValue,
+      subcategory: ''
+    });
     onClose();
   };
 
@@ -374,16 +362,31 @@ export default function FilterModal({
   };
 
   const clearAllFilters = () => {
-    updateFilters({
-      category: [],
-      subcategory: [],
-      manufacturerBrand: [],
-      franchiseBrand: [],
-      brand: [],
-      condition: [],
-      minPrice: '',
-      maxPrice: ''
-    });
+    if (isTcgSelected) {
+      pushCatalogFilters(router, searchParams, {
+        mode: CATALOG_MODE_TCG,
+        tcgCategoryId: '',
+        tcgGroupId: '',
+        manufacturerBrand: '',
+        franchiseBrand: '',
+        brand: '',
+        condition: '',
+        minPrice: '',
+        maxPrice: ''
+      });
+    } else {
+      pushCatalogFilters(router, searchParams, {
+        category: '',
+        subcategory: '',
+        manufacturerBrand: '',
+        franchiseBrand: '',
+        brand: '',
+        condition: '',
+        minPrice: '',
+        maxPrice: ''
+      });
+    }
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -400,6 +403,7 @@ export default function FilterModal({
 
         <div className={styles.content}>
           {/* Categorías */}
+          {!isTcgSelected ? (
           <div className={styles.filterSection}>
             <button className={styles.sectionHeader}>
               <h3 className={styles.sectionTitle}>Categorías</h3>
@@ -428,6 +432,7 @@ export default function FilterModal({
               </div>
             </div>
           </div>
+          ) : null}
 
           {/* Subcategorías */}
           {shouldShowSubcategoriesSection ? (

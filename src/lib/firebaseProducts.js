@@ -1,5 +1,6 @@
 import { FieldValue } from 'firebase-admin/firestore';
 import { db } from './firebaseAdmin';
+import { CATALOG_MODE_TCG, TCG_SLUG } from './catalogFilters';
 import { getTcgMinPriceForSubType } from './currency';
 import { PRODUCT_CONDITIONS, normalizeProductCondition, sanitizeProductCondition } from './productCondition';
 import { getTypesenseConfig, getTypesenseServerClient, isTypesenseConfigured } from './typesenseServer';
@@ -41,8 +42,18 @@ function buildTypesenseFilterBy(filters = {}) {
     parts.push(values.length > 1 ? `(${clause})` : clause);
   };
 
-  appendArray('category_slug', filters.category);
-  appendArray('subcategory_slug', filters.subcategory);
+  const mode = filters.mode === CATALOG_MODE_TCG ? CATALOG_MODE_TCG : 'general';
+  if (mode === CATALOG_MODE_TCG) {
+    parts.push(`category_slug:=\`${TCG_SLUG}\``);
+  } else if (filters.category) {
+    appendArray('category_slug', filters.category);
+  } else {
+    parts.push(`category_slug:!=\`${TCG_SLUG}\``);
+  }
+
+  if (mode !== CATALOG_MODE_TCG) {
+    appendArray('subcategory_slug', filters.subcategory);
+  }
   appendArray('manufacturer_brand_slug', filters.manufacturerBrand);
   appendArray('franchise_brand_slug', filters.franchiseBrand);
   appendArray('brand_slug', filters.brand);
@@ -86,6 +97,8 @@ function mapTypesenseDocToCatalogItem(doc) {
     image: doc.image || DEFAULT_IMAGE,
     images: Array.isArray(doc.images) ? doc.images : [],
     tcg_product_id: doc.tcg_product_id ?? null,
+    tcg_category_id: doc.tcg_category_id ?? null,
+    tcg_group_id: doc.tcg_group_id ?? null,
     tcg_sub_type_name: doc.tcg_sub_type_name ?? null,
     condition: sanitizeProductCondition(doc.condition),
     stock_quantity: toNum(doc.stock_quantity, 0),
@@ -407,6 +420,7 @@ export async function getProducts(filters = {}) {
         page,
         per_page: limit,
         filter_by: buildTypesenseFilterBy({
+          mode: filters.mode,
           category: categorySlugs.join(','),
           subcategory: subcategorySlugs.join(','),
           manufacturerBrand: manufacturerBrandSlugs.join(','),

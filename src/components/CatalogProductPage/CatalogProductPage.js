@@ -195,6 +195,7 @@ function ProductData({
                 images={product.images || [product.image]}
                 productName={product.name}
                 isTcgProduct={!!product.tcg_product_id}
+                productId={product.id}
               />
 
               <ProductInfo

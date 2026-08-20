@@ -1,4 +1,5 @@
 import { getProducts } from '../firebaseProducts';
+import { CATALOG_MODE_TCG, TCG_SLUG } from '../catalogFilters';
 import { getTypesenseConfig, getTypesenseServerClient, isTypesenseConfigured } from '../typesenseServer';
 import { PRODUCTS_SEARCH_FIELDS } from './typesenseSchema';
 
@@ -45,8 +46,18 @@ function buildFilterBy(filters) {
     filterList.push(`(${composed})`);
   };
 
-  appendArrayFilter('category_slug', filters.category);
-  appendArrayFilter('subcategory_slug', filters.subcategory);
+  const mode = filters.mode === CATALOG_MODE_TCG ? CATALOG_MODE_TCG : 'general';
+  if (mode === CATALOG_MODE_TCG) {
+    filterList.push(`category_slug:=\`${TCG_SLUG}\``);
+  } else if (filters.category) {
+    appendArrayFilter('category_slug', filters.category);
+  } else {
+    filterList.push(`category_slug:!=\`${TCG_SLUG}\``);
+  }
+
+  if (mode !== CATALOG_MODE_TCG) {
+    appendArrayFilter('subcategory_slug', filters.subcategory);
+  }
   appendArrayFilter('manufacturer_brand_slug', filters.manufacturerBrand);
   appendArrayFilter('franchise_brand_slug', filters.franchiseBrand);
   appendArrayFilter('brand_slug', filters.brand);
@@ -114,6 +125,9 @@ function normalizeTypesenseResult(result, page, limit, options = {}) {
       stock_quantity: document.stock_quantity || 0,
       sku: document.sku || '',
       barcode: document.barcode || '',
+      tcg_category_id: document.tcg_category_id || '',
+      tcg_group_id: document.tcg_group_id || '',
+      tcg_sub_type_name: document.tcg_sub_type_name || '',
       is_active: Boolean(document.is_active),
       is_featured: Boolean(document.is_featured),
       is_bestseller: Boolean(document.is_bestseller),
@@ -260,4 +274,46 @@ export async function getSearchSuggestions(rawQuery, filters = {}) {
   });
 
   return [...suggestions.values()];
+}
+
+function parseFacetCounts(result, fieldName) {
+  const facet = (result?.facet_counts || []).find((item) => item.field_name === fieldName);
+  const counts = {};
+  (facet?.counts || []).forEach((entry) => {
+    if (entry?.value) counts[String(entry.value)] = Number(entry.count) || 0;
+  });
+  return counts;
+}
+
+export async function getCategoryFacetCounts({ inStockOnly = true } = {}) {
+  const empty = { categoryCounts: {}, subcategoryCounts: {} };
+
+  if (!isTypesenseConfigured() || getTypesenseConfig().enableSearch === false) {
+    return empty;
+  }
+
+  try {
+    const client = getTypesenseServerClient();
+    const { collectionName } = getTypesenseConfig();
+    const filterParts = ['is_active:=true'];
+    if (inStockOnly) filterParts.push('stock_quantity:>0');
+
+    const result = await client.collections(collectionName).documents().search({
+      q: '*',
+      query_by: 'name',
+      page: 1,
+      per_page: 0,
+      filter_by: filterParts.join(' && '),
+      facet_by: 'category_slug,subcategory_slug',
+      max_facet_values: 250
+    });
+
+    return {
+      categoryCounts: parseFacetCounts(result, 'category_slug'),
+      subcategoryCounts: parseFacetCounts(result, 'subcategory_slug')
+    };
+  } catch (error) {
+    console.error('Failed to load category facet counts:', error);
+    return empty;
+  }
 }

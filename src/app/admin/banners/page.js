@@ -361,8 +361,17 @@ export default function AdminBannersPage() {
                       value={formData.cta_url}
                       onChange={(e) => setFormData((prev) => ({ ...prev, cta_url: e.target.value }))}
                       className={styles.input}
-                      placeholder="/catalog"
+                      placeholder="/catalog?mode=tcg"
                     />
+                    <small style={{ display: 'block', marginTop: '8px', color: '#6c757d', fontSize: '12px', lineHeight: 1.5 }}>
+                      La imagen completa del banner también será clicable. Ejemplos: búsqueda TCG
+                      {' '}
+                      <code>/catalog?mode=tcg</code>
+                      , categoría
+                      {' '}
+                      <code>/catalog?category=figuras</code>
+                      .
+                    </small>
                   </label>
                 </div>
 

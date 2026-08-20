@@ -1,34 +1,12 @@
-import { notFound } from 'next/navigation';
+import { redirect, notFound } from 'next/navigation';
 import Header from '../../../components/Header/Header';
 import Footer from '../../../components/Footer/Footer';
-import CatalogClient from '../../../components/Catalog/CatalogClient';
 import CatalogProductPage from '../../../components/CatalogProductPage/CatalogProductPage';
-import { getCategories, getBrands, getPriceRange, getProductBySlug } from '../../../lib/firebaseProducts';
+import { getCategories, getProductBySlug } from '../../../lib/firebaseProducts';
 import { getTcgMarketPriceForProduct } from '../../../lib/tcgMarketPrice';
-import { PRODUCT_CONDITIONS, PRODUCT_CONDITION_LABELS } from '../../../lib/productCondition';
-import { searchProducts } from '../../../lib/search/typesenseSearch';
+import { getCategoryCatalogHref } from '../../../lib/catalogFilters';
 
 export const dynamic = 'force-dynamic';
-
-function normalizeFilters(searchParams, categorySlug) {
-  const safeParams = searchParams || {};
-  return {
-    currentPage: parseInt(safeParams.page, 10) || 1,
-    category: categorySlug || '',
-    subcategory: safeParams.subcategory || '',
-    tcgCategoryId: safeParams.tcgCategoryId || '',
-    tcgGroupId: safeParams.tcgGroupId || '',
-    manufacturerBrand: safeParams.manufacturerBrand || '',
-    franchiseBrand: safeParams.franchiseBrand || '',
-    brand: safeParams.brand || '',
-    condition: safeParams.condition || '',
-    minPrice: safeParams.minPrice || '',
-    maxPrice: safeParams.maxPrice || '',
-    sortBy: safeParams.sortBy || 'newest',
-    search: safeParams.q || safeParams.search || '',
-    inStockOnly: safeParams.inStockOnly ?? 'true'
-  };
-}
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
@@ -62,7 +40,7 @@ export async function generateMetadata({ params }) {
   const description =
     category.description ||
     `Compra ${category.name} en Dingerbites. Descubre productos actualizados, precios competitivos y envío seguro.`;
-  const canonical = `/catalog/${category.slug}`;
+  const canonical = getCategoryCatalogHref(category.slug);
 
   return {
     title,
@@ -71,6 +49,26 @@ export async function generateMetadata({ params }) {
     openGraph: { title, description, url: canonical, type: 'website' },
     twitter: { title, description }
   };
+}
+
+function buildCategoryRedirectUrl(slug, searchParams = {}) {
+  const params = new URLSearchParams();
+  Object.entries(searchParams || {}).forEach(([key, value]) => {
+    if (key === 'category' || key === 'mode' || key === 'page') return;
+    if (value != null && String(value).trim() !== '') {
+      params.set(key, String(value));
+    }
+  });
+
+  if (slug === 'tcg') {
+    params.set('mode', 'tcg');
+  } else {
+    params.set('category', slug);
+  }
+
+  params.set('inStockOnly', params.get('inStockOnly') || 'true');
+  const query = params.toString();
+  return query ? `/catalog?${query}` : '/catalog';
 }
 
 export default async function CatalogSlugPage({ params, searchParams }) {
@@ -107,52 +105,5 @@ export default async function CatalogSlugPage({ params, searchParams }) {
     notFound();
   }
 
-  const filters = normalizeFilters(resolvedSearch, slug);
-
-  const [manufacturerBrands, franchiseBrands, priceRange, initialResult] = await Promise.all([
-    getBrands({ type: 'manufacturer' }),
-    getBrands({ type: 'franchise' }),
-    getPriceRange(),
-    searchProducts(
-      {
-        page: filters.currentPage,
-        limit: 12,
-        category: filters.category,
-        subcategory: filters.subcategory,
-        tcgCategoryId: filters.tcgCategoryId,
-        tcgGroupId: filters.tcgGroupId,
-        manufacturerBrand: filters.manufacturerBrand,
-        franchiseBrand: filters.franchiseBrand,
-        brand: filters.brand,
-        condition: filters.condition,
-        minPrice: filters.minPrice,
-        maxPrice: filters.maxPrice,
-        sortBy: filters.sortBy,
-        q: filters.search,
-        inStockOnly: filters.inStockOnly
-      },
-      { allowFallback: true }
-    )
-  ]);
-
-  const conditions = PRODUCT_CONDITIONS.map((value) => ({
-    value,
-    label: PRODUCT_CONDITION_LABELS[value]
-  }));
-
-  return (
-    <>
-      <Header />
-      <CatalogClient
-        categories={categories}
-        manufacturerBrands={manufacturerBrands}
-        franchiseBrands={franchiseBrands}
-        conditions={conditions}
-        priceRange={priceRange}
-        filters={filters}
-        initialResult={initialResult}
-      />
-      <Footer />
-    </>
-  );
+  redirect(buildCategoryRedirectUrl(slug, resolvedSearch));
 }

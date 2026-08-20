@@ -8,6 +8,7 @@ import { useCart } from '../../lib/CartContext';
 import { useAuth } from '../../lib/AuthContext';
 import AddressManager from '../AddressManager/AddressManager';
 import StripeEmbeddedPayment from '../StripeEmbeddedPayment/StripeEmbeddedPayment';
+import CheckoutUpsell from '../CheckoutUpsell/CheckoutUpsell';
 import { resolveShippingAmount } from '../../lib/shipping';
 import {
   trackBeginCheckout,
@@ -745,6 +746,8 @@ export default function SimpleCheckout() {
                 />
               </div>
             </div>
+
+            <CheckoutUpsell cartItems={items} />
 
             <button
               type="button"

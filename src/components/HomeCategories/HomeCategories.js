@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Icon from '../Icon/Icon';
+import { getCategoryCatalogHref } from '../../lib/catalogFilters';
 import styles from './HomeCategories.module.css';
 
 const FALLBACK_IMAGE =
@@ -49,7 +50,7 @@ export default function HomeCategories({ categories = [] }) {
             <div className={styles.carouselTrack} ref={trackRef}>
               {filteredCategories.map((category, index) => (
                 <Link
-                  href={`/catalog/${encodeURIComponent(category.slug)}`}
+                  href={getCategoryCatalogHref(category.slug)}
                   key={category.id || category.slug}
                   className={styles.card}
                 >

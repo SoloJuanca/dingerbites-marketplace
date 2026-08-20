@@ -23,6 +23,8 @@ export default function BulkUpload() {
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(false);
   const [selectorError, setSelectorError] = useState(null);
+  const [refreshingImages, setRefreshingImages] = useState(false);
+  const [imageRefreshResult, setImageRefreshResult] = useState(null);
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -113,6 +115,29 @@ export default function BulkUpload() {
     () => Boolean(file && selectedCategoryId && selectedGroupId && !loadingCategories && !loadingGroups),
     [file, selectedCategoryId, selectedGroupId, loadingCategories, loadingGroups]
   );
+
+  const handleRefreshImages = async () => {
+    setRefreshingImages(true);
+    setError(null);
+    setImageRefreshResult(null);
+
+    try {
+      const response = await apiRequest('/api/admin/products/refresh-tcg-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: 1000 })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || 'No se pudieron refrescar las imágenes TCG');
+      }
+      setImageRefreshResult(data);
+    } catch (err) {
+      setError(err.message || 'Error al refrescar imágenes TCG');
+    } finally {
+      setRefreshingImages(false);
+    }
+  };
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -302,6 +327,16 @@ export default function BulkUpload() {
           >
             <span className="material-symbols-outlined" style={{ fontSize: 18, verticalAlign: 'middle' }}>download</span> Descargar Template
           </button>
+
+          <button
+            type="button"
+            onClick={handleRefreshImages}
+            disabled={refreshingImages || uploading}
+            className={styles.templateButton}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18, verticalAlign: 'middle' }}>image</span>
+            {refreshingImages ? 'Refrescando imágenes...' : 'Refrescar imágenes TCG rotas'}
+          </button>
         </div>
       </div>
 
@@ -316,6 +351,35 @@ export default function BulkUpload() {
         <div className={styles.error}>
           <h3><span className="material-symbols-outlined" style={{ fontSize: 20, verticalAlign: 'middle', color: '#ef4444' }}>error</span> Error</h3>
           <p>{error}</p>
+        </div>
+      )}
+
+      {imageRefreshResult && (
+        <div className={styles.results}>
+          <h3>
+            <span className="material-symbols-outlined" style={{ fontSize: 20, verticalAlign: 'middle', color: '#10b981' }}>
+              image
+            </span>{' '}
+            Resultado del refresh de imágenes
+          </h3>
+          <div className={styles.summary}>
+            <div className={styles.summaryItem}>
+              <span className={styles.summaryLabel}>Candidatos:</span>
+              <span className={styles.summaryValue}>{imageRefreshResult.candidates}</span>
+            </div>
+            <div className={styles.summaryItem}>
+              <span className={styles.summaryLabel}>Actualizados:</span>
+              <span className={styles.summaryValue}>{imageRefreshResult.updated}</span>
+            </div>
+            <div className={styles.summaryItem}>
+              <span className={styles.summaryLabel}>Omitidos:</span>
+              <span className={styles.summaryValue}>{imageRefreshResult.skipped}</span>
+            </div>
+            <div className={styles.summaryItem}>
+              <span className={styles.summaryLabel}>Fallidos:</span>
+              <span className={styles.summaryValue}>{imageRefreshResult.failed}</span>
+            </div>
+          </div>
         </div>
       )}
 
@@ -418,6 +482,10 @@ export default function BulkUpload() {
           <li>Normal y Foil se guardan como productos separados</li>
           <li>El endpoint usa los IDs seleccionados para categoría y grupo</li>
           <li>El upsert se hace por tcg_product_id + tcg_sub_type_name</li>
+          <li>
+            Usa “Refrescar imágenes TCG rotas” para reparar cartas sin imagen o con URL inválida
+            (consulta tcgcsv por grupo y actualiza Firestore + Typesense)
+          </li>
         </ul>
       </div>
     </div>

@@ -7,23 +7,30 @@ import Footer from '../components/Footer/Footer';
 import { listHomeBannersPublic } from '../lib/firebaseHomeBanners';
 import { getCategories, getNewestProducts, getPopularProducts } from '../lib/firebaseProducts';
 import { getGeneralReviews } from '../lib/firebaseReviews';
+import { filterCategoriesForDisplay } from '../lib/catalogFilters';
+import { getCategoryFacetCounts } from '../lib/search/typesenseSearch';
 
 /** Banners and home sections read from Firestore — avoid static HTML cached until redeploy */
 export const revalidate = 0;
 
 export default async function Home() {
-  const [bannersResult, categoriesResult, newestResult, popularResult, reviewsResult] = await Promise.allSettled([
+  const [bannersResult, categoriesResult, facetCountsResult, newestResult, popularResult, reviewsResult] = await Promise.allSettled([
     listHomeBannersPublic(),
     getCategories(),
+    getCategoryFacetCounts({ inStockOnly: true }),
     getNewestProducts({ limit: 8, inStockOnly: true }),
     getPopularProducts({ limit: 8, inStockOnly: true, windowDays: 30 }),
     getGeneralReviews({ limit: 12, approvedOnly: true })
   ]);
 
   const banners = bannersResult.status === 'fulfilled' ? bannersResult.value : [];
-  const categories = categoriesResult.status === 'fulfilled'
+  const allCategories = categoriesResult.status === 'fulfilled'
     ? (Array.isArray(categoriesResult.value) ? categoriesResult.value : [])
     : [];
+  const facetCounts = facetCountsResult.status === 'fulfilled'
+    ? facetCountsResult.value
+    : { categoryCounts: {}, subcategoryCounts: {} };
+  const categories = filterCategoriesForDisplay(allCategories, facetCounts, { excludeTcg: false });
   const newestProducts = newestResult.status === 'fulfilled' ? newestResult.value : [];
   const popularProducts = popularResult.status === 'fulfilled' ? popularResult.value : [];
   const reviews = reviewsResult.status === 'fulfilled'

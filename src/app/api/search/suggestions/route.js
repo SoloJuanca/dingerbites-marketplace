@@ -8,6 +8,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q') || '';
     const filters = {
+      mode: searchParams.get('mode') || '',
       category: searchParams.get('category') || '',
       subcategory: searchParams.get('subcategory') || '',
       inStockOnly: 'true'

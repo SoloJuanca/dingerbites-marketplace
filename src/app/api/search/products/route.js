@@ -9,6 +9,7 @@ export async function GET(request) {
     const filters = {
       page: searchParams.get('page') || '1',
       limit: searchParams.get('limit') || '12',
+      mode: searchParams.get('mode') || '',
       category: searchParams.get('category') || '',
       subcategory: searchParams.get('subcategory') || '',
       tcgCategoryId: searchParams.get('tcgCategoryId') || '',

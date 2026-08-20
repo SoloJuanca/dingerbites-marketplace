@@ -16,6 +16,16 @@
   max-height: 420px;
 }
 
+.imageLink {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 320px;
+  max-height: 420px;
+  color: inherit;
+  text-decoration: none;
+}
+
 .image {
   width: 100%;
   height: auto;

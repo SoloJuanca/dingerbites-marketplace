@@ -7,6 +7,53 @@ import styles from './HomeBannerCarousel.module.css';
 
 const AUTOPLAY_MS = 5000;
 
+function BannerSlide({ banner }) {
+  const hasCtaUrl = Boolean(String(banner.cta_url || '').trim());
+  const hasOverlayCopy =
+    Boolean(String(banner.title || '').trim()) ||
+    Boolean(String(banner.subtitle || '').trim()) ||
+    (Boolean(String(banner.cta_label || '').trim()) && hasCtaUrl);
+
+  const image = (
+    <Image
+      src={banner.image_url}
+      alt={banner.title || 'Banner principal'}
+      width={1200}
+      height={420}
+      className={styles.image}
+      priority
+    />
+  );
+
+  const overlay = hasOverlayCopy ? (
+    <div className={styles.overlay}>
+      <div className={styles.content}>
+        {banner.title && <h2 className={styles.title}>{banner.title}</h2>}
+        {banner.subtitle && <p className={styles.subtitle}>{banner.subtitle}</p>}
+        {banner.cta_label && hasCtaUrl && (
+          <span className={styles.ctaButton}>{banner.cta_label}</span>
+        )}
+      </div>
+    </div>
+  ) : null;
+
+  if (hasCtaUrl) {
+    return (
+      <Link href={banner.cta_url} className={styles.imageLink} aria-label={banner.title || 'Ir al banner'}>
+        {image}
+        {overlay}
+      </Link>
+    );
+  }
+
+  return (
+    <>
+      {image}
+      {overlay}
+    </>
+  );
+}
+
 export default function HomeBannerCarousel({ banners = [] }) {
   const [index, setIndex] = useState(0);
 
@@ -41,37 +88,12 @@ export default function HomeBannerCarousel({ banners = [] }) {
 
   const current = safeBanners[index];
 
-  const hasOverlayCopy =
-    Boolean(String(current.title || '').trim()) ||
-    Boolean(String(current.subtitle || '').trim()) ||
-    (Boolean(String(current.cta_label || '').trim()) && Boolean(String(current.cta_url || '').trim()));
-
   return (
     <section className={styles.section} aria-label="Banners principales">
       <div className="container">
         <div className={styles.carousel}>
           <div className={styles.imageWrap}>
-            <Image
-              src={current.image_url}
-              alt={current.title || 'Banner principal'}
-              width={1200}
-              height={420}
-              className={styles.image}
-              priority
-            />
-            {hasOverlayCopy && (
-              <div className={styles.overlay}>
-                <div className={styles.content}>
-                  {current.title && <h2 className={styles.title}>{current.title}</h2>}
-                  {current.subtitle && <p className={styles.subtitle}>{current.subtitle}</p>}
-                  {current.cta_label && current.cta_url && (
-                    <Link href={current.cta_url} className={styles.ctaButton}>
-                      {current.cta_label}
-                    </Link>
-                  )}
-                </div>
-              </div>
-            )}
+            <BannerSlide banner={current} />
           </div>
 
           {safeBanners.length > 1 && (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Icon from '../Icon/Icon';
 import styles from './ImageCarousel.module.css';
@@ -18,31 +18,81 @@ function getTcgImageUrl(imageUrl) {
   return imageUrl.replace('_200w.jpg', '_400w.jpg');
 }
 
-export default function ImageCarousel({ images, productName, isTcgProduct = false }) {
+export default function ImageCarousel({
+  images,
+  productName,
+  isTcgProduct = false,
+  productId = null
+}) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const imageList = (Array.isArray(images) ? images : [images])
-    .map(normalizeImageUrl)
-    .filter(Boolean)
-    .map((image) => (isTcgProduct ? getTcgImageUrl(image) : image));
+  const [imageList, setImageList] = useState([]);
+  const [imageFailed, setImageFailed] = useState(false);
+  const refreshAttemptedRef = useRef(false);
+
+  useEffect(() => {
+    const nextList = (Array.isArray(images) ? images : [images])
+      .map(normalizeImageUrl)
+      .filter(Boolean)
+      .map((image) => (isTcgProduct ? getTcgImageUrl(image) : image));
+    setImageList(nextList);
+    setCurrentIndex(0);
+    setImageFailed(false);
+    refreshAttemptedRef.current = false;
+  }, [images, isTcgProduct]);
+
   const currentImage = imageList[currentIndex];
 
   const goToPrevious = () => {
-    setCurrentIndex(prev => 
-      prev === 0 ? imageList.length - 1 : prev - 1
-    );
+    setCurrentIndex((prev) => (prev === 0 ? imageList.length - 1 : prev - 1));
+    setImageFailed(false);
   };
 
   const goToNext = () => {
-    setCurrentIndex(prev => 
-      prev === imageList.length - 1 ? 0 : prev + 1
-    );
+    setCurrentIndex((prev) => (prev === imageList.length - 1 ? 0 : prev + 1));
+    setImageFailed(false);
   };
 
   const goToSlide = (index) => {
     setCurrentIndex(index);
+    setImageFailed(false);
   };
 
-  if (imageList.length === 0) {
+  const handleImageError = async () => {
+    if (refreshAttemptedRef.current) {
+      setImageFailed(true);
+      return;
+    }
+    refreshAttemptedRef.current = true;
+
+    if (!isTcgProduct || !productId) {
+      setImageFailed(true);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/products/${encodeURIComponent(productId)}/refresh-image`, {
+        method: 'POST'
+      });
+      const data = await response.json().catch(() => ({}));
+      const nextImage = typeof data?.image === 'string' ? data.image.trim() : '';
+      if (data?.refreshed && nextImage) {
+        const upgraded = getTcgImageUrl(nextImage);
+        setImageList((prev) => {
+          if (prev.length === 0) return [upgraded];
+          const copy = [...prev];
+          copy[currentIndex] = upgraded;
+          return copy;
+        });
+        setImageFailed(false);
+        return;
+      }
+      setImageFailed(true);
+    } catch {
+      setImageFailed(true);
+    }
+  };
+
+  if (imageList.length === 0 || imageFailed) {
     return (
       <div className={styles.carousel}>
         <div className={styles.placeholder}>
@@ -64,6 +114,7 @@ export default function ImageCarousel({ images, productName, isTcgProduct = fals
           className={`${styles.mainImage} ${isTcgProduct ? styles.tcgMainImage : ''}`}
           priority={currentIndex === 0}
           sizes="(max-width: 480px) calc(100vw - 64px), (max-width: 768px) calc(100vw - 80px), (max-width: 1024px) calc(100vw - 96px), 760px"
+          onError={handleImageError}
         />
         
         {imageList.length > 1 && (
@@ -123,4 +174,4 @@ export default function ImageCarousel({ images, productName, isTcgProduct = fals
       )}
     </div>
   );
-} 
+}

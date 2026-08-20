@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -19,10 +19,62 @@ export default function ProductCard({ product }) {
   const [isAdding, setIsAdding] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [isWishlistToggling, setIsWishlistToggling] = useState(false);
+  const [imageSrc, setImageSrc] = useState(product.image || '');
+  const [imageFailed, setImageFailed] = useState(false);
+  const [imageRefreshing, setImageRefreshing] = useState(false);
+  const imageRefreshAttemptedRef = useRef(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  useEffect(() => {
+    setImageSrc(product.image || '');
+    setImageFailed(false);
+    imageRefreshAttemptedRef.current = false;
+  }, [product.id, product.image]);
+
+  const isTcgProduct =
+    Boolean(product.tcg_product_id) ||
+    Boolean(product.tcg_category_id) ||
+    product.category_slug === 'tcg';
+
+  const handleImageError = async () => {
+    if (imageRefreshAttemptedRef.current) {
+      setImageFailed(true);
+      return;
+    }
+    imageRefreshAttemptedRef.current = true;
+
+    if (!isTcgProduct || !product.id) {
+      setImageFailed(true);
+      return;
+    }
+
+    try {
+      setImageRefreshing(true);
+      const response = await fetch(`/api/products/${encodeURIComponent(product.id)}/refresh-image`, {
+        method: 'POST'
+      });
+      const data = await response.json().catch(() => ({}));
+      const nextImage = typeof data?.image === 'string' ? data.image.trim() : '';
+      if (data?.refreshed && nextImage && nextImage !== imageSrc) {
+        setImageSrc(nextImage);
+        setImageFailed(false);
+        return;
+      }
+      setImageFailed(true);
+    } catch {
+      setImageFailed(true);
+    } finally {
+      setImageRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isTcgProduct || imageSrc || imageRefreshAttemptedRef.current) return;
+    handleImageError();
+  }, [isTcgProduct, imageSrc, product.id]);
 
   const formatPrice = (price) => {
     if (!isClient) return `$${Number(price).toFixed(2)}`;
@@ -33,7 +85,8 @@ export default function ProductCard({ product }) {
     }).format(price);
   };
 
-  const displayPrice = product.tcg_product_id
+  const displayPrice =
+    product.tcg_product_id || product.tcg_category_id || product.category_slug === 'tcg'
     ? Math.max(
       getTcgMinPriceForSubType(product.tcg_sub_type_name || 'Normal'),
       Number(product.price) || 0
@@ -75,7 +128,7 @@ export default function ProductCard({ product }) {
         name: product.name,
         description: product.description,
         price: displayPrice,
-        image: product.image,
+        image: imageSrc || product.image,
         stock_quantity: stockQuantity
       }, user, apiRequest);
 
@@ -145,13 +198,21 @@ export default function ProductCard({ product }) {
     <div className={styles.card}>
       <div className={styles.imageContainer}>
         <Link href={`/catalog/${product.slug}`} className={styles.imageWrapper} onClick={handleSelectItem}>
-          <Image
-            src={product.image}
-            alt={product.name}
-            width={280}
-            height={200}
-            className={styles.image}
-          />
+          {imageFailed || !imageSrc ? (
+            <div className={styles.imagePlaceholder} aria-hidden>
+              <Icon name="image" size={40} />
+              {imageRefreshing ? <span className={styles.imagePlaceholderText}>Actualizando…</span> : null}
+            </div>
+          ) : (
+            <Image
+              src={imageSrc}
+              alt={product.name}
+              width={280}
+              height={200}
+              className={styles.image}
+              onError={handleImageError}
+            />
+          )}
         </Link>
         <button 
           className={`${styles.wishlistBtn} ${isInWishlist(product.id) ? styles.wishlistActive : ''}`}

@@ -4,7 +4,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import Icon from '../Icon/Icon';
 import { trackSearch } from '../../lib/analytics';
+import { CATALOG_MODE_TCG, TCG_SLUG } from '../../lib/catalogFilters';
+import { buildCatalogUrl as buildCatalogNavigationUrl } from '../../lib/catalogNavigation';
 import styles from './HeaderSearchBar.module.css';
+
+const HEADER_TCG_VALUE = '__tcg__';
 
 export default function HeaderSearchBar() {
   const router = useRouter();
@@ -30,7 +34,7 @@ export default function HeaderSearchBar() {
       if (!res.ok) return;
       const data = await res.json();
       const list = Array.isArray(data.categories) ? data.categories : [];
-      setCategories(list.filter((c) => c?.slug && !c.parent_id));
+      setCategories(list.filter((c) => c?.slug && !c.parent_id && c.slug !== TCG_SLUG));
       hasLoadedFiltersRef.current = true;
     } catch {
       // keep categories empty; we can retry on next focus/open
@@ -44,8 +48,13 @@ export default function HeaderSearchBar() {
     const q = searchParams.get('q') || searchParams.get('search') || '';
     setQuery(q);
     if (pathname === '/catalog') {
-      const cat = searchParams.get('category') || '';
-      setCategorySlug(cat);
+      const mode = searchParams.get('mode') || '';
+      if (mode === CATALOG_MODE_TCG) {
+        setCategorySlug(HEADER_TCG_VALUE);
+      } else {
+        const cat = searchParams.get('category') || '';
+        setCategorySlug(cat);
+      }
     }
   }, [pathname, searchParams]);
 
@@ -62,7 +71,11 @@ export default function HeaderSearchBar() {
         setIsLoadingSuggestions(true);
         const params = new URLSearchParams();
         params.set('q', q);
-        if (categorySlug) params.set('category', categorySlug);
+        if (categorySlug === HEADER_TCG_VALUE) {
+          params.set('mode', CATALOG_MODE_TCG);
+        } else if (categorySlug) {
+          params.set('category', categorySlug);
+        }
         const response = await fetch(`/api/search/suggestions?${params.toString()}`);
         if (!response.ok) return;
         const data = await response.json();
@@ -82,22 +95,51 @@ export default function HeaderSearchBar() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [query]);
+  }, [query, categorySlug]);
 
   const buildCatalogUrl = useCallback(() => {
-    const params = new URLSearchParams();
-    params.set('page', '1');
-    params.set('inStockOnly', 'true');
-    if (categorySlug) {
-      params.set('category', categorySlug);
+    const updates = {
+      page: '1',
+      inStockOnly: 'true',
+      q: query.trim()
+    };
+
+    if (categorySlug === HEADER_TCG_VALUE) {
+      updates.mode = CATALOG_MODE_TCG;
+      updates.category = '';
+      updates.subcategory = '';
+    } else if (categorySlug) {
+      updates.category = categorySlug;
+      updates.mode = '';
+    } else {
+      updates.mode = '';
+      updates.category = '';
     }
-    const trimmed = query.trim();
-    if (trimmed) {
-      params.set('q', trimmed);
-    }
-    const qs = params.toString();
-    return qs ? `/catalog?${qs}` : '/catalog';
-  }, [categorySlug, query]);
+
+    return buildCatalogNavigationUrl(updates, searchParams);
+  }, [categorySlug, query, searchParams]);
+
+  const buildSuggestionUrl = useCallback(
+    (suggestion) => {
+      const updates = {
+        page: '1',
+        inStockOnly: 'true',
+        q: suggestion.label
+      };
+
+      if (categorySlug === HEADER_TCG_VALUE) {
+        updates.mode = CATALOG_MODE_TCG;
+      } else if (categorySlug) {
+        updates.category = categorySlug;
+      }
+
+      if (suggestion.tcgCategoryId) updates.tcgCategoryId = suggestion.tcgCategoryId;
+      if (suggestion.tcgGroupId) updates.tcgGroupId = suggestion.tcgGroupId;
+
+      return buildCatalogNavigationUrl(updates, searchParams);
+    },
+    [categorySlug, searchParams]
+  );
 
   const goToCatalog = useCallback(() => {
     const trimmed = query.trim();
@@ -137,14 +179,7 @@ export default function HeaderSearchBar() {
         const selected = suggestions[activeIndex];
         setQuery(selected.label);
         trackSearch(selected.label);
-        const params = new URLSearchParams();
-        params.set('page', '1');
-        params.set('inStockOnly', 'true');
-        if (categorySlug) params.set('category', categorySlug);
-        if (selected.tcgCategoryId) params.set('tcgCategoryId', selected.tcgCategoryId);
-        if (selected.tcgGroupId) params.set('tcgGroupId', selected.tcgGroupId);
-        params.set('q', selected.label);
-        router.push(`/catalog?${params.toString()}`);
+        router.push(buildSuggestionUrl(selected));
         setSuggestions([]);
         return;
       }
@@ -177,7 +212,8 @@ export default function HeaderSearchBar() {
               onChange={(e) => setCategorySlug(e.target.value)}
               aria-label="Filtrar por categoría"
             >
-              <option value="">Todos</option>
+              <option value="">Todos los productos</option>
+              <option value={HEADER_TCG_VALUE}>TCG</option>
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.slug}>
                   {cat.name}
@@ -229,12 +265,18 @@ export default function HeaderSearchBar() {
               onMouseDown={(ev) => {
                 ev.preventDefault();
                 trackSearch(trimmedQuery);
-                const params = new URLSearchParams();
-                params.set('page', '1');
-                params.set('inStockOnly', 'true');
-                if (categorySlug) params.set('category', categorySlug);
-                params.set('q', trimmedQuery);
-                router.push(`/catalog?${params.toString()}`);
+                router.push(
+                  buildCatalogNavigationUrl(
+                    {
+                      page: '1',
+                      inStockOnly: 'true',
+                      q: trimmedQuery,
+                      mode: categorySlug === HEADER_TCG_VALUE ? CATALOG_MODE_TCG : '',
+                      category: categorySlug === HEADER_TCG_VALUE ? '' : categorySlug
+                    },
+                    searchParams
+                  )
+                );
                 setSuggestions([]);
                 setActiveIndex(-1);
                 setIsFocused(false);
@@ -256,14 +298,7 @@ export default function HeaderSearchBar() {
                   ev.preventDefault();
                   setQuery(suggestion.label);
                   trackSearch(suggestion.label);
-                  const params = new URLSearchParams();
-                  params.set('page', '1');
-                  params.set('inStockOnly', 'true');
-                  if (categorySlug) params.set('category', categorySlug);
-                  if (suggestion.tcgCategoryId) params.set('tcgCategoryId', suggestion.tcgCategoryId);
-                  if (suggestion.tcgGroupId) params.set('tcgGroupId', suggestion.tcgGroupId);
-                  params.set('q', suggestion.label);
-                  router.push(`/catalog?${params.toString()}`);
+                  router.push(buildSuggestionUrl(suggestion));
                   setSuggestions([]);
                   setActiveIndex(-1);
                   setIsFocused(false);

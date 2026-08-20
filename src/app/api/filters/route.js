@@ -1,20 +1,24 @@
 import { NextResponse } from 'next/server';
 import { getCategories, getBrands, getPriceRange } from '../../../lib/firebaseProducts';
+import { filterCategoriesForDisplay } from '../../../lib/catalogFilters';
+import { getCategoryFacetCounts } from '../../../lib/search/typesenseSearch';
 import { PRODUCT_CONDITIONS, PRODUCT_CONDITION_LABELS } from '../../../lib/productCondition';
 
 export async function GET() {
   try {
-    const [categories, manufacturerBrands, franchiseBrands, priceRange] = await Promise.all([
+    const [categories, manufacturerBrands, franchiseBrands, priceRange, facetCounts] = await Promise.all([
       getCategories(),
       getBrands({ type: 'manufacturer' }),
       getBrands({ type: 'franchise' }),
-      getPriceRange()
+      getPriceRange(),
+      getCategoryFacetCounts({ inStockOnly: true })
     ]);
     const brands = [...manufacturerBrands, ...franchiseBrands];
+    const visibleCategories = filterCategoriesForDisplay(categories, facetCounts, { excludeTcg: true });
 
     return NextResponse.json(
       {
-        categories,
+        categories: visibleCategories,
         manufacturerBrands,
         franchiseBrands,
         brands,
@@ -26,7 +30,6 @@ export async function GET() {
       },
       {
         headers: {
-          // Cache at the edge/CDN when available, serve stale while revalidating.
           'cache-control': 'public, s-maxage=3600, stale-while-revalidate=86400'
         }
       }
@@ -34,7 +37,6 @@ export async function GET() {
   } catch (error) {
     console.error('Error fetching filter data:', error);
     
-    // Devolver datos mock como fallback
     return NextResponse.json(
       {
         categories: [

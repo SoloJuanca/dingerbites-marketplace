@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { getCategoryCatalogHref } from '../../lib/catalogFilters';
 import styles from './HomeImportantCategories.module.css';
 
 export default function HomeImportantCategories() {
@@ -50,7 +51,7 @@ export default function HomeImportantCategories() {
           <div className={styles.grid}>
             {categories.map((category) => (
               <article key={category.id || category.slug} className={styles.card}>
-                <Link href={`/catalog/${encodeURIComponent(category.slug)}`} className={styles.cardLink}>
+                <Link href={getCategoryCatalogHref(category.slug)} className={styles.cardLink}>
                   <div className={styles.imageWrap}>
                     <Image
                       src={category.image_url || 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=640&h=360&fit=crop'}

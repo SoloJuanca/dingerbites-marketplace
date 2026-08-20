@@ -3,7 +3,8 @@ import Footer from '../../components/Footer/Footer';
 import CatalogClient from '../../components/Catalog/CatalogClient';
 import { getCategories, getBrands, getPriceRange } from '../../lib/firebaseProducts';
 import { PRODUCT_CONDITIONS, PRODUCT_CONDITION_LABELS } from '../../lib/productCondition';
-import { searchProducts } from '../../lib/search/typesenseSearch';
+import { filterCategoriesForDisplay, normalizeCatalogFilters, toSearchFilters } from '../../lib/catalogFilters';
+import { searchProducts, getCategoryFacetCounts } from '../../lib/search/typesenseSearch';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +20,8 @@ export async function generateMetadata({ searchParams }) {
     Boolean(sp?.condition) ||
     Boolean(sp?.minPrice) ||
     Boolean(sp?.maxPrice) ||
-    Boolean(sp?.page);
+    Boolean(sp?.page) ||
+    Boolean(sp?.mode);
 
   return {
     title: 'Catálogo de productos',
@@ -31,56 +33,23 @@ export async function generateMetadata({ searchParams }) {
   };
 }
 
-function normalizeFilters(searchParams) {
-  const safeParams = searchParams || {};
-  return {
-    currentPage: parseInt(safeParams.page, 10) || 1,
-    category: safeParams.category || '',
-    subcategory: safeParams.subcategory || '',
-    tcgCategoryId: safeParams.tcgCategoryId || '',
-    tcgGroupId: safeParams.tcgGroupId || '',
-    manufacturerBrand: safeParams.manufacturerBrand || '',
-    franchiseBrand: safeParams.franchiseBrand || '',
-    brand: safeParams.brand || '',
-    condition: safeParams.condition || '',
-    minPrice: safeParams.minPrice || '',
-    maxPrice: safeParams.maxPrice || '',
-    sortBy: safeParams.sortBy || 'newest',
-    search: safeParams.q || safeParams.search || '',
-    inStockOnly: safeParams.inStockOnly ?? 'true'
-  };
-}
-
 export default async function CatalogPage({ searchParams }) {
   const sp = await searchParams;
-  const filters = normalizeFilters(sp);
+  const filters = normalizeCatalogFilters(sp);
 
-  const [categories, manufacturerBrands, franchiseBrands, priceRange, initialResult] = await Promise.all([
-    getCategories(),
-    getBrands({ type: 'manufacturer' }),
-    getBrands({ type: 'franchise' }),
-    getPriceRange(),
-    searchProducts(
-      {
-        page: filters.currentPage,
-        limit: 12,
-        category: filters.category,
-        subcategory: filters.subcategory,
-        tcgCategoryId: filters.tcgCategoryId,
-        tcgGroupId: filters.tcgGroupId,
-        manufacturerBrand: filters.manufacturerBrand,
-        franchiseBrand: filters.franchiseBrand,
-        brand: filters.brand,
-        condition: filters.condition,
-        minPrice: filters.minPrice,
-        maxPrice: filters.maxPrice,
-        sortBy: filters.sortBy,
-        q: filters.search,
-        inStockOnly: filters.inStockOnly
-      },
-      { allowFallback: true }
-    )
-  ]);
+  const [categories, manufacturerBrands, franchiseBrands, priceRange, facetCounts, initialResult] =
+    await Promise.all([
+      getCategories(),
+      getBrands({ type: 'manufacturer' }),
+      getBrands({ type: 'franchise' }),
+      getPriceRange(),
+      getCategoryFacetCounts({ inStockOnly: true }),
+      searchProducts(toSearchFilters(filters), { allowFallback: true })
+    ]);
+
+  const visibleCategories = filterCategoriesForDisplay(categories, facetCounts, {
+    excludeTcg: filters.mode !== 'tcg'
+  });
 
   const conditions = PRODUCT_CONDITIONS.map((value) => ({
     value,
@@ -91,7 +60,7 @@ export default async function CatalogPage({ searchParams }) {
     <>
       <Header />
       <CatalogClient
-        categories={categories}
+        categories={visibleCategories}
         manufacturerBrands={manufacturerBrands}
         franchiseBrands={franchiseBrands}
         conditions={conditions}

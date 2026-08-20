@@ -5,6 +5,7 @@ import ProductGrid from '../ProductGrid/ProductGrid';
 import FilterSidebar from '../FilterSidebar/FilterSidebar';
 import FilterModal from '../FilterModal/FilterModal';
 import SortOptions from '../SortOptions/SortOptions';
+import CatalogModeSwitcher from '../CatalogModeSwitcher/CatalogModeSwitcher';
 import Icon from '../Icon/Icon';
 import styles from '../../app/catalog/catalog.module.css';
 
@@ -27,6 +28,7 @@ export default function CatalogClient({
         <div className={styles.catalogContent}>
           <aside className={styles.sidebar}>
             <FilterSidebar
+              catalogMode={filters.mode}
               categories={categories}
               manufacturerBrands={manufacturerBrands}
               franchiseBrands={franchiseBrands}
@@ -46,6 +48,8 @@ export default function CatalogClient({
           </aside>
 
           <div className={styles.mainContent}>
+            <CatalogModeSwitcher mode={filters.mode} />
+
             <div className={styles.sortSection}>
               <button className={styles.filterButton} onClick={openFilterModal}>
                 <Icon name="tune" size={20} />
@@ -55,6 +59,7 @@ export default function CatalogClient({
             </div>
 
             <ProductGrid
+              mode={filters.mode}
               currentPage={filters.currentPage}
               category={filters.category}
               subcategory={filters.subcategory}
@@ -76,6 +81,7 @@ export default function CatalogClient({
       </div>
 
       <FilterModal
+        catalogMode={filters.mode}
         categories={categories}
         manufacturerBrands={manufacturerBrands}
         franchiseBrands={franchiseBrands}

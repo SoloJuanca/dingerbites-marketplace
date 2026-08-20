@@ -9,6 +9,7 @@ import { trackViewItemList } from '../../lib/analytics';
 import styles from './ProductGrid.module.css';
 
 export default function ProductGrid({
+  mode = 'general',
   currentPage,
   category,
   subcategory,
@@ -41,6 +42,7 @@ export default function ProductGrid({
           limit: 12
         });
 
+        if (mode === 'tcg') params.set('mode', 'tcg');
         if (category) params.set('category', category);
         if (subcategory) params.set('subcategory', subcategory);
         if (tcgCategoryId) params.set('tcgCategoryId', tcgCategoryId);
@@ -92,6 +94,7 @@ export default function ProductGrid({
 
     loadProducts();
   }, [
+    mode,
     currentPage,
     category,
     subcategory,
@@ -112,7 +115,11 @@ export default function ProductGrid({
   // Analytics: report the product list being viewed.
   useEffect(() => {
     if (loading || !products || products.length === 0) return;
-    const listName = search ? `search:${search}` : category || 'catalog';
+    const listName = search
+      ? `search:${search}`
+      : mode === 'tcg'
+        ? 'tcg'
+        : category || 'catalog';
     trackViewItemList(products, listName);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [products, loading]);

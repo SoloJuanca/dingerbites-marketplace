@@ -1,13 +1,13 @@
 'use client';
 
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { trackFilterApplied } from '../../lib/analytics';
+import { pushCatalogFilters } from '../../lib/catalogNavigation';
 import styles from './SortOptions.module.css';
 
 export default function SortOptions({ currentSort, currentInStockOnly = 'true' }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const pathname = usePathname();
 
   const sortOptions = [
     { value: 'newest', label: 'Más nuevos' },
@@ -17,29 +17,15 @@ export default function SortOptions({ currentSort, currentInStockOnly = 'true' }
   ];
 
   const handleSortChange = (e) => {
-    const params = new URLSearchParams(searchParams);
     const newSort = e.target.value;
-    
-    // Resetear página cuando se cambia el ordenamiento
-    params.delete('page');
-    
-    if (newSort) {
-      params.set('sortBy', newSort);
-    } else {
-      params.delete('sortBy');
-    }
-
     trackFilterApplied('sort', newSort || 'default', { source: 'sort_options' });
-    router.push(`${pathname}?${params.toString()}`);
+    pushCatalogFilters(router, searchParams, { sortBy: newSort || '' });
   };
 
   const handleInStockChange = (e) => {
-    const params = new URLSearchParams(searchParams);
     const checked = e.target.checked;
-    params.delete('page');
-    params.set('inStockOnly', checked ? 'true' : 'false');
     trackFilterApplied('in_stock', checked ? 'true' : 'false', { source: 'sort_options' });
-    router.push(`${pathname}?${params.toString()}`);
+    pushCatalogFilters(router, searchParams, { inStockOnly: checked ? 'true' : 'false' });
   };
 
   const isInStockOnly = String(currentInStockOnly || 'true').toLowerCase() !== 'false';
