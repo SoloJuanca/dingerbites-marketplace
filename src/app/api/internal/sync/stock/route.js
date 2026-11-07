@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
-import { db } from '../../../../lib/firebaseAdmin';
-import { assertStockAvailableForOrderItems } from '../../../../lib/orderStock';
+import { db } from '../../../../../lib/firebaseAdmin';
+import { assertStockAvailableForOrderItems } from '../../../../../lib/orderStock';
 
 const PRODUCTS_COLLECTION = 'products';
 const SYNC_SECRET = process.env.INTERNAL_SYNC_SECRET || '';
