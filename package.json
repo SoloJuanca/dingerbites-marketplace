@@ -13,7 +13,8 @@
     "typesense:init": "node scripts/search/initTypesenseCollection.mjs",
     "typesense:backfill": "node scripts/search/backfillProductsToTypesense.mjs",
     "optimize:images:dry": "node scripts/backfill-image-optimization.mjs",
-    "optimize:images:apply": "node scripts/backfill-image-optimization.mjs --apply"
+    "optimize:images:apply": "node scripts/backfill-image-optimization.mjs --apply",
+    "sync:marketplace": "node scripts/sync-marketplace-inventory.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^6.1.0",

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '../../../../lib/firebaseAdmin';
+import { getShippingPackageSize, SHIPPING_PACKAGE_SIZE_IDS } from '../../../../lib/shippingPackageSizes';
 
 const PRODUCTS_COLLECTION = 'products';
 const CATEGORIES_COLLECTION = 'product_categories';
@@ -170,6 +171,13 @@ async function processProductRow(data, rowNumber, categoriesByKey, brandsByKey, 
   if (isNaN(price) || price < 0) {
     return { success: false, error: 'Invalid price format' };
   }
+  const requestedShippingSize = data.tamano_envio?.trim().toLowerCase();
+  if (requestedShippingSize && !SHIPPING_PACKAGE_SIZE_IDS.includes(requestedShippingSize)) {
+    return {
+      success: false,
+      error: `Invalid tamano_envio. Use one of: ${SHIPPING_PACKAGE_SIZE_IDS.join(', ')}`
+    };
+  }
 
   const activo = data.activo.toLowerCase() === 'true';
   const destacado = data.destacado ? data.destacado.toLowerCase() === 'true' : false;
@@ -234,6 +242,7 @@ async function processProductRow(data, rowNumber, categoriesByKey, brandsByKey, 
     is_featured: destacado,
     is_bestseller: bestseller,
     weight_grams: data.peso_gramos ? parseFloat(data.peso_gramos) : null,
+    shipping_package_size: getShippingPackageSize(requestedShippingSize),
     dimensions_cm: dimensions,
     meta_title: data.meta_titulo || null,
     meta_description: data.meta_descripcion || null,

@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../../lib/auth';
 import { db } from '../../../../../lib/firebaseAdmin';
+import { getShippingPackageSize } from '../../../../../lib/shippingPackageSizes';
 import { notifyBackInStockSubscribers } from '../../../../../lib/stockAlerts';
 import { isValidProductCondition, normalizeProductCondition } from '../../../../../lib/productCondition';
 import { deleteProductFromTypesense, syncProductToTypesenseSafe } from '../../../../../lib/search/typesenseSync';
+import { syncTcgStockToMarketplace } from '../../../../../lib/sync/marketplaceSyncClient';
 
 const PRODUCTS_COLLECTION = 'products';
 const CATEGORIES_COLLECTION = 'product_categories';
@@ -140,6 +142,7 @@ export async function PUT(request, { params }) {
       sku,
       barcode,
       weight_grams,
+      shipping_package_size,
       dimensions_cm,
       category_id,
       subcategory_id,
@@ -242,6 +245,9 @@ export async function PUT(request, { params }) {
       sku: sku ?? existingProduct.sku ?? null,
       barcode: barcode ?? existingProduct.barcode ?? null,
       weight_grams: weight_grams !== undefined ? toNumber(weight_grams, 0) : existingProduct.weight_grams,
+      shipping_package_size: getShippingPackageSize(shipping_package_size ?? existingProduct.shipping_package_size, {
+        isTcg: (tcg_product_id ?? existingProduct.tcg_product_id) != null
+      }),
       dimensions_cm: dimensions_cm ?? existingProduct.dimensions_cm ?? null,
       category_id: finalCategoryId,
       subcategory_id: finalSubcategoryId,
@@ -277,6 +283,13 @@ export async function PUT(request, { params }) {
     const updatedProduct = { id: updatedSnap.id, ...updatedSnap.data() };
     const searchSync = await syncProductToTypesenseSafe(updatedProduct);
 
+    let marketplaceSync = { skipped: true };
+    if (updatedProduct.tcg_product_id != null) {
+      marketplaceSync = await syncTcgStockToMarketplace(updatedProduct, {
+        idempotencyKey: `ecom-update-${id}-${updatedProduct.stock_quantity}`
+      });
+    }
+
     try {
       await notifyBackInStockSubscribers({
         productId: id,
@@ -292,6 +305,7 @@ export async function PUT(request, { params }) {
       success: true,
       product: updatedProduct,
       search_sync: searchSync,
+      marketplace_sync: marketplaceSync,
       message: 'Product updated successfully'
     });
   } catch (error) {

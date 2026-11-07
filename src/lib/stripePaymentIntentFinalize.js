@@ -94,6 +94,7 @@ export async function ensureOrderForPaymentIntent(stripe, piId, requestMeta = {}
       options: {
         skipEmail: false,
         stripePaymentIntentId: piId,
+        shippingAmount: pending.expected_shipping_amount,
         prePricedOrderItems: pending.priced_order_items ?? null,
         prePricedServiceItems: pending.priced_service_items ?? null
       }

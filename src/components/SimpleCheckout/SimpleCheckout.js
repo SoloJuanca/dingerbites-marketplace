@@ -8,8 +8,7 @@ import { useCart } from '../../lib/CartContext';
 import { useAuth } from '../../lib/AuthContext';
 import AddressManager from '../AddressManager/AddressManager';
 import StripeEmbeddedPayment from '../StripeEmbeddedPayment/StripeEmbeddedPayment';
-import CheckoutUpsell from '../CheckoutUpsell/CheckoutUpsell';
-import { resolveShippingAmount } from '../../lib/shipping';
+import ProductImage from '../ProductImage/ProductImage';
 import {
   trackBeginCheckout,
   trackAddShippingInfo,
@@ -32,10 +31,10 @@ export default function SimpleCheckout() {
     number: '',
     neighborhood: '',
     city: '',
+    state: '',
     postalCode: '',
     deliveryType: 'delivery',
-    pickupPoint: '',
-    notes: ''
+    pickupPoint: ''
   });
 
   const [errors, setErrors] = useState({});
@@ -46,6 +45,19 @@ export default function SimpleCheckout() {
   const [couponCode, setCouponCode] = useState('');
   const [couponData, setCouponData] = useState(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [shippingQuote, setShippingQuote] = useState({
+    status: 'idle',
+    options: [],
+    packageSummary: null,
+    error: ''
+  });
+  const [selectedShippingOptionId, setSelectedShippingOptionId] = useState('');
+  const [shippingQuoteRefresh, setShippingQuoteRefresh] = useState(0);
+  const [shippingSort, setShippingSort] = useState('price');
+  const [shippingCarrierFilter, setShippingCarrierFilter] = useState('all');
+  const [checkoutAccordionStep, setCheckoutAccordionStep] = useState('delivery');
+  const shippingQuoteRequestIdRef = useRef(0);
+  const shippingOptionsRequestedRef = useRef(false);
 
   const [checkoutStep, setCheckoutStep] = useState(1);
   const [stripeClientSecret, setStripeClientSecret] = useState(null);
@@ -56,7 +68,7 @@ export default function SimpleCheckout() {
   const beginCheckoutFiredRef = useRef(false);
   const paymentInfoFiredRef = useRef(false);
 
-  const { items, getTotalPrice } = useCart();
+  const { items, getTotalPrice, orderNotes } = useCart();
   const { user, isAuthenticated, apiRequest } = useAuth();
 
   // Analytics: begin_checkout once when the checkout mounts with items.
@@ -115,12 +127,15 @@ export default function SimpleCheckout() {
     // Parse address_line_1 to try to separate street and number
     const addressParts = address.address_line_1.split(' ');
     const lastPart = addressParts[addressParts.length - 1];
-    const isNumber = /^\d+/.test(lastPart);
-    
+    const trailingNumber = address.address_line_1.match(/^(.*\s)(\d+\s*[A-Za-z]?)$/);
+
     let street, number;
-    if (isNumber) {
+    if (/^\d+/.test(lastPart)) {
       number = lastPart;
       street = addressParts.slice(0, -1).join(' ');
+    } else if (trailingNumber) {
+      street = trailingNumber[1].trim();
+      number = trailingNumber[2];
     } else {
       street = address.address_line_1;
       number = '';
@@ -131,8 +146,9 @@ export default function SimpleCheckout() {
       street: street,
       number: number,
       neighborhood: address.address_line_2 || '',
-      city: address.city,
-      postalCode: address.postal_code
+      city: address.city || '',
+      state: address.state || '',
+      postalCode: address.postal_code || ''
     }));
   };
 
@@ -141,6 +157,8 @@ export default function SimpleCheckout() {
     setSelectedAddress(address);
     setUseNewAddress(false);
     setShowAddressManager(false);
+    setSelectedShippingOptionId('');
+    shippingOptionsRequestedRef.current = false;
     populateAddressFields(address);
   };
 
@@ -151,9 +169,17 @@ export default function SimpleCheckout() {
     }
     setFormData(prev => ({ ...prev, ...updates }));
 
-    if (['street', 'number', 'neighborhood', 'city', 'postalCode'].includes(field)) {
+    if (['street', 'number', 'neighborhood', 'city', 'state', 'postalCode'].includes(field)) {
       setSelectedAddress(null);
       setUseNewAddress(true);
+      setSelectedShippingOptionId('');
+      shippingOptionsRequestedRef.current = false;
+    }
+
+    if (field === 'deliveryType') {
+      setSelectedShippingOptionId('');
+      setCheckoutAccordionStep('delivery');
+      shippingOptionsRequestedRef.current = false;
     }
 
     if (errors[field]) {
@@ -179,13 +205,12 @@ export default function SimpleCheckout() {
     }
     
     if (formData.deliveryType === 'delivery') {
-      if (!selectedAddress || useNewAddress) {
-        if (!formData.street.trim()) newErrors.street = 'La calle es obligatoria';
-        if (!formData.number.trim()) newErrors.number = 'El número es obligatorio';
-        if (!formData.neighborhood.trim()) newErrors.neighborhood = 'La colonia es obligatoria';
-        if (!formData.city.trim()) newErrors.city = 'La ciudad es obligatoria';
-        if (!formData.postalCode.trim()) newErrors.postalCode = 'El código postal es obligatorio';
-      }
+      if (!formData.street.trim()) newErrors.street = 'La calle es obligatoria';
+      if (!formData.number.trim()) newErrors.number = 'El número es obligatorio';
+      if (!formData.neighborhood.trim()) newErrors.neighborhood = 'La colonia es obligatoria';
+      if (!formData.city.trim()) newErrors.city = 'La ciudad es obligatoria';
+      if (!formData.state.trim()) newErrors.state = 'El estado es obligatorio';
+      if (!formData.postalCode.trim()) newErrors.postalCode = 'El código postal es obligatorio';
     }
 
     if (formData.deliveryType === 'pickup') {
@@ -199,10 +224,8 @@ export default function SimpleCheckout() {
   };
 
   const getShippingCost = () => {
-    return resolveShippingAmount({
-      subtotal: getSubtotal(),
-      deliveryType: formData.deliveryType
-    });
+    if (formData.deliveryType !== 'delivery') return 0;
+    return shippingQuote.options.find((option) => option.id === selectedShippingOptionId)?.price || 0;
   };
 
   const getSubtotal = () => {
@@ -216,6 +239,117 @@ export default function SimpleCheckout() {
   const getTotal = () => {
     return getSubtotal() + getShippingCost() - getDiscount();
   };
+
+  const getShippingLabel = () => {
+    if (formData.deliveryType !== 'delivery') return 'Sin costo (recolección)';
+    const selectedOption = shippingQuote.options.find((option) => option.id === selectedShippingOptionId);
+    if (selectedOption) return formatPrice(selectedOption.price);
+    if (shippingQuote.status === 'loading') return 'Calculando…';
+    if (shippingQuote.status === 'error') return 'No disponible';
+    return 'Se calculará con tu dirección';
+  };
+
+  const subtotal = getTotalPrice();
+  useEffect(() => {
+    if (formData.deliveryType !== 'delivery') {
+      shippingOptionsRequestedRef.current = false;
+      setShippingQuote({ status: 'idle', options: [], packageSummary: null, error: '' });
+      return;
+    }
+
+    const requiredAddress = [
+      formData.name,
+      formData.phone,
+      formData.street,
+      formData.number,
+      formData.neighborhood,
+      formData.city,
+      formData.state,
+      formData.postalCode
+    ];
+    if (requiredAddress.some((value) => !String(value || '').trim())) {
+      shippingOptionsRequestedRef.current = false;
+      setShippingQuote({ status: 'idle', options: [], packageSummary: null, error: '' });
+      setSelectedShippingOptionId('');
+      return;
+    }
+
+    const controller = new AbortController();
+    const requestId = ++shippingQuoteRequestIdRef.current;
+    setShippingQuote({ status: 'loading', options: [], packageSummary: null, error: '' });
+    setSelectedShippingOptionId('');
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch('/api/shipping/quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            items: items.map((item) => ({
+              product_id: item.id,
+              quantity: item.quantity
+            })),
+            destination: {
+              name: formData.name,
+              phone: formData.phone,
+              street: formData.street,
+              number: formData.number,
+              district: formData.neighborhood,
+              city: formData.city,
+              state: formData.state,
+              postalCode: formData.postalCode,
+              country: 'MX'
+            }
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'No se pudo calcular el envío.');
+        if (!Array.isArray(data.options) || data.options.length === 0) {
+          throw new Error('Envia no devolvió opciones de envío para esta dirección.');
+        }
+        if (!controller.signal.aborted && requestId === shippingQuoteRequestIdRef.current) {
+          setShippingQuote({
+            status: 'quoted',
+            options: data.options,
+            packageSummary: data.packageSummary || null,
+            error: ''
+          });
+          if (shippingOptionsRequestedRef.current) {
+            shippingOptionsRequestedRef.current = false;
+            setCheckoutAccordionStep('shipping');
+          }
+        }
+      } catch (error) {
+        if (
+          error.name !== 'AbortError' &&
+          !controller.signal.aborted &&
+          requestId === shippingQuoteRequestIdRef.current
+        ) {
+          shippingOptionsRequestedRef.current = false;
+          setShippingQuote({ status: 'error', options: [], packageSummary: null, error: error.message });
+        }
+      }
+    }, 700);
+
+    return () => {
+      shippingQuoteRequestIdRef.current += 1;
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [
+    formData.deliveryType,
+    formData.name,
+    formData.phone,
+    formData.street,
+    formData.number,
+    formData.neighborhood,
+    formData.city,
+    formData.state,
+    formData.postalCode,
+    subtotal,
+    items,
+    shippingQuoteRefresh
+  ]);
 
   const validateCoupon = async () => {
     const code = couponCode.trim().toUpperCase();
@@ -306,6 +440,7 @@ export default function SimpleCheckout() {
       formData.number,
       formData.neighborhood,
       formData.city,
+      formData.state,
       formData.postalCode
     ].filter(part => part && part.trim());
     
@@ -327,7 +462,22 @@ export default function SimpleCheckout() {
       formData.deliveryType === 'delivery' && selectedAddress && !useNewAddress
         ? selectedAddress.id
         : null,
-    notes: formData.notes || '',
+    shipping_address:
+      formData.deliveryType === 'delivery'
+        ? {
+            name: formData.name,
+            phone: formData.phone,
+            street: formData.street,
+            number: formData.number,
+            district: formData.neighborhood,
+            city: formData.city,
+            state: formData.state,
+            postalCode: formData.postalCode,
+            country: 'MX'
+          }
+        : null,
+    shipping_option_id: formData.deliveryType === 'delivery' ? selectedShippingOptionId : null,
+    notes: orderNotes || '',
     address:
       formData.deliveryType === 'delivery' ? formatAddress() : formData.pickupPoint || null,
     pickup_point: formData.deliveryType === 'pickup' ? formData.pickupPoint : null,
@@ -339,6 +489,13 @@ export default function SimpleCheckout() {
       toast.error('Por favor completa todos los campos obligatorios');
       return;
     }
+    if (
+      formData.deliveryType === 'delivery' &&
+      (shippingQuote.status !== 'quoted' || !selectedShippingOptionId)
+    ) {
+      toast.error(shippingQuote.error || 'Selecciona una opción de envío de Envia.');
+      return;
+    }
     // Analytics: shipping info completed.
     trackAddShippingInfo(
       items,
@@ -346,6 +503,54 @@ export default function SimpleCheckout() {
       formData.deliveryType === 'delivery' ? 'delivery' : 'pickup'
     );
     setCheckoutStep(2);
+  };
+
+  const continueToAddress = () => {
+    setCheckoutAccordionStep('address');
+  };
+
+  const continueToShipping = () => {
+    if (!validateForm()) {
+      toast.error('Por favor completa los datos obligatorios.');
+      return;
+    }
+    if (formData.deliveryType === 'delivery') {
+      if (shippingQuote.status === 'quoted') {
+        setCheckoutAccordionStep('shipping');
+        return;
+      }
+      shippingOptionsRequestedRef.current = true;
+      if (shippingQuote.status !== 'loading') {
+        setShippingQuoteRefresh((value) => value + 1);
+      }
+      return;
+    }
+    goToStep2();
+  };
+
+  const getVisibleShippingOptions = () => {
+    const options = shippingQuote.options.filter(
+      (option) => shippingCarrierFilter === 'all' || option.carrier === shippingCarrierFilter
+    );
+    return options.sort((a, b) => {
+      if (shippingSort === 'speed') {
+        const getDays = (option) => {
+          if (option.deliveryDays !== null && Number.isFinite(Number(option.deliveryDays))) {
+            return Number(option.deliveryDays);
+          }
+          const estimate = String(option.estimatedDelivery || '');
+          const days = estimate.match(/(\d+(?:\.\d+)?)\s*(?:business\s*)?(?:days?|d[ií]as?)/i);
+          if (days) return Number(days[1]);
+          const deliveryDate = Date.parse(estimate);
+          return Number.isNaN(deliveryDate) ? Infinity : Math.max(0, (deliveryDate - Date.now()) / 86400000);
+        };
+        const aDays = getDays(a);
+        const bDays = getDays(b);
+        return aDays - bDays || a.price - b.price;
+      }
+      if (shippingSort === 'carrier') return a.carrier.localeCompare(b.carrier) || a.price - b.price;
+      return a.price - b.price;
+    });
   };
 
   useEffect(() => {
@@ -386,6 +591,21 @@ export default function SimpleCheckout() {
           setStripeError(data.error || 'No se pudo preparar el pago');
           return;
         }
+        if (
+          formData.deliveryType === 'delivery' &&
+          Number.isFinite(Number(data.shipping_amount))
+        ) {
+          setShippingQuote((current) => ({
+            ...current,
+            status: 'quoted',
+            options: current.options.map((option) =>
+              option.id === selectedShippingOptionId
+                ? { ...option, price: Number(data.shipping_amount) }
+                : option
+            ),
+            error: ''
+          }));
+        }
         if (data.payment_intent_id) {
           prevPaymentIntentIdRef.current = data.payment_intent_id;
         }
@@ -423,8 +643,10 @@ export default function SimpleCheckout() {
     formData.number,
     formData.neighborhood,
     formData.city,
+    formData.state,
     formData.postalCode,
-    formData.notes,
+    orderNotes,
+    selectedShippingOptionId,
     selectedAddress,
     useNewAddress,
     items,
@@ -521,13 +743,13 @@ export default function SimpleCheckout() {
 
             {/* Tipo de Entrega */}
             <div className={styles.section}>
-              <h2>Tipo de Entrega</h2>
-              
-              <div className={styles.deliveryNotice}>
-                <p>Se enviará mensaje por correo electrónico y teléfono para confirmar el día de entrega.</p>
-              </div>
-              
-              <div className={styles.radioGroup}>
+              {checkoutAccordionStep === 'delivery' ? (
+                <>
+                  <h2>Tipo de Entrega</h2>
+                  <div className={styles.deliveryNotice}>
+                    <p>Se enviará mensaje por correo electrónico y teléfono para confirmar el día de entrega.</p>
+                  </div>
+                  <div className={styles.radioGroup}>
                 <label className={styles.radioOption}>
                   <input
                     type="radio"
@@ -537,7 +759,7 @@ export default function SimpleCheckout() {
                     onChange={(e) => handleInputChange('deliveryType', e.target.value)}
                   />
                   <span className={styles.radioLabel}>
-                    <strong>Envío a Domicilio</strong> - {formatPrice(resolveShippingAmount({ subtotal: getSubtotal(), deliveryType: 'delivery' }))}
+                    <strong>Envío a Domicilio</strong> - {getShippingLabel()}
                   </span>
                 </label>
 
@@ -554,9 +776,24 @@ export default function SimpleCheckout() {
                     <small>Elige el punto de recolección más cercano</small>
                   </span>
                 </label>
-              </div>
+                  </div>
+                  <button type="button" className={styles.submitButton} onClick={continueToAddress}>
+                    Continuar
+                  </button>
+                </>
+              ) : (
+                <div className={styles.accordionSummary}>
+                  <div>
+                    <h2>Tipo de Entrega</h2>
+                    <p>{formData.deliveryType === 'delivery' ? 'Envío a domicilio' : 'Recoger en punto'}</p>
+                  </div>
+                  <button type="button" className={styles.changeAddressButton} onClick={() => setCheckoutAccordionStep('delivery')}>
+                    Editar
+                  </button>
+                </div>
+              )}
 
-              {formData.deliveryType === 'pickup' && (
+              {checkoutAccordionStep === 'address' && formData.deliveryType === 'pickup' && (
                 <div className={styles.pickupPointsSection}>
                   <label htmlFor="pickupPoint" className={styles.pickupLabel}>Punto de recolección *</label>
                   <select
@@ -574,7 +811,7 @@ export default function SimpleCheckout() {
                 </div>
               )}
 
-              {formData.deliveryType === 'delivery' && (
+              {checkoutAccordionStep === 'address' && formData.deliveryType === 'delivery' && (
                 <div className={styles.addressSection}>
                   <div className={styles.addressSectionHeader}>
                     <h3>Dirección de Envío *</h3>
@@ -626,6 +863,7 @@ export default function SimpleCheckout() {
                           onClick={() => {
                             setSelectedAddress(null);
                             setUseNewAddress(true);
+                            shippingOptionsRequestedRef.current = false;
                             setFormData(prev => ({
                               ...prev,
                               street: '',
@@ -712,7 +950,21 @@ export default function SimpleCheckout() {
                           />
                           {errors.city && <span className={styles.errorText}>{errors.city}</span>}
                         </div>
+                      </div>
 
+                      <div className={`${styles.row} ${styles.postalCodeRow}`}>
+                        <div className={styles.inputGroup}>
+                          <label htmlFor="state">Estado *</label>
+                          <input
+                            type="text"
+                            id="state"
+                            value={formData.state}
+                            onChange={(e) => handleInputChange('state', e.target.value)}
+                            className={errors.state ? styles.error : ''}
+                            placeholder="Estado"
+                          />
+                          {errors.state && <span className={styles.errorText}>{errors.state}</span>}
+                        </div>
                         <div className={styles.inputGroup}>
                           <label htmlFor="postalCode">Código Postal *</label>
                           <input
@@ -731,32 +983,143 @@ export default function SimpleCheckout() {
                   )}
                 </div>
               )}
+
+              {checkoutAccordionStep === 'address' && (
+                <>
+                  {formData.deliveryType === 'delivery' && shippingQuote.status === 'error' && (
+                    <p className={styles.errorText} role="alert">{shippingQuote.error}</p>
+                  )}
+                  <button
+                    type="button"
+                    className={styles.submitButton}
+                    onClick={continueToShipping}
+                    disabled={formData.deliveryType === 'delivery' && shippingQuote.status === 'loading'}
+                  >
+                    {formData.deliveryType !== 'delivery'
+                      ? 'Continuar'
+                      : shippingQuote.status === 'loading'
+                        ? 'Cargando opciones de envío…'
+                        : shippingQuote.status === 'error'
+                          ? 'Reintentar opciones de envío'
+                          : 'Ver opciones de envío'}
+                  </button>
+                </>
+              )}
+
+              {checkoutAccordionStep === 'shipping' && formData.deliveryType === 'delivery' && (
+                <>
+                  <div className={styles.accordionSummary}>
+                    <div>
+                      <h2>Dirección de Envío</h2>
+                      <p>{formatAddress()}</p>
+                    </div>
+                    <button type="button" className={styles.changeAddressButton} onClick={() => setCheckoutAccordionStep('address')}>
+                      Editar
+                    </button>
+                  </div>
+                  <div className={styles.shippingOptionsSection}>
+                    <h2>Elige tu envío</h2>
+                    <p>Compara precio, tiempo de entrega y paquetería.</p>
+                    {shippingQuote.status === 'loading' && <p className={styles.stripeLoading}>Consultando opciones con Envia…</p>}
+                    {shippingQuote.status === 'error' && (
+                      <div>
+                        <p className={styles.errorText} role="alert">{shippingQuote.error}</p>
+                        <button
+                          type="button"
+                          className={styles.changeAddressButton}
+                          onClick={() => setShippingQuoteRefresh((value) => value + 1)}
+                        >
+                          Volver a consultar
+                        </button>
+                      </div>
+                    )}
+                    {shippingQuote.status === 'quoted' && (
+                      <>
+                        {shippingQuote.packageSummary && (
+                          <p className={styles.shippingPackageSummary}>
+                            Cotización para {shippingQuote.packageSummary.packageCount} paquete
+                            {shippingQuote.packageSummary.packageCount === 1 ? '' : 's'}{' '}
+                            {shippingQuote.packageSummary.label.toLowerCase()} (
+                            {shippingQuote.packageSummary.dimensions.length} ×{' '}
+                            {shippingQuote.packageSummary.dimensions.width} ×{' '}
+                            {shippingQuote.packageSummary.dimensions.height} cm,{' '}
+                            {shippingQuote.packageSummary.weight} kg).
+                          </p>
+                        )}
+                        <div className={styles.shippingFilters}>
+                          <label className={styles.inputGroup}>
+                            <span>Ordenar por</span>
+                            <select value={shippingSort} onChange={(event) => setShippingSort(event.target.value)}>
+                              <option value="price">Menor precio</option>
+                              <option value="speed">Mayor rapidez</option>
+                              <option value="carrier">Paquetería</option>
+                            </select>
+                          </label>
+                          <label className={styles.inputGroup}>
+                            <span>Paquetería</span>
+                            <select
+                              value={shippingCarrierFilter}
+                              onChange={(event) => {
+                                setShippingCarrierFilter(event.target.value);
+                                setSelectedShippingOptionId('');
+                              }}
+                            >
+                              <option value="all">Todas</option>
+                              {[...new Set(shippingQuote.options.map((option) => option.carrier))].sort().map((carrier) => (
+                                <option key={carrier} value={carrier}>{carrier}</option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                        {shippingSort === 'speed' &&
+                          shippingQuote.options.every((option) => !option.deliveryDays && !option.estimatedDelivery) && (
+                            <p>Envia no proporcionó tiempos estimados; las opciones se ordenan por precio.</p>
+                          )}
+                        <div className={styles.shippingOptions}>
+                          {getVisibleShippingOptions().map((option) => (
+                            <label
+                              key={option.id}
+                              className={`${styles.shippingOption} ${selectedShippingOptionId === option.id ? styles.shippingOptionSelected : ''}`}
+                            >
+                              <input
+                                type="radio"
+                                name="shippingOption"
+                                value={option.id}
+                                checked={selectedShippingOptionId === option.id}
+                                onChange={() => setSelectedShippingOptionId(option.id)}
+                              />
+                              <span className={styles.shippingOptionInfo}>
+                                <strong>{option.carrier}</strong>
+                                <span>{option.service}</span>
+                                {option.estimatedDelivery && <small>Entrega estimada: {option.estimatedDelivery}</small>}
+                              </span>
+                              <strong className={styles.shippingOptionPrice}>{formatPrice(option.price)}</strong>
+                            </label>
+                          ))}
+                          {getVisibleShippingOptions().length === 0 && (
+                            <p>No hay opciones para esta paquetería. Prueba otra o selecciona “Todas”.</p>
+                          )}
+                        </div>
+                      </>
+                    )}
+                    <button
+                      type="button"
+                      onClick={goToStep2}
+                      className={styles.submitButton}
+                      disabled={
+                        !items ||
+                        items.length === 0 ||
+                        shippingQuote.status !== 'quoted' ||
+                        !selectedShippingOptionId
+                      }
+                    >
+                      Continuar al resumen y pago
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
-            <div className={styles.section}>
-              <h2>Notas adicionales (opcional)</h2>
-              <div className={styles.inputGroup}>
-                <label htmlFor="notes">Instrucciones o referencias</label>
-                <textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => handleInputChange('notes', e.target.value)}
-                  placeholder="Instrucciones especiales, referencias, etc."
-                  rows={2}
-                />
-              </div>
-            </div>
-
-            <CheckoutUpsell cartItems={items} />
-
-            <button
-              type="button"
-              onClick={goToStep2}
-              className={styles.submitButton}
-              disabled={!items || items.length === 0}
-            >
-              Continuar al resumen y pago
-            </button>
             </div>
           )}
 
@@ -845,7 +1208,14 @@ export default function SimpleCheckout() {
             <div className={styles.items}>
               {items.map((item, index) => (
                 <div key={index} className={styles.item}>
-                  <Image src={item.image} className={styles.itemImage} alt={item.name} width={50} height={50} />
+                  <ProductImage
+                    src={item.image}
+                    className={styles.itemImage}
+                    alt={item.name}
+                    width={50}
+                    height={50}
+                    isRiftbound={item.is_riftbound}
+                  />
                   <span className={styles.itemName}>{item.name.slice(0, 30)}{item.name.length > 30 ? '...' : ''} x{item.quantity}</span>
                   <span className={styles.itemPrice}>{formatPrice(item.price * item.quantity)}</span>
                 </div>
@@ -879,8 +1249,19 @@ export default function SimpleCheckout() {
               </div>
               <div className={styles.totalRow}>
                 <span>Envío:</span>
-                <span>{getShippingCost() > 0 ? formatPrice(getShippingCost()) : 'Gratis'}</span>
+                <span>{getShippingLabel()}</span>
               </div>
+              {formData.deliveryType === 'delivery' &&
+                shippingQuote.options.find((option) => option.id === selectedShippingOptionId) && (
+                  <div className={styles.totalRow}>
+                    <span>Paquetería:</span>
+                    <span>
+                      {shippingQuote.options.find((option) => option.id === selectedShippingOptionId).carrier}
+                      {' · '}
+                      {shippingQuote.options.find((option) => option.id === selectedShippingOptionId).service}
+                    </span>
+                  </div>
+                )}
               {getDiscount() > 0 && (
                 <div className={styles.totalRow}>
                   <span>Descuento por cupón:</span>

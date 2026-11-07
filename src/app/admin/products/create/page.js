@@ -13,6 +13,7 @@ import ProductImageEditor from '../../../../components/admin/ProductImageEditor/
 import toast from 'react-hot-toast';
 import { loadingToast } from '../../../../lib/toastHelpers';
 import { DEFAULT_PRODUCT_CONDITION, PRODUCT_CONDITIONS, PRODUCT_CONDITION_LABELS } from '../../../../lib/productCondition';
+import { getShippingPackageSize, SHIPPING_PACKAGE_SIZES } from '../../../../lib/shippingPackageSizes';
 import styles from './create.module.css';
 
 const STEPS_NORMAL = [
@@ -74,7 +75,8 @@ export default function CreateProductPage() {
     weight_grams: '',
     length_cm: '',
     width_cm: '',
-    height_cm: ''
+    height_cm: '',
+    shipping_package_size: 'small'
   });
   const [uploadingImages, setUploadingImages] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
@@ -410,6 +412,7 @@ export default function CreateProductPage() {
       sku: formData.sku || null,
       barcode: formData.barcode || null,
       weight_grams: formData.weight_grams && formData.weight_grams.trim() ? parseFloat(formData.weight_grams) : null,
+      shipping_package_size: getShippingPackageSize(formData.shipping_package_size, { isTcg: isTcgFlow }),
       dimensions_cm:
         formData.length_cm || formData.width_cm || formData.height_cm
           ? {
@@ -823,10 +826,18 @@ export default function CreateProductPage() {
           <div className={styles.typeCardGroup}>
             <div
               className={`${styles.typeCard} ${productType === 'normal' ? styles.typeCardSelected : ''}`}
-              onClick={() => setProductType('normal')}
+              onClick={() => {
+                setProductType('normal');
+                setFormData((prev) => ({ ...prev, shipping_package_size: 'small' }));
+              }}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && setProductType('normal')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setProductType('normal');
+                  setFormData((prev) => ({ ...prev, shipping_package_size: 'small' }));
+                }
+              }}
               aria-pressed={productType === 'normal'}
             >
               <h3>Producto normal</h3>
@@ -834,10 +845,18 @@ export default function CreateProductPage() {
             </div>
             <div
               className={`${styles.typeCard} ${productType === 'tcg' ? styles.typeCardSelected : ''}`}
-              onClick={() => setProductType('tcg')}
+              onClick={() => {
+                setProductType('tcg');
+                setFormData((prev) => ({ ...prev, shipping_package_size: 'envelope' }));
+              }}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && setProductType('tcg')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setProductType('tcg');
+                  setFormData((prev) => ({ ...prev, shipping_package_size: 'envelope' }));
+                }
+              }}
               aria-pressed={productType === 'tcg'}
             >
               <h3>Producto TCG</h3>
@@ -1304,6 +1323,23 @@ export default function CreateProductPage() {
                 maxDetails={50}
               />
             </div>
+            <div className={styles.field}>
+              <label htmlFor="shipping_package_size">Tamaño de envío</label>
+              <select
+                id="shipping_package_size"
+                name="shipping_package_size"
+                value={formData.shipping_package_size}
+                onChange={handleInputChange}
+                className={styles.input}
+              >
+                {Object.entries(SHIPPING_PACKAGE_SIZES).map(([size, packageSize]) => (
+                  <option key={size} value={size}>
+                    {packageSize.label} — {packageSize.description}
+                  </option>
+                ))}
+              </select>
+              <small>Estimación del paquete para cotizar; puedes ajustarla según el producto.</small>
+            </div>
             <h4 className={styles.subsectionTitle}>Peso y dimensiones (opcionales)</h4>
             <div className={styles.fieldRow}>
               <div className={styles.field}>
@@ -1403,6 +1439,8 @@ export default function CreateProductPage() {
               <dd>{formData.price ? `$${formData.price}` : '—'}</dd>
               <dt>Stock</dt>
               <dd>{formData.stock_quantity}</dd>
+              <dt>Tamaño de envío</dt>
+              <dd>{SHIPPING_PACKAGE_SIZES[getShippingPackageSize(formData.shipping_package_size, { isTcg: isTcgFlow })].label}</dd>
               <dt>Peso</dt>
               <dd>{formData.weight_grams ? `${formData.weight_grams} g` : '—'}</dd>
               <dt>Dimensiones</dt>

@@ -9,6 +9,7 @@ import { useAuth } from '../../lib/AuthContext';
 import { useWishlist } from '../../lib/WishlistContext';
 import { getTcgMinPriceForSubType } from '../../lib/currency';
 import { trackSelectItem } from '../../lib/analytics';
+import { isRiftboundProduct, RIFTBOUND_FALLBACK_IMAGE } from '../../lib/productImages';
 import Icon from '../Icon/Icon';
 import styles from './ProductCard.module.css';
 
@@ -38,16 +39,30 @@ export default function ProductCard({ product }) {
     Boolean(product.tcg_product_id) ||
     Boolean(product.tcg_category_id) ||
     product.category_slug === 'tcg';
+  const isRiftbound = isRiftboundProduct(product);
+
+  const showImageFallback = () => {
+    if (isRiftbound && imageSrc !== RIFTBOUND_FALLBACK_IMAGE) {
+      setImageSrc(RIFTBOUND_FALLBACK_IMAGE);
+      setImageFailed(false);
+    } else {
+      setImageFailed(true);
+    }
+  };
 
   const handleImageError = async () => {
-    if (imageRefreshAttemptedRef.current) {
+    if (imageSrc === RIFTBOUND_FALLBACK_IMAGE) {
       setImageFailed(true);
+      return;
+    }
+    if (imageRefreshAttemptedRef.current) {
+      showImageFallback();
       return;
     }
     imageRefreshAttemptedRef.current = true;
 
     if (!isTcgProduct || !product.id) {
-      setImageFailed(true);
+      showImageFallback();
       return;
     }
 
@@ -63,9 +78,9 @@ export default function ProductCard({ product }) {
         setImageFailed(false);
         return;
       }
-      setImageFailed(true);
+      showImageFallback();
     } catch {
-      setImageFailed(true);
+      showImageFallback();
     } finally {
       setImageRefreshing(false);
     }
@@ -129,7 +144,8 @@ export default function ProductCard({ product }) {
         description: product.description,
         price: displayPrice,
         image: imageSrc || product.image,
-        stock_quantity: stockQuantity
+        stock_quantity: stockQuantity,
+        is_riftbound: isRiftbound
       }, user, apiRequest);
 
       // Mostrar mensaje de éxito

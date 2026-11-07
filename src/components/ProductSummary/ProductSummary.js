@@ -8,6 +8,7 @@ import { useCart } from '../../lib/CartContext';
 import { useAuth } from '../../lib/AuthContext';
 import { getProductRatingStats } from '../../lib/reviews';
 import { getTcgMinPriceForSubType } from '../../lib/currency';
+import { isRiftboundProduct } from '../../lib/productImages';
 import styles from './ProductSummary.module.css';
 
 export default function ProductSummary({
@@ -122,7 +123,8 @@ export default function ProductSummary({
       description: product.description,
       price: cartPrice,
       image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null),
-      stock_quantity: stockQuantity
+      stock_quantity: stockQuantity,
+      is_riftbound: isRiftboundProduct(product)
     }, user, apiRequest, quantity);
     
     // Simular feedback visual
@@ -149,7 +151,8 @@ export default function ProductSummary({
       description: product.description,
       price: cartPrice,
       image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null),
-      stock_quantity: stockQuantity
+      stock_quantity: stockQuantity,
+      is_riftbound: isRiftboundProduct(product)
     }, user, apiRequest, quantity);
     
     // Aquí iría la navegación al checkout
@@ -362,8 +365,8 @@ export default function ProductSummary({
         <div className={styles.feature}>
           <Icon name="local_shipping" size={20} className={styles.featureIcon} />
           <div className={styles.featureText}>
-            <strong>Envío gratis</strong>
-            <span>En pedidos mayores a $2000</span>
+            <strong>Envío seguro y rastreado</strong>
+            <span>El costo se calcula según tu dirección</span>
           </div>
         </div>
         

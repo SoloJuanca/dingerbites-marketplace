@@ -49,6 +49,8 @@ El sistema ahora envía automáticamente correos electrónicos cuando se recibe 
 
 ## Configuración Inicial
 
+Para probar la integración de envíos de Envia en local, consulta [el entorno de desarrollo de Envia](./docs/envia-development.md).
+
 Primero, ejecuta el servidor de desarrollo:
 
 ```bash

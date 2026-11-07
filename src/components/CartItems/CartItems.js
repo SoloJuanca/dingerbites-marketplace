@@ -4,10 +4,11 @@ import { useCart } from '../../lib/CartContext';
 import { useAuth } from '../../lib/AuthContext';
 import toast from 'react-hot-toast';
 import Icon from '../Icon/Icon';
+import ProductImage from '../ProductImage/ProductImage';
 import styles from './CartItems.module.css';
 
 export default function CartItems() {
-  const { items, updateQuantityWithSync, removeFromCartWithSync } = useCart();
+  const { items, orderNotes, setOrderNotes, updateQuantityWithSync, removeFromCartWithSync } = useCart();
   const { user, apiRequest } = useAuth();
 
   const handleQuantityChange = async (productId, newQuantity) => {
@@ -54,7 +55,14 @@ export default function CartItems() {
           return (
             <div key={item.id} className={styles.cartItem}>
               <div className={styles.itemImage}>
-                <img src={item.image} alt={item.name} />
+                <ProductImage
+                  src={item.image}
+                  alt={item.name}
+                  width={80}
+                  height={80}
+                  className={styles.productImage}
+                  isRiftbound={item.is_riftbound}
+                />
               </div>
               
               <div className={styles.itemDetails}>
@@ -106,6 +114,18 @@ export default function CartItems() {
           );
         })}
       </div>
+      <section className={styles.notesSection}>
+        <h3>Notas del pedido (opcional)</h3>
+        <label htmlFor="cart-order-notes">Instrucciones o referencias para tu pedido</label>
+        <textarea
+          id="cart-order-notes"
+          value={orderNotes}
+          onChange={(event) => setOrderNotes(event.target.value)}
+          placeholder="Escribe aquí cualquier instrucción para preparar o entregar tu pedido."
+          maxLength={1000}
+          rows={3}
+        />
+      </section>
     </div>
   );
-} 
+}

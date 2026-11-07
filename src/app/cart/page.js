@@ -39,14 +39,16 @@ export default function CartPage() {
               </div>
             </div>
           ) : (
-            <div className={styles.cartContent}>
-              <div className={styles.cartLeft}>
-                <CartItems />
+            <>
+              <div className={styles.cartContent}>
+                <div className={styles.cartLeft}>
+                  <CartItems />
+                </div>
+                <div className={styles.cartRight}>
+                  <CartSummary />
+                </div>
               </div>
-              <div className={styles.cartRight}>
-                <CartSummary />
-              </div>
-            </div>
+            </>
           )}
         </div>
       </main>

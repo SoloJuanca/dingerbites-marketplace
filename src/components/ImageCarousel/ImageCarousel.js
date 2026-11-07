@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import ProductImage from '../ProductImage/ProductImage';
+import { isRiftboundProduct, RIFTBOUND_FALLBACK_IMAGE } from '../../lib/productImages';
 import Icon from '../Icon/Icon';
 import styles from './ImageCarousel.module.css';
 
@@ -22,23 +24,25 @@ export default function ImageCarousel({
   images,
   productName,
   isTcgProduct = false,
-  productId = null
+  productId = null,
+  product = null
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageList, setImageList] = useState([]);
   const [imageFailed, setImageFailed] = useState(false);
   const refreshAttemptedRef = useRef(false);
+  const isRiftbound = isRiftboundProduct(product);
 
   useEffect(() => {
     const nextList = (Array.isArray(images) ? images : [images])
       .map(normalizeImageUrl)
       .filter(Boolean)
       .map((image) => (isTcgProduct ? getTcgImageUrl(image) : image));
-    setImageList(nextList);
+    setImageList(nextList.length === 0 && isRiftbound ? [RIFTBOUND_FALLBACK_IMAGE] : nextList);
     setCurrentIndex(0);
     setImageFailed(false);
     refreshAttemptedRef.current = false;
-  }, [images, isTcgProduct]);
+  }, [images, isTcgProduct, isRiftbound]);
 
   const currentImage = imageList[currentIndex];
 
@@ -58,14 +62,33 @@ export default function ImageCarousel({
   };
 
   const handleImageError = async () => {
-    if (refreshAttemptedRef.current) {
+    if (currentImage === RIFTBOUND_FALLBACK_IMAGE) {
       setImageFailed(true);
+      return;
+    }
+
+    const showFallback = () => {
+      if (!isRiftbound) {
+        setImageFailed(true);
+        return;
+      }
+      setImageList((prev) => {
+        if (prev.length === 0) return [RIFTBOUND_FALLBACK_IMAGE];
+        const copy = [...prev];
+        copy[currentIndex] = RIFTBOUND_FALLBACK_IMAGE;
+        return copy;
+      });
+      setImageFailed(false);
+    };
+
+    if (refreshAttemptedRef.current) {
+      showFallback();
       return;
     }
     refreshAttemptedRef.current = true;
 
     if (!isTcgProduct || !productId) {
-      setImageFailed(true);
+      showFallback();
       return;
     }
 
@@ -86,9 +109,9 @@ export default function ImageCarousel({
         setImageFailed(false);
         return;
       }
-      setImageFailed(true);
+      showFallback();
     } catch {
-      setImageFailed(true);
+      showFallback();
     }
   };
 
@@ -161,12 +184,13 @@ export default function ImageCarousel({
               }`}
               onClick={() => goToSlide(index)}
             >
-              <Image
+              <ProductImage
                 src={image}
                 alt={`${productName} - Miniatura ${index + 1}`}
                 width={80}
                 height={80}
                 className={`${styles.thumbnailImage} ${isTcgProduct ? styles.thumbnailContain : ''}`}
+                isRiftbound={isRiftbound}
               />
             </button>
           ))}

@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { authenticateAdmin } from '../../../../lib/auth';
 import { db } from '../../../../lib/firebaseAdmin';
+import { getShippingPackageSize } from '../../../../lib/shippingPackageSizes';
 import { createCategory, CATEGORIES_COLLECTION, findBySlug } from '../../../../lib/firebaseCatalog';
 import { isValidProductCondition, normalizeProductCondition } from '../../../../lib/productCondition';
 import { searchProducts } from '../../../../lib/search/typesenseSearch';
 import { indexProductToTypesense } from '../../../../lib/search/typesenseSync';
+import { syncTcgStockToMarketplace } from '../../../../lib/sync/marketplaceSyncClient';
 
 const PRODUCTS_COLLECTION = 'products';
 const BRANDS_COLLECTION = 'product_brands';
@@ -224,6 +226,7 @@ export async function POST(request) {
       sku,
       barcode,
       weight_grams,
+      shipping_package_size,
       dimensions_cm,
       category_id,
       subcategory_id,
@@ -370,6 +373,7 @@ export async function POST(request) {
       sku: sku || null,
       barcode: barcode || null,
       weight_grams: weight_grams !== undefined ? toNumber(weight_grams, 0) : null,
+      shipping_package_size: getShippingPackageSize(shipping_package_size, { isTcg: tcg_product_id != null }),
       dimensions_cm: dimensions_cm || null,
       category_id: finalCategoryId,
       subcategory_id: finalSubcategoryId,
@@ -400,9 +404,17 @@ export async function POST(request) {
     await docRef.set(newProduct);
     await indexProductToTypesense(newProduct);
 
+    let marketplaceSync = { skipped: true };
+    if (newProduct.tcg_product_id != null) {
+      marketplaceSync = await syncTcgStockToMarketplace(newProduct, {
+        idempotencyKey: `ecom-create-${docRef.id}-${newProduct.stock_quantity}`
+      });
+    }
+
     return NextResponse.json({
       success: true,
       product: newProduct,
+      marketplace_sync: marketplaceSync,
       message: 'Product created successfully'
     });
 

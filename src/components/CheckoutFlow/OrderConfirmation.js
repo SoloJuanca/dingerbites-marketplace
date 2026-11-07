@@ -10,7 +10,6 @@ import {
 import styles from './OrderConfirmation.module.css';
 
 const SHIPPING_COST_MXN = 120;
-const FREE_SHIPPING_MIN_SUBTOTAL_MXN = 2000;
 
 export default function OrderConfirmation({
   checkoutData,
@@ -32,7 +31,7 @@ export default function OrderConfirmation({
   const [applyingCoupon, setApplyingCoupon] = useState(false);
 
   const getShippingCost = () => {
-    if (checkoutData.deliveryType !== 'delivery' || getSubtotal() > FREE_SHIPPING_MIN_SUBTOTAL_MXN) {
+    if (checkoutData.deliveryType !== 'delivery') {
       return 0;
     }
 
@@ -254,7 +253,11 @@ export default function OrderConfirmation({
             </div>
             <div className={styles.priceRow}>
               <span>Envío:</span>
-              <span>{getShippingCost() > 0 ? formatPrice(getShippingCost()) : 'Gratis'}</span>
+              <span>
+                {checkoutData.deliveryType === 'delivery'
+                  ? formatPrice(getShippingCost())
+                  : 'Sin costo (recolección)'}
+              </span>
             </div>
             {checkoutData.paymentMethod === 'transfer' && !checkoutData.couponData && (
               <div className={styles.discountRow}>

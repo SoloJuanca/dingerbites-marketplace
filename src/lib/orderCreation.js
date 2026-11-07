@@ -19,6 +19,7 @@ import { CASH_ADVANCE_PROOF_MIN_TOTAL_MXN } from './checkoutPaymentProofRules';
 import { logSecurityEvent } from './auditLog';
 import { deductProductStockInTransaction } from './orderStock';
 import { syncOrderProductsToTypesense } from './search/typesenseSync';
+import { syncOrderItemsToMarketplace } from './sync/marketplaceSyncClient';
 import {
   buildShippingAddressSnapshotFromRecord,
   buildShippingAddressSnapshotFromText,
@@ -51,7 +52,9 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
     customer_name,
     payment_method,
     shipping_method,
+    shipping_option,
     address,
+    shipping_address,
     pickup_point,
     coupon_code,
     order_origin,
@@ -62,6 +65,7 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
   const skipEmail = options.skipEmail === true;
   const stripeCheckoutSessionId = options.stripeCheckoutSessionId || null;
   const stripePaymentIntentId = options.stripePaymentIntentId || null;
+  const trustedShippingAmount = options.shippingAmount;
   const prePricedOrderItems = options.prePricedOrderItems ?? null;
   const prePricedServiceItems = options.prePricedServiceItems ?? null;
 
@@ -102,6 +106,20 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
       if (addrDoc.exists) {
         shippingAddressSnapshot = buildShippingAddressSnapshotFromRecord(addrDoc.data());
       }
+    } else if (shipping_address && typeof shipping_address === 'object') {
+      const nameParts = String(customer_name || '').trim().split(/\s+/);
+      const addressRecord = {
+        first_name: nameParts[0] || '',
+        last_name: nameParts.slice(1).join(' '),
+        address_line_1: [shipping_address.street, shipping_address.number].filter(Boolean).join(' '),
+        address_line_2: shipping_address.district || '',
+        city: shipping_address.city || '',
+        state: shipping_address.state || '',
+        postal_code: shipping_address.postalCode || '',
+        country: shipping_address.country || 'Mexico',
+        phone: customer_phone || null
+      };
+      shippingAddressSnapshot = buildShippingAddressSnapshotFromRecord(addressRecord);
     } else if (address && String(address).trim()) {
       shippingAddressSnapshot = buildShippingAddressSnapshotFromText(address);
     }
@@ -129,17 +147,22 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
       if (address && shipping_method === 'Envío a domicilio') {
         const now = new Date().toISOString();
         const addressRef = db.collection('user_addresses').doc();
+        const nameParts = String(customer_name || '').trim().split(/\s+/);
         const guestAddressRecord = {
           user_id: finalUserId,
           address_type: 'shipping',
           is_default: true,
-          first_name: firstName,
-          last_name: lastName,
-          address_line_1: address,
-          city: 'Ciudad',
-          state: 'Estado',
-          postal_code: '00000',
-          country: 'Mexico',
+          first_name: nameParts[0] || firstName,
+          last_name: nameParts.slice(1).join(' ') || lastName,
+          address_line_1:
+            shipping_address && typeof shipping_address === 'object'
+              ? [shipping_address.street, shipping_address.number].filter(Boolean).join(' ')
+              : address,
+          address_line_2: shipping_address?.district || '',
+          city: shipping_address?.city || 'Ciudad',
+          state: shipping_address?.state || 'Estado',
+          postal_code: shipping_address?.postalCode || '00000',
+          country: shipping_address?.country || 'Mexico',
           phone: customer_phone || null,
           created_at: now,
           updated_at: now
@@ -209,7 +232,8 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
     const totals = computeOrderTotals({
       subtotal,
       shippingMethod: shipping_method || null,
-      discountAmount: couponApplication?.discount_amount || 0
+      discountAmount: couponApplication?.discount_amount || 0,
+      shippingAmount: trustedShippingAmount
     });
 
     const requiresAdvancePaymentProof =
@@ -258,6 +282,7 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
       customer_name: customer_name || null,
       payment_method: payment_method || null,
       shipping_method: shipping_method || null,
+      shipping_option: shipping_option || null,
       pickup_point: pickup_point || null,
       order_origin: order_origin || null,
       pos_in_person: pos_in_person === true,
@@ -301,6 +326,12 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
     console.error('Failed to sync product stock to Typesense after order:', syncError);
   }
 
+  try {
+    await syncOrderItemsToMarketplace(orderItems);
+  } catch (marketplaceSyncError) {
+    console.error('Failed to sync product stock to marketplace after order:', marketplaceSyncError);
+  }
+
   const orderData = {
     order_number: createdOrder.order_number,
     customer_name,
@@ -309,6 +340,7 @@ export async function createOrderFromPayload({ body, authUser, requestMeta, opti
     total_amount: createdOrder.total_amount,
     payment_method,
     shipping_method,
+    shipping_option: createdOrder.shipping_option || null,
     items: createdOrder.items || [],
     service_items: createdOrder.service_items || [],
     address,

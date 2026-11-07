@@ -16,6 +16,8 @@ import {
   PENDING_STRIPE_CHECKOUT_TTL_MS
 } from '../../../../lib/pendingStripeCheckout';
 import { assertStockAvailableForOrderItems } from '../../../../lib/orderStock';
+import { getEnviaOrigin } from '../../../../lib/envia';
+import { resolveShippingOptionAsync } from '../../../../lib/shipping';
 
 /**
  * POST /api/checkout/payment-intent
@@ -70,7 +72,9 @@ export async function POST(request) {
       customer_phone,
       customer_name,
       shipping_method,
+      shipping_option_id,
       address,
+      shipping_address,
       pickup_point,
       coupon_code,
       cancel_previous_payment_intent_id
@@ -125,10 +129,29 @@ export async function POST(request) {
       discountAmount = couponEval.discount_amount || 0;
     }
 
+    let shippingAmount;
+    let selectedShippingOption = null;
+    if (shipping_method === 'Envío a domicilio') {
+      if (!shipping_address || typeof shipping_address !== 'object') {
+        return jsonError('La dirección es necesaria para calcular el envío.', 400, 'SHIPPING_ADDRESS_REQUIRED');
+      }
+      const shippingSelection = await resolveShippingOptionAsync({
+        shippingMethod: shipping_method,
+        subtotal,
+        origin: getEnviaOrigin(),
+        destination: shipping_address,
+        selectedOptionId: shipping_option_id,
+        items: orderItems
+      });
+      shippingAmount = shippingSelection.amount;
+      selectedShippingOption = shippingSelection.option;
+    }
+
     const totals = computeOrderTotals({
       subtotal,
       shippingMethod: shipping_method || null,
-      discountAmount
+      discountAmount,
+      shippingAmount
     });
 
     try {
@@ -162,6 +185,8 @@ export async function POST(request) {
       payment_method: 'Stripe',
       shipping_method: shipping_method || null,
       address: address || null,
+      shipping_address: shipping_address || null,
+      shipping_option: selectedShippingOption,
       pickup_point: pickup_point || null,
       coupon_code: coupon_code && String(coupon_code).trim() ? String(coupon_code).trim() : null
     };
@@ -221,7 +246,9 @@ export async function POST(request) {
         clientSecret: paymentIntent.client_secret,
         payment_intent_id: paymentIntent.id,
         pending_checkout_id: pendingRef.id,
-        publishableKey: publishable
+        publishableKey: publishable,
+        shipping_amount: totals.shipping_amount,
+        total_amount: totals.total_amount
       });
     } catch (stripeErr) {
       console.error('Stripe paymentIntents.create failed:', stripeErr);
@@ -234,6 +261,22 @@ export async function POST(request) {
     }
   } catch (error) {
     console.error('payment-intent error:', error);
+    if (
+      ['ENVIA_NOT_CONFIGURED', 'ENVIA_ORIGIN_NOT_CONFIGURED'].includes(
+        error.code
+      )
+    ) {
+      return jsonError(error.message, 503, error.code);
+    }
+    if (error.code === 'ENVIA_QUOTE_FAILED') {
+      return jsonError(error.message, 502, error.code);
+    }
+    if (error.code === 'SHIPPING_OPTION_REQUIRED') {
+      return jsonError(error.message, 400, error.code);
+    }
+    if (['SHIPPING_OPTION_UNAVAILABLE', 'SHIPPING_OPTIONS_UNAVAILABLE'].includes(error.code)) {
+      return jsonError(error.message, 409, error.code);
+    }
     return jsonError(
       error?.message || 'Error al crear el intento de pago',
       500,

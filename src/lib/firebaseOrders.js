@@ -5,6 +5,7 @@ import { formatShippingAddressForDisplay } from './orderAddress';
 
 const USER_ADDRESSES_COLLECTION = 'user_addresses';
 const ORDERS_COLLECTION = 'orders';
+const ENVIA_WEBHOOK_EVENTS_COLLECTION = 'envia_webhook_events';
 const PRODUCTS_COLLECTION = 'products';
 
 function formatAddressLines(addr) {
@@ -259,6 +260,7 @@ export async function createOrder(orderPayload) {
     customer_phone: orderPayload.customer_phone || null,
     payment_method: orderPayload.payment_method || null,
     shipping_method: orderPayload.shipping_method || null,
+    shipping_option: orderPayload.shipping_option || null,
     pickup_point: orderPayload.pickup_point || null,
     items: Array.isArray(orderPayload.items) ? orderPayload.items : [],
     service_items: Array.isArray(orderPayload.service_items) ? orderPayload.service_items : [],
@@ -339,6 +341,15 @@ export async function updateOrderShippingInfo(orderId, shippingInfo = {}) {
   }
   if (shippingInfo.tracking_url !== undefined) {
     updateData.tracking_url = shippingInfo.tracking_url || null;
+  }
+  if (shippingInfo.envia_shipment_id !== undefined) {
+    updateData.envia_shipment_id = shippingInfo.envia_shipment_id || null;
+  }
+  if (shippingInfo.last_notified_status !== undefined) {
+    updateData.last_notified_status = shippingInfo.last_notified_status || null;
+  }
+  if (shippingInfo.actual_delivery_date !== undefined) {
+    updateData.actual_delivery_date = shippingInfo.actual_delivery_date || null;
   }
 
   if (Object.keys(updateData).length === 1) {
@@ -663,4 +674,74 @@ export async function getPaymentReportData(options = {}) {
       hasPrevPage: page > 1
     }
   };
+}
+
+export async function getEnviaWebhookEventByKey(eventKey) {
+  const doc = await db.collection(ENVIA_WEBHOOK_EVENTS_COLLECTION).doc(String(eventKey)).get();
+  return doc.exists ? { id: doc.id, ...doc.data() } : null;
+}
+
+export async function recordEnviaWebhookEvent({ eventKey, eventType, trackingNumber, payload }) {
+  await db.collection(ENVIA_WEBHOOK_EVENTS_COLLECTION).doc(String(eventKey)).set({
+    event_type: eventType,
+    tracking_number: trackingNumber || null,
+    payload: payload || {},
+    processed_at: new Date().toISOString()
+  });
+}
+
+async function findOrderDocByField(field, value) {
+  if (!value) return null;
+  const snap = await db.collection(ORDERS_COLLECTION).where(field, '==', String(value)).limit(1).get();
+  if (snap.empty) return null;
+  const doc = snap.docs[0];
+  return { id: doc.id, ...doc.data() };
+}
+
+export async function findOrderByEnviaWebhook({ trackingNumber, shipmentId, orderReference }) {
+  const attempts = [
+    ['tracking_id', trackingNumber],
+    ['tracking_number', trackingNumber],
+    ['envia_shipment_id', shipmentId],
+    ['order_number', orderReference]
+  ];
+
+  for (const [field, value] of attempts) {
+    const order = await findOrderDocByField(field, value);
+    if (order) return order;
+  }
+
+  return null;
+}
+
+export async function applyEnviaWebhookToOrder(order, event) {
+  const shippingInfo = {
+    tracking_id: event.trackingNumber || order.tracking_id || null,
+    carrier_company: event.carrier || order.carrier_company || null,
+    tracking_url: event.trackingUrl || order.tracking_url || null,
+    envia_shipment_id: event.shipmentId || order.envia_shipment_id || null
+  };
+
+  if (event.status === 'delivered') {
+    shippingInfo.actual_delivery_date = new Date().toISOString();
+  }
+
+  let statusId = null;
+  let historyNotes = `Envia: ${event.rawStatus || event.status}`;
+
+  if (event.status === 'picked_up' || event.status === 'in_transit') {
+    statusId = await getOrderStatusIdByName('shipped');
+    historyNotes = `Envio en transito (${event.rawStatus || event.status})`;
+  } else if (event.status === 'delivered') {
+    statusId = await getOrderStatusIdByName('delivered');
+    historyNotes = 'Pedido entregado';
+  } else if (event.status === 'canceled' || event.status === 'failed') {
+    historyNotes = `Incidencia de envio: ${event.rawStatus || event.status}`;
+  }
+
+  if (statusId) {
+    return updateOrderStatus(order.id, statusId, historyNotes, shippingInfo);
+  }
+
+  return updateOrderShippingInfo(order.id, shippingInfo);
 }

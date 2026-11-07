@@ -1,5 +1,6 @@
 import { db } from './firebaseAdmin';
 import { getTcgMarketPriceForProduct } from './tcgMarketPrice';
+import { isRiftboundProduct } from './productImages';
 
 const CART_ITEMS_COLLECTION = 'cart_items';
 const PRODUCTS_COLLECTION = 'products';
@@ -28,12 +29,29 @@ export async function getCartItems(userId, sessionId) {
   const productsById = new Map(
     productSnaps.filter((s) => s.exists).map((s) => [s.id, s.data()])
   );
+  const brandIds = [...new Set(
+    [...productsById.values()]
+      .flatMap((product) => [product.franchise_brand_id, product.manufacturer_brand_id, product.brand_id])
+      .filter(Boolean)
+      .map(String)
+  )];
+  const brandSnaps = await Promise.all(
+    brandIds.map((id) => db.collection('product_brands').doc(id).get())
+  );
+  const brandNamesById = new Map(
+    brandSnaps.filter((snap) => snap.exists).map((snap) => [snap.id, snap.data().name])
+  );
 
   const items = [];
   for (const row of cartDocs) {
     const product = row.product_id ? productsById.get(String(row.product_id)) : null;
     if (product && product.is_active === false) continue;
     const imageUrl = product?.image || (Array.isArray(product?.images) && product.images[0] ? (product.images[0].url || product.images[0]) : '') || '';
+    const brandName =
+      brandNamesById.get(String(product?.franchise_brand_id || '')) ||
+      brandNamesById.get(String(product?.manufacturer_brand_id || '')) ||
+      brandNamesById.get(String(product?.brand_id || '')) ||
+      '';
     items.push({
       id: row.id,
       quantity: row.quantity,
@@ -45,6 +63,7 @@ export async function getCartItems(userId, sessionId) {
         row.variant_price != null ? toNum(row.variant_price) : toNum(product?.price, 0),
       stock_quantity: toNum(product?.stock_quantity, 0),
       image_url: imageUrl,
+      is_riftbound: isRiftboundProduct({ brand_name: brandName }),
       variant_id: row.product_variant_id || null,
       variant_name: row.variant_name || null,
       variant_price: row.variant_price != null ? toNum(row.variant_price) : null

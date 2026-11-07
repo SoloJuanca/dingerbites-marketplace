@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
+import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { useCart } from '../../lib/CartContext';
 import { useAuth } from '../../lib/AuthContext';
+import { isRiftboundProduct } from '../../lib/productImages';
 import Icon from '../Icon/Icon';
+import ProductImage from '../ProductImage/ProductImage';
 import styles from './CheckoutUpsell.module.css';
 
 function formatPrice(price) {
@@ -16,15 +18,16 @@ function formatPrice(price) {
   }).format(Number(price) || 0);
 }
 
-export default function CheckoutUpsell({ cartItems = [] }) {
+export default function CheckoutUpsell({ cartItems = [], isOpen, onClose }) {
   const { addToCartWithSync } = useCart();
   const { user, apiRequest } = useAuth();
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [addingId, setAddingId] = useState(null);
 
   useEffect(() => {
+    if (!isOpen) return undefined;
     let cancelled = false;
 
     async function loadUpsellProducts() {
@@ -37,8 +40,7 @@ export default function CheckoutUpsell({ cartItems = [] }) {
         const response = await fetch(`/api/checkout/upsell?${params.toString()}`, { cache: 'no-store' });
         if (!response.ok) throw new Error('Failed to fetch upsell products');
         const data = await response.json();
-        if (cancelled) return;
-        setProducts(Array.isArray(data.products) ? data.products : []);
+        if (!cancelled) setProducts(Array.isArray(data.products) ? data.products : []);
       } catch (err) {
         console.error('Error loading checkout upsell:', err);
         if (!cancelled) {
@@ -54,7 +56,16 @@ export default function CheckoutUpsell({ cartItems = [] }) {
     return () => {
       cancelled = true;
     };
-  }, [cartItems]);
+  }, [cartItems, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   const handleAdd = async (product) => {
     setAddingId(product.id);
@@ -66,7 +77,8 @@ export default function CheckoutUpsell({ cartItems = [] }) {
           description: product.description,
           price: product.price,
           image: product.image,
-          stock_quantity: product.stock_quantity
+          stock_quantity: product.stock_quantity,
+          is_riftbound: isRiftboundProduct(product)
         },
         user,
         apiRequest
@@ -81,69 +93,74 @@ export default function CheckoutUpsell({ cartItems = [] }) {
     }
   };
 
-  if (loading) {
-    return (
-      <section className={styles.section} aria-label="Sugerencias de productos">
-        <div className={styles.header}>
-          <h2 className={styles.title}>¿Agregar algo más?</h2>
-        </div>
-        <div className={styles.stateBox}>
-          <Icon name="autorenew" size={24} className={styles.loadingIcon} aria-hidden />
-          <span>Cargando sugerencias...</span>
-        </div>
-      </section>
-    );
-  }
-
-  if (error) {
-    return (
-      <section className={styles.section} aria-label="Sugerencias de productos">
-        <div className={styles.header}>
-          <h2 className={styles.title}>¿Agregar algo más?</h2>
-        </div>
-        <div className={styles.stateBox}>{error}</div>
-      </section>
-    );
-  }
-
-  if (products.length === 0) {
-    return null;
-  }
+  if (!isOpen) return null;
 
   return (
-    <section className={styles.section} aria-label="Sugerencias de productos">
-      <div className={styles.header}>
-        <h2 className={styles.title}>¿Agregar algo más?</h2>
-        <p className={styles.subtitle}>Productos nuevos y populares que podrían interesarte.</p>
-      </div>
+    <div
+      className={styles.modalBackdrop}
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="upsell-title">
+        <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Cerrar">
+          ×
+        </button>
+        <div className={styles.header}>
+          <h2 id="upsell-title" className={styles.title}>¿Agregar algo más?</h2>
+          <p className={styles.subtitle}>Antes de continuar, revisa estas sugerencias.</p>
+        </div>
 
-      <div className={styles.track}>
-        {products.map((product) => (
-          <article key={product.id} className={styles.card}>
-            <div className={styles.imageWrap}>
-              <Image
-                src={product.image}
-                alt={product.name}
-                width={160}
-                height={120}
-                className={styles.image}
-              />
-            </div>
-            <div className={styles.cardBody}>
-              <h3 className={styles.name}>{product.name}</h3>
-              <p className={styles.price}>{formatPrice(product.price)}</p>
-              <button
-                type="button"
-                className={styles.addButton}
-                onClick={() => handleAdd(product)}
-                disabled={addingId === product.id}
-              >
-                {addingId === product.id ? 'Agregando...' : 'Agregar'}
-              </button>
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
+        {loading ? (
+          <div className={styles.stateBox}>
+            <Icon name="autorenew" size={24} className={styles.loadingIcon} aria-hidden />
+            <span>Cargando sugerencias...</span>
+          </div>
+        ) : error ? (
+          <div className={styles.stateBox}>{error}</div>
+        ) : products.length > 0 ? (
+          <div className={styles.track}>
+            {products.map((product) => (
+              <article key={product.id} className={styles.card}>
+                <div className={styles.imageWrap}>
+                  <ProductImage
+                    src={product.image}
+                    alt={product.name}
+                    width={160}
+                    height={120}
+                    className={styles.image}
+                    product={product}
+                  />
+                </div>
+                <div className={styles.cardBody}>
+                  <h3 className={styles.name}>{product.name}</h3>
+                  <p className={styles.price}>{formatPrice(product.price)}</p>
+                  <button
+                    type="button"
+                    className={styles.addButton}
+                    onClick={() => handleAdd(product)}
+                    disabled={addingId === product.id}
+                  >
+                    {addingId === product.id ? 'Agregando...' : 'Agregar'}
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className={styles.stateBox}>No hay sugerencias disponibles. Puedes continuar con tu pedido.</div>
+        )}
+
+        <div className={styles.modalActions}>
+          <button type="button" className={styles.keepShoppingButton} onClick={onClose}>
+            Seguir revisando
+          </button>
+          <Link href="/checkout" className={styles.continueButton} onClick={onClose}>
+            Continuar al checkout
+          </Link>
+        </div>
+      </section>
+    </div>
   );
 }

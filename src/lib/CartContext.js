@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
+import { createContext, useContext, useReducer, useEffect, useCallback, useRef, useState } from 'react';
 import { trackAddToCart, trackRemoveFromCart } from './analytics';
 
 const CartContext = createContext();
@@ -27,6 +27,7 @@ function cartReducer(state, action) {
                 description: action.payload.description ?? item.description,
                 price: action.payload.price ?? item.price,
                 image: action.payload.image ?? item.image,
+                is_riftbound: action.payload.is_riftbound ?? item.is_riftbound,
                 stock_quantity: action.payload.stock_quantity ?? item.stock_quantity,
                 quantity: boundedQuantity
               }
@@ -85,6 +86,8 @@ const initialState = {
 
 export function CartProvider({ children }) {
   const [state, dispatch] = useReducer(cartReducer, initialState);
+  const [orderNotes, setOrderNotesState] = useState('');
+  const orderNotesLoadedRef = useRef(false);
 
   // Keep a ref to the latest items so analytics can enrich events without
   // adding state.items to callback deps (which would recreate the callbacks).
@@ -99,6 +102,7 @@ export function CartProvider({ children }) {
     price: item.variant_price || item.price,
     quantity: item.quantity,
     image: item.image_url,
+    is_riftbound: Boolean(item.is_riftbound),
     variantId: item.variant_id,
     stock_quantity: item.stock_quantity
   }), []);
@@ -115,6 +119,25 @@ export function CartProvider({ children }) {
       }
     }
   }, []);
+
+  useEffect(() => {
+    try {
+      setOrderNotesState(localStorage.getItem('cart_order_notes') || '');
+    } catch (error) {
+      console.error('Error loading cart notes from localStorage:', error);
+    } finally {
+      orderNotesLoadedRef.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!orderNotesLoadedRef.current) return;
+    try {
+      localStorage.setItem('cart_order_notes', orderNotes);
+    } catch (error) {
+      console.error('Error saving cart notes to localStorage:', error);
+    }
+  }, [orderNotes]);
 
   // Guardar carrito en localStorage cuando cambie
   useEffect(() => {
@@ -136,6 +159,11 @@ export function CartProvider({ children }) {
 
   const clearCart = useCallback(() => {
     dispatch({ type: 'CLEAR_CART' });
+    setOrderNotesState('');
+  }, []);
+
+  const setOrderNotes = useCallback((notes) => {
+    setOrderNotesState(String(notes || '').slice(0, 1000));
   }, []);
 
   // Calcular totales
@@ -361,6 +389,8 @@ export function CartProvider({ children }) {
 
   const value = {
     items: state.items,
+    orderNotes,
+    setOrderNotes,
     addToCart,
     removeFromCart,
     updateQuantity,

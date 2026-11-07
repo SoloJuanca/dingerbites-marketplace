@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
+const isDevelopment = process.env.NODE_ENV === 'development';
+
 const nextConfig = {
+  distDir: isDevelopment ? '.next-dev' : '.next',
   images: {
     // Images are optimized at upload time (resize + WebP) and served directly
     // from Firebase, so per-request Vercel Image Optimization is disabled to

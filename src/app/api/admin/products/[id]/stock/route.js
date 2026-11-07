@@ -3,6 +3,7 @@ import { authenticateAdmin } from '../../../../../../lib/auth';
 import { db } from '../../../../../../lib/firebaseAdmin';
 import { notifyBackInStockSubscribers } from '../../../../../../lib/stockAlerts';
 import { syncProductToTypesenseSafe } from '../../../../../../lib/search/typesenseSync';
+import { syncTcgStockToMarketplace } from '../../../../../../lib/sync/marketplaceSyncClient';
 
 // PATCH /api/admin/products/[id]/stock - Update product stock
 export async function PATCH(request, { params }) {
@@ -66,10 +67,18 @@ export async function PATCH(request, { params }) {
 
     const searchSync = await syncProductToTypesenseSafe(updatedProduct);
 
+    let marketplaceSync = { skipped: true };
+    if (updatedProduct.tcg_product_id != null) {
+      marketplaceSync = await syncTcgStockToMarketplace(updatedProduct, {
+        idempotencyKey: `ecom-stock-${id}-${stockQuantity}`
+      });
+    }
+
     return NextResponse.json({
       success: true,
       product: updatedProduct,
       search_sync: searchSync,
+      marketplace_sync: marketplaceSync,
       message: `Stock updated successfully for ${existingProduct.name || 'Product'}`,
       previousStock,
       newStock: stockQuantity

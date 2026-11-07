@@ -160,17 +160,21 @@ export function computeSubtotal(pricedItems = [], pricedServiceItems = []) {
 export function computeOrderTotals({
   subtotal = 0,
   shippingMethod = 'Envío a domicilio',
-  discountAmount = 0
+  discountAmount = 0,
+  shippingAmount
 }) {
   const safeSubtotal = roundMoney(subtotal);
-  const shippingAmount = roundMoney(resolveShippingAmount(shippingMethod, safeSubtotal));
+  const resolvedShippingAmount =
+    shippingAmount === undefined
+      ? roundMoney(resolveShippingAmount(shippingMethod, safeSubtotal))
+      : Math.max(0, roundMoney(shippingAmount));
   const safeDiscount = Math.min(roundMoney(discountAmount), safeSubtotal);
-  const totalAmount = roundMoney(safeSubtotal + shippingAmount - safeDiscount);
+  const totalAmount = roundMoney(safeSubtotal + resolvedShippingAmount - safeDiscount);
 
   return {
     subtotal: safeSubtotal,
     tax_amount: 0,
-    shipping_amount: shippingAmount,
+    shipping_amount: resolvedShippingAmount,
     discount_amount: safeDiscount,
     total_amount: totalAmount
   };

@@ -3,18 +3,17 @@
 import { useState } from 'react';
 import { useCart } from '../../lib/CartContext';
 import { useAuth } from '../../lib/AuthContext';
-import Link from 'next/link';
-import { resolveShippingAmount } from '../../lib/shipping';
+import CheckoutUpsell from '../CheckoutUpsell/CheckoutUpsell';
 import styles from './CartSummary.module.css';
 
 export default function CartSummary() {
   const { getTotalPrice, items, clearCart } = useCart();
   const { user, apiRequest } = useAuth();
   const [isClearing, setIsClearing] = useState(false);
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
 
   const subtotal = getTotalPrice();
-  const deliveryFee = resolveShippingAmount({ subtotal, deliveryType: 'delivery' });
-  const total = subtotal + deliveryFee;
+  const total = subtotal;
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('es-MX', {
@@ -70,23 +69,36 @@ export default function CartSummary() {
         </div>
         <div className={styles.priceRow}>
           <span>Envío:</span>
-          <span>{deliveryFee > 0 ? formatPrice(deliveryFee) : 'Gratis'}</span>
+          <span>Se calcula en checkout</span>
         </div>
         <div className={styles.totalRow}>
-          <span>Total:</span>
+          <span>Productos antes de envío:</span>
           <span>{formatPrice(total)}</span>
         </div>
       </div>
 
       {/* Nota sobre envío */}
       <div className={styles.shippingNote}>
-        <p><span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle' }}>info</span> El costo de envío se calculará en el checkout según tu ubicación y tipo de entrega.</p>
+        <p>
+          <span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle' }}>info</span>{' '}
+          El costo de envío se calculará en el checkout según tu ubicación y tipo de entrega.
+        </p>
       </div>
 
       {/* Botón para ir al checkout */}
-      <Link href="/checkout" className={styles.checkoutButton}>
+      <button
+        type="button"
+        className={styles.checkoutButton}
+        onClick={() => setShowUpsellModal(true)}
+      >
         Continuar al Checkout
-      </Link>
+      </button>
+
+      <CheckoutUpsell
+        cartItems={items}
+        isOpen={showUpsellModal}
+        onClose={() => setShowUpsellModal(false)}
+      />
 
       {/* Botón para vaciar carrito */}
       <button 

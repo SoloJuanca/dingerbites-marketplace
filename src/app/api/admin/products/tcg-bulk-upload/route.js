@@ -3,6 +3,7 @@ import { authenticateAdmin } from '../../../../../lib/auth';
 import { db } from '../../../../../lib/firebaseAdmin';
 import { convertUsdToMxnWithMin } from '../../../../../lib/currency';
 import { indexProductToTypesense, loadTaxonomyLookups } from '../../../../../lib/search/typesenseSync';
+import { syncAllTcgStockToMarketplace } from '../../../../../lib/sync/marketplaceSyncClient';
 import { TCG_CSV_BASE, tcgcsvHeaders } from '../../../../../lib/tcgcsvClient';
 
 const PRODUCTS_COLLECTION = 'products';
@@ -833,6 +834,7 @@ export async function POST(request) {
           is_featured: false,
           is_bestseller: false,
           weight_grams: null,
+          shipping_package_size: 'envelope',
           dimensions_cm: null,
           meta_title: null,
           meta_description: generatedCopy.shortDescription || null,
@@ -870,13 +872,19 @@ export async function POST(request) {
 
     summary.errors = report.errors.length;
 
+    let marketplaceSync = { skipped: true };
+    if (!dryRun) {
+      marketplaceSync = await syncAllTcgStockToMarketplace({ activeOnly: false });
+    }
+
     return NextResponse.json({
       success: true,
       message: dryRun
         ? 'Dry run completed'
         : 'TCG bulk import completed',
       summary,
-      report
+      report,
+      marketplace_sync: marketplaceSync
     });
   } catch (error) {
     console.error('Error in TCG bulk upload:', error);

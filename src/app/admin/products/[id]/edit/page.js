@@ -12,6 +12,7 @@ import ProductImageEditor from '../../../../../components/admin/ProductImageEdit
 import toast from 'react-hot-toast';
 import { loadingToast } from '../../../../../lib/toastHelpers';
 import { DEFAULT_PRODUCT_CONDITION, PRODUCT_CONDITIONS, PRODUCT_CONDITION_LABELS, sanitizeProductCondition } from '../../../../../lib/productCondition';
+import { getShippingPackageSize, SHIPPING_PACKAGE_SIZES } from '../../../../../lib/shippingPackageSizes';
 import styles from '../../create/create.module.css';
 
 const STEPS_NORMAL = [
@@ -71,6 +72,7 @@ export default function EditProductPage() {
     length_cm: '',
     width_cm: '',
     height_cm: '',
+    shipping_package_size: 'small',
     tags: '',
     features: '',
     condition: DEFAULT_PRODUCT_CONDITION,
@@ -137,6 +139,9 @@ export default function EditProductPage() {
           stock_quantity: product.stock_quantity != null ? String(product.stock_quantity) : '0',
           low_stock_threshold: product.low_stock_threshold != null ? String(product.low_stock_threshold) : '5',
           weight_grams: product.weight_grams != null ? String(product.weight_grams) : '',
+          shipping_package_size: getShippingPackageSize(product.shipping_package_size, {
+            isTcg: product.tcg_product_id != null
+          }),
           length_cm: length_cm,
           width_cm: width_cm,
           height_cm: height_cm,
@@ -345,6 +350,7 @@ export default function EditProductPage() {
       sku: formData.sku || null,
       barcode: formData.barcode || null,
       weight_grams: formData.weight_grams && formData.weight_grams.trim() ? parseFloat(formData.weight_grams) : null,
+      shipping_package_size: getShippingPackageSize(formData.shipping_package_size, { isTcg: isTcgFlow }),
       dimensions_cm:
         formData.length_cm || formData.width_cm || formData.height_cm
           ? {
@@ -1127,6 +1133,23 @@ export default function EditProductPage() {
                 maxDetails={50}
               />
             </div>
+            <div className={styles.field}>
+              <label htmlFor="shipping_package_size">Tamaño de envío</label>
+              <select
+                id="shipping_package_size"
+                name="shipping_package_size"
+                value={formData.shipping_package_size}
+                onChange={handleInputChange}
+                className={styles.input}
+              >
+                {Object.entries(SHIPPING_PACKAGE_SIZES).map(([size, packageSize]) => (
+                  <option key={size} value={size}>
+                    {packageSize.label} — {packageSize.description}
+                  </option>
+                ))}
+              </select>
+              <small>Estimación del paquete para cotizar; puedes ajustarla según el producto.</small>
+            </div>
             <h4 className={styles.subsectionTitle}>Peso y dimensiones (opcionales)</h4>
             <div className={styles.fieldRow}>
               <div className={styles.field}>
@@ -1226,6 +1249,8 @@ export default function EditProductPage() {
               <dd>{formData.price ? `$${formData.price}` : '—'}</dd>
               <dt>Stock</dt>
               <dd>{formData.stock_quantity}</dd>
+              <dt>Tamaño de envío</dt>
+              <dd>{SHIPPING_PACKAGE_SIZES[getShippingPackageSize(formData.shipping_package_size, { isTcg: isTcgFlow })].label}</dd>
               <dt>Peso</dt>
               <dd>{formData.weight_grams ? `${formData.weight_grams} g` : '—'}</dd>
               <dt>Dimensiones</dt>

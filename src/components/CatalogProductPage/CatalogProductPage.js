@@ -196,6 +196,7 @@ function ProductData({
                 productName={product.name}
                 isTcgProduct={!!product.tcg_product_id}
                 productId={product.id}
+                product={product}
               />
 
               <ProductInfo
@@ -210,8 +211,8 @@ function ProductData({
                 <article className={styles.mobileTrustFeature}>
                   <Icon name="local_shipping" size={20} className={styles.mobileTrustFeatureIcon} />
                   <div className={styles.mobileTrustFeatureText}>
-                    <strong>Envío gratis</strong>
-                    <span>En pedidos mayores a $2000</span>
+                    <strong>Envío seguro y rastreado</strong>
+                    <span>El costo se calcula según tu dirección</span>
                   </div>
                 </article>
 
