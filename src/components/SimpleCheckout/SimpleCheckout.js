@@ -41,6 +41,8 @@ export default function SimpleCheckout() {
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [showAddressManager, setShowAddressManager] = useState(false);
   const [useNewAddress, setUseNewAddress] = useState(false);
+  const [saveAddressForFuture, setSaveAddressForFuture] = useState(false);
+  const [savingAddress, setSavingAddress] = useState(false);
   const [userAddresses, setUserAddresses] = useState([]);
   const [couponCode, setCouponCode] = useState('');
   const [couponData, setCouponData] = useState(null);
@@ -48,7 +50,6 @@ export default function SimpleCheckout() {
   const [shippingQuote, setShippingQuote] = useState({
     status: 'idle',
     options: [],
-    packageSummary: null,
     error: ''
   });
   const [selectedShippingOptionId, setSelectedShippingOptionId] = useState('');
@@ -143,6 +144,8 @@ export default function SimpleCheckout() {
     
     setFormData(prev => ({
       ...prev,
+      name: `${address.first_name || ''} ${address.last_name || ''}`.trim() || prev.name,
+      phone: address.phone || prev.phone,
       street: street,
       number: number,
       neighborhood: address.address_line_2 || '',
@@ -156,6 +159,7 @@ export default function SimpleCheckout() {
   const handleAddressSelect = (address) => {
     setSelectedAddress(address);
     setUseNewAddress(false);
+    setSaveAddressForFuture(false);
     setShowAddressManager(false);
     setSelectedShippingOptionId('');
     shippingOptionsRequestedRef.current = false;
@@ -184,6 +188,71 @@ export default function SimpleCheckout() {
 
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const startNewAddress = () => {
+    setSelectedAddress(null);
+    setUseNewAddress(true);
+    setSaveAddressForFuture(false);
+    setSelectedShippingOptionId('');
+    shippingOptionsRequestedRef.current = false;
+    setFormData((prev) => ({
+      ...prev,
+      street: '',
+      number: '',
+      neighborhood: '',
+      city: '',
+      state: '',
+      postalCode: ''
+    }));
+  };
+
+  const saveAddressForFutureOrders = async () => {
+    if (!saveAddressForFuture || !isAuthenticated) return true;
+
+    const [first_name, ...lastNameParts] = formData.name.trim().split(/\s+/);
+    const last_name = lastNameParts.join(' ');
+    if (!first_name || !last_name) {
+      toast.error('Agrega nombre y apellido para guardar la dirección.');
+      return false;
+    }
+
+    setSavingAddress(true);
+    try {
+      const response = await apiRequest('/api/users/addresses', {
+        method: 'POST',
+        body: JSON.stringify({
+          address_type: 'shipping',
+          is_default: false,
+          first_name,
+          last_name,
+          address_line_1: [formData.street, formData.number].filter(Boolean).join(' '),
+          address_line_2: formData.neighborhood,
+          city: formData.city,
+          state: formData.state,
+          postal_code: formData.postalCode,
+          country: 'Mexico',
+          phone: formData.phone
+        })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.address) {
+        throw new Error(data.error || 'No se pudo guardar la dirección.');
+      }
+
+      setUserAddresses((addresses) => [data.address, ...addresses]);
+      setSelectedAddress(data.address);
+      setUseNewAddress(false);
+      setSaveAddressForFuture(false);
+      toast.success('Dirección guardada para futuros pedidos.');
+      return true;
+    } catch (error) {
+      console.error('Error saving checkout address:', error);
+      toast.error(error.message || 'No se pudo guardar la dirección.');
+      return false;
+    } finally {
+      setSavingAddress(false);
     }
   };
 
@@ -253,7 +322,7 @@ export default function SimpleCheckout() {
   useEffect(() => {
     if (formData.deliveryType !== 'delivery') {
       shippingOptionsRequestedRef.current = false;
-      setShippingQuote({ status: 'idle', options: [], packageSummary: null, error: '' });
+      setShippingQuote({ status: 'idle', options: [], error: '' });
       return;
     }
 
@@ -269,14 +338,14 @@ export default function SimpleCheckout() {
     ];
     if (requiredAddress.some((value) => !String(value || '').trim())) {
       shippingOptionsRequestedRef.current = false;
-      setShippingQuote({ status: 'idle', options: [], packageSummary: null, error: '' });
+      setShippingQuote({ status: 'idle', options: [], error: '' });
       setSelectedShippingOptionId('');
       return;
     }
 
     const controller = new AbortController();
     const requestId = ++shippingQuoteRequestIdRef.current;
-    setShippingQuote({ status: 'loading', options: [], packageSummary: null, error: '' });
+    setShippingQuote({ status: 'loading', options: [], error: '' });
     setSelectedShippingOptionId('');
     const timer = setTimeout(async () => {
       try {
@@ -311,7 +380,6 @@ export default function SimpleCheckout() {
           setShippingQuote({
             status: 'quoted',
             options: data.options,
-            packageSummary: data.packageSummary || null,
             error: ''
           });
           if (shippingOptionsRequestedRef.current) {
@@ -326,7 +394,7 @@ export default function SimpleCheckout() {
           requestId === shippingQuoteRequestIdRef.current
         ) {
           shippingOptionsRequestedRef.current = false;
-          setShippingQuote({ status: 'error', options: [], packageSummary: null, error: error.message });
+          setShippingQuote({ status: 'error', options: [], error: error.message });
         }
       }
     }, 700);
@@ -509,12 +577,13 @@ export default function SimpleCheckout() {
     setCheckoutAccordionStep('address');
   };
 
-  const continueToShipping = () => {
+  const continueToShipping = async () => {
     if (!validateForm()) {
       toast.error('Por favor completa los datos obligatorios.');
       return;
     }
     if (formData.deliveryType === 'delivery') {
+      if (!(await saveAddressForFutureOrders())) return;
       if (shippingQuote.status === 'quoted') {
         setCheckoutAccordionStep('shipping');
         return;
@@ -826,6 +895,28 @@ export default function SimpleCheckout() {
                     )}
                   </div>
 
+                  {isAuthenticated && userAddresses.length > 0 && (
+                    <label className={styles.savedAddressField}>
+                      <span>Usar una dirección guardada</span>
+                      <select
+                        value={selectedAddress && !useNewAddress ? selectedAddress.id : ''}
+                        onChange={(event) => {
+                          const address = userAddresses.find((saved) => saved.id === event.target.value);
+                          if (address) handleAddressSelect(address);
+                          else startNewAddress();
+                        }}
+                      >
+                        <option value="">Escribir una nueva dirección</option>
+                        {userAddresses.map((address) => (
+                          <option key={address.id} value={address.id}>
+                            {address.address_line_1}, {address.city}, {address.postal_code}
+                            {address.is_default ? ' (Predeterminada)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+
                   {/* Address Manager Modal */}
                   {showAddressManager && isAuthenticated && (
                     <div className={styles.addressManagerModal}>
@@ -861,17 +952,7 @@ export default function SimpleCheckout() {
                         <button
                           type="button"
                           onClick={() => {
-                            setSelectedAddress(null);
-                            setUseNewAddress(true);
-                            shippingOptionsRequestedRef.current = false;
-                            setFormData(prev => ({
-                              ...prev,
-                              street: '',
-                              number: '',
-                              neighborhood: '',
-                              city: '',
-                              postalCode: ''
-                            }));
+                            startNewAddress();
                           }}
                           className={styles.newAddressButton}
                         >
@@ -979,6 +1060,20 @@ export default function SimpleCheckout() {
                           {errors.postalCode && <span className={styles.errorText}>{errors.postalCode}</span>}
                         </div>
                       </div>
+                      {isAuthenticated ? (
+                        <label className={styles.saveAddressCheckbox}>
+                          <input
+                            type="checkbox"
+                            checked={saveAddressForFuture}
+                            onChange={(event) => setSaveAddressForFuture(event.target.checked)}
+                          />
+                          <span>Guardar esta dirección para futuros pedidos</span>
+                        </label>
+                      ) : (
+                        <p className={styles.saveAddressHint}>
+                          Inicia sesión para guardar direcciones y usarlas en futuros pedidos.
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -993,15 +1088,20 @@ export default function SimpleCheckout() {
                     type="button"
                     className={styles.submitButton}
                     onClick={continueToShipping}
-                    disabled={formData.deliveryType === 'delivery' && shippingQuote.status === 'loading'}
+                    disabled={
+                      savingAddress ||
+                      (formData.deliveryType === 'delivery' && shippingQuote.status === 'loading')
+                    }
                   >
-                    {formData.deliveryType !== 'delivery'
-                      ? 'Continuar'
-                      : shippingQuote.status === 'loading'
-                        ? 'Cargando opciones de envío…'
-                        : shippingQuote.status === 'error'
-                          ? 'Reintentar opciones de envío'
-                          : 'Ver opciones de envío'}
+                    {savingAddress
+                      ? 'Guardando dirección…'
+                      : formData.deliveryType !== 'delivery'
+                        ? 'Continuar'
+                        : shippingQuote.status === 'loading'
+                          ? 'Cargando opciones de envío…'
+                          : shippingQuote.status === 'error'
+                            ? 'Reintentar opciones de envío'
+                            : 'Ver opciones de envío'}
                   </button>
                 </>
               )}
@@ -1035,17 +1135,6 @@ export default function SimpleCheckout() {
                     )}
                     {shippingQuote.status === 'quoted' && (
                       <>
-                        {shippingQuote.packageSummary && (
-                          <p className={styles.shippingPackageSummary}>
-                            Cotización para {shippingQuote.packageSummary.packageCount} paquete
-                            {shippingQuote.packageSummary.packageCount === 1 ? '' : 's'}{' '}
-                            {shippingQuote.packageSummary.label.toLowerCase()} (
-                            {shippingQuote.packageSummary.dimensions.length} ×{' '}
-                            {shippingQuote.packageSummary.dimensions.width} ×{' '}
-                            {shippingQuote.packageSummary.dimensions.height} cm,{' '}
-                            {shippingQuote.packageSummary.weight} kg).
-                          </p>
-                        )}
                         <div className={styles.shippingFilters}>
                           <label className={styles.inputGroup}>
                             <span>Ordenar por</span>

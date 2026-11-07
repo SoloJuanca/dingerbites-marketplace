@@ -1,7 +1,8 @@
 .checkoutPage {
   min-height: 100vh;
   background: #f8fafc;
-  padding: 0;
+  margin-top: -96px;
+  padding: 96px 0 48px;
 }
 
 .container {
@@ -12,7 +13,8 @@
 /* Mobile Design */
 @media (max-width: 768px) {
   .checkoutPage {
-    padding: 0;
+    margin-top: -96px;
+    padding: 96px 0 48px;
   }
   
   .container {
@@ -23,6 +25,7 @@
 /* Small Mobile Design */
 @media (max-width: 480px) {
   .checkoutPage {
-    padding: 16px 0;
+    margin-top: -124px;
+    padding: 124px 0 32px;
   }
 }

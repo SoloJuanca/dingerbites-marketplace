@@ -56,7 +56,7 @@ export async function POST(request) {
         { status: 502 }
       );
     }
-    return NextResponse.json({ options, packageSummary: packagePlan.summary, currency: 'MXN' });
+    return NextResponse.json({ options, currency: 'MXN' });
   } catch (error) {
     console.error('Envia shipping quote failed', {
       request_id: requestMeta?.requestId || null,
