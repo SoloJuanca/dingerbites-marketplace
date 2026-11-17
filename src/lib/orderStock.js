@@ -22,6 +22,63 @@ function quantitiesByProductId(orderItems) {
   return map;
 }
 
+export function getOrderItemQuantities(orderItems) {
+  return quantitiesByProductId(orderItems);
+}
+
+/**
+ * Restore inventory for order items in the caller's Firestore transaction.
+ * Returns missing product IDs so the order can record and retry partial restores.
+ */
+export async function restoreProductStockInTransaction(
+  transaction,
+  orderItems,
+  previouslyRestoredProductIds = [],
+  nowIso = new Date().toISOString()
+) {
+  const restoredIds = new Set((previouslyRestoredProductIds || []).map(String));
+  const entries = [...quantitiesByProductId(orderItems).entries()]
+    .filter(([productId]) => !restoredIds.has(productId))
+    .map(([productId, quantity]) => ({
+      productId,
+      quantity,
+      ref: db.collection(PRODUCTS_COLLECTION).doc(productId)
+    }));
+
+  const docs = await Promise.all(entries.map(({ ref }) => transaction.get(ref)));
+  const missingProductIds = [];
+  const updates = [];
+
+  for (let index = 0; index < entries.length; index += 1) {
+    const entry = entries[index];
+    const productDoc = docs[index];
+    if (!productDoc.exists) {
+      missingProductIds.push(entry.productId);
+      continue;
+    }
+
+    const product = productDoc.data();
+    updates.push({
+      productId: entry.productId,
+      ref: entry.ref,
+      stockQuantity: Math.max(0, Math.floor(toNum(product.stock_quantity, 0))) + entry.quantity
+    });
+  }
+
+  for (const update of updates) {
+    transaction.update(update.ref, {
+      stock_quantity: update.stockQuantity,
+      updated_at: nowIso
+    });
+    restoredIds.add(update.productId);
+  }
+
+  return {
+    restoredProductIds: [...restoredIds],
+    missingProductIds
+  };
+}
+
 /**
  * Validates stock and decrements product stock inside an existing Firestore transaction.
  * Call after coupon logic and before writing the order document.

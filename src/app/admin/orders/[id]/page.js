@@ -15,6 +15,7 @@ export default function AdminOrderDetail() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [creatingShippingLabel, setCreatingShippingLabel] = useState(false);
   const [orderItems, setOrderItems] = useState([]);
   const [orderStatuses, setOrderStatuses] = useState([]);
   const [shippingTrackingId, setShippingTrackingId] = useState('');
@@ -119,6 +120,44 @@ export default function AdminOrderDetail() {
       toast.error('Error al conectar con el servidor');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleCreateShippingLabel = async () => {
+    const retryNeedsReview = order.shipping_label_status === 'needs_review';
+    if (
+      retryNeedsReview &&
+      !window.confirm('Confirma que revisaste Envia y que no existe una guía para este pedido. Continuar puede generar un cargo.')
+    ) {
+      return;
+    }
+    if (!window.confirm('Envia registrará y cobrará una guía para este pedido. ¿Deseas continuar?')) {
+      return;
+    }
+
+    try {
+      setCreatingShippingLabel(true);
+      const response = await apiRequest(`/api/admin/orders/${params.id}/shipping-label`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          retryNeedsReview,
+          confirmedNoExistingLabel: retryNeedsReview
+        })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        toast.error(data.error || 'No se pudo crear la guía');
+        return;
+      }
+
+      toast.success('Guía de Envia creada');
+      await loadOrder();
+    } catch (error) {
+      console.error('Error creating Envia shipping label:', error);
+      toast.error('Error al conectar con Envia');
+    } finally {
+      setCreatingShippingLabel(false);
     }
   };
 
@@ -444,8 +483,53 @@ export default function AdminOrderDetail() {
             <div className={styles.section}>
               <h2>Guía y rastreo</h2>
               <p className={styles.sectionHint}>
-                Añade número de guía, paquetería y enlace de rastreo cuando hayas enviado el pedido.
+                La guía se genera al confirmarse el pago con tarjeta. También puedes crearla manualmente aquí.
               </p>
+              {order.shipping_label_status === 'needs_review' && (
+                <p className={styles.sectionHint} role="alert">
+                  No se pudo confirmar si Envia creó la guía. Revisa tu cuenta de Envia antes de volver a intentarlo.
+                  {order.shipping_label_error ? ` Detalle: ${order.shipping_label_error}` : ''}
+                </p>
+              )}
+              {order.shipping_label_status === 'creating' && (
+                <p className={styles.sectionHint}>La creación de la guía está en proceso.</p>
+              )}
+              {order.shipping_label_status === 'failed' && order.shipping_label_error && (
+                <p className={styles.sectionHint} role="alert">
+                  Envia no creó la guía: {order.shipping_label_error}
+                </p>
+              )}
+              {order.shipping_label_status === 'insufficient_funds' && (
+                <p className={styles.sectionHint} role="alert">
+                  Falta saldo en la cuenta de Envia para generar esta guía.
+                  {order.shipping_label_error ? ` Detalle: ${order.shipping_label_error}` : ''}
+                </p>
+              )}
+              {!order.tracking_id &&
+                !order.envia_shipment_id &&
+                order.shipping_label_status !== 'creating' && (
+                  <button
+                    type="button"
+                    onClick={handleCreateShippingLabel}
+                    disabled={updating || creatingShippingLabel}
+                    className={styles.saveShippingButton}
+                  >
+                    {creatingShippingLabel
+                      ? 'Creando guía…'
+                      : order.shipping_label_status === 'needs_review'
+                        ? 'Reintentar tras revisar Envia'
+                        : ['failed', 'insufficient_funds'].includes(order.shipping_label_status)
+                        ? 'Reintentar creación de guía'
+                        : 'Crear guía en Envia'}
+                  </button>
+                )}
+              {order.shipping_label_url && (
+                <p>
+                  <a href={order.shipping_label_url} target="_blank" rel="noopener noreferrer">
+                    Descargar guía de envío
+                  </a>
+                </p>
+              )}
               <div className={styles.shippingForm}>
                 <div className={styles.shippingField}>
                   <label htmlFor="tracking_id">Número de guía / Tracking ID</label>

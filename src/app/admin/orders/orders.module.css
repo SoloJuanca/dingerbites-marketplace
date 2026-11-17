@@ -300,6 +300,22 @@
   color: #374151;
 }
 
+.shippingFundsAlert {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  color: #b91c1c;
+  font-family: var(--font-poppins), sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.shippingFundsAlert .material-symbols-outlined {
+  font-size: 17px;
+}
+
 .customerInfo {
   min-width: 180px;
 }
@@ -598,6 +614,11 @@
   font-size: 12px;
   font-weight: 600;
   color: #374151;
+}
+
+.kanbanCardTop > .shippingFundsAlert {
+  margin-left: auto;
+  margin-right: 8px;
 }
 
 .kanbanCardMenu {

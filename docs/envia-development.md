@@ -22,6 +22,14 @@ The development environment is preconfigured with the shipping origin provided f
 
 The checkout requests a real Envia quote after the destination address is complete and lists the available carrier services for selection. Customers can sort by price or delivery speed and filter by carrier. Before payment, the server re-quotes and validates the selected carrier service; if Envia cannot return it, checkout does not proceed with a guessed flat rate.
 
+After Stripe confirms payment for a home-delivery order, the server rechecks the selected rate and purchases the Envia label. Label creation can incur a carrier charge. If the result is uncertain, the order is marked for review and must be checked in Envia before any retry; definite failures can be retried from the admin order detail page.
+
+Envia can return an API error object even with HTTP 200; these errors are now treated as definite failures. Successful label details are read from both the top-level response and `meta.data`.
+
+Label generation requires the complete origin address, including `ENVIA_ORIGIN_PHONE`. Ensure these variables are configured in the deployment environment as well as locally.
+
+If Envia rejects label creation because the account has insufficient funds, the order is flagged in the admin order list and an alert is emailed to `ADMIN_EMAIL` via Brevo. Configure `BREVO_API_KEY` for the email alert to be delivered.
+
 Envia's rating API accepts package measurements but does not provide a standard box-size catalog for checkout. Products use an estimated shipping size: TCG envelope (19 × 22 × 2 cm, 1 kg), small (20 × 15 × 10 cm, 1 kg), medium (30 × 20 × 15 cm, 3 kg), or large (40 × 30 × 20 cm, 5 kg). These are initial estimates and should be adjusted to the packaging actually used. A cart quote uses the largest product size and the declared item weights when all are available; otherwise it uses the selected size's estimated weight.
 
 The order note and product suggestions are collected in the cart, before checkout. The optional `tamano_envio` column in the general CSV product upload accepts `envelope`, `small`, `medium`, or `large`; TCG imports default to the envelope.

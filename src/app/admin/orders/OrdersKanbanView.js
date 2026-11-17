@@ -147,6 +147,16 @@ export default function OrdersKanbanView({
                     <span className={styles.kanbanCardOrder}>
                       {order.order_number}
                     </span>
+                    {order.shipping_label_status === 'insufficient_funds' && (
+                      <span
+                        className={styles.shippingFundsAlert}
+                        title="Falta saldo en Envia para generar la guía de envío"
+                        aria-label="Alerta: falta saldo en Envia para generar la guía"
+                      >
+                        <span className="material-symbols-outlined" aria-hidden="true">warning</span>
+                        <span>Falta guía</span>
+                      </span>
+                    )}
                     <div
                       className={styles.kanbanCardMenu}
                       onClick={(e) => e.stopPropagation()}

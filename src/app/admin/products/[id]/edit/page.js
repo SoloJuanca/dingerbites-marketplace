@@ -186,7 +186,7 @@ export default function EditProductPage() {
         const errorData = await response.text();
         console.error('Categories error details:', errorData);
         if (response.status === 401) {
-          toast.error('Necesitas permisos de administrador. Inicia sesión con: admin@patitomontenegro.com / admin123');
+          toast.error('Necesitas permisos de administrador. Inicia sesión con: admin@dingerbites.com / admin123');
         } else {
           toast.error('Error al cargar categorías');
         }

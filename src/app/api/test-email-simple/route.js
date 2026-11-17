@@ -75,7 +75,7 @@ export async function POST(request) {
       // Preparar correo de prueba
       const emailPayload = {
         sender: {
-          email: process.env.BREVO_SENDER_EMAIL || 'noreply@patitomontenegro.com',
+          email: process.env.BREVO_SENDER_EMAIL || 'noreply@dingerbites.com',
           name: process.env.BREVO_SENDER_NAME || 'Dingerbites'
         },
         to: [{ email: testEmail, name: 'Destinatario de Prueba' }],

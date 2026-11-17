@@ -2,11 +2,15 @@ import { randomUUID } from 'crypto';
 
 import { db } from './firebaseAdmin';
 import { formatShippingAddressForDisplay } from './orderAddress';
+import { restoreProductStockInTransaction } from './orderStock';
+import { syncOrderProductsToTypesense } from './search/typesenseSync';
+import { syncOrderItemsToMarketplace } from './sync/marketplaceSyncClient';
 
 const USER_ADDRESSES_COLLECTION = 'user_addresses';
 const ORDERS_COLLECTION = 'orders';
 const ENVIA_WEBHOOK_EVENTS_COLLECTION = 'envia_webhook_events';
 const PRODUCTS_COLLECTION = 'products';
+const CANCELLED_STATUS_ID = 'cancelled';
 
 function formatAddressLines(addr) {
   if (!addr) return null;
@@ -363,6 +367,11 @@ export async function updateOrderShippingInfo(orderId, shippingInfo = {}) {
 
 /** Update order status and append to history. Optional: tracking_id, carrier_company, tracking_url */
 export async function updateOrderStatus(orderId, statusId, historyNotes, shippingInfo = {}) {
+  const targetStatus = await getOrderStatusById(statusId);
+  if (targetStatus?.name === 'cancelled' || String(statusId) === CANCELLED_STATUS_ID) {
+    return updateOrderStatusAndRestoreStock(orderId, statusId, historyNotes, shippingInfo);
+  }
+
   const orderRef = db.collection(ORDERS_COLLECTION).doc(String(orderId));
   const orderDoc = await orderRef.get();
   if (!orderDoc.exists) return null;
@@ -392,6 +401,132 @@ export async function updateOrderStatus(orderId, statusId, historyNotes, shippin
   await orderRef.update(updateData);
   const updated = await orderRef.get();
   return { id: updated.id, ...updated.data() };
+}
+
+async function syncRestoredOrderStock(items) {
+  try {
+    await syncOrderProductsToTypesense(items);
+  } catch (error) {
+    console.error('Failed to sync restored order stock to Typesense:', error);
+  }
+
+  try {
+    await syncOrderItemsToMarketplace(items);
+  } catch (error) {
+    console.error('Failed to sync restored order stock to marketplace:', error);
+  }
+}
+
+async function updateOrderStatusAndRestoreStock(orderId, statusId, historyNotes, shippingInfo) {
+  const orderRef = db.collection(ORDERS_COLLECTION).doc(String(orderId));
+  const now = new Date().toISOString();
+  const result = await db.runTransaction(async (transaction) => {
+    const orderDoc = await transaction.get(orderRef);
+    if (!orderDoc.exists) return null;
+
+    const order = orderDoc.data();
+    const history = Array.isArray(order.history) ? [...order.history] : [];
+    history.push({
+      status_id: statusId,
+      notes: historyNotes || 'Status updated',
+      created_at: now
+    });
+
+    const updateData = {
+      status_id: statusId,
+      history,
+      updated_at: now
+    };
+    if (shippingInfo.tracking_id !== undefined) updateData.tracking_id = shippingInfo.tracking_id || null;
+    if (shippingInfo.carrier_company !== undefined) updateData.carrier_company = shippingInfo.carrier_company || null;
+    if (shippingInfo.tracking_url !== undefined) updateData.tracking_url = shippingInfo.tracking_url || null;
+    if (shippingInfo.scheduled_delivery_date !== undefined) updateData.scheduled_delivery_date = shippingInfo.scheduled_delivery_date || null;
+    if (shippingInfo.scheduled_delivery_time !== undefined) updateData.scheduled_delivery_time = shippingInfo.scheduled_delivery_time || null;
+    if (shippingInfo.delivery_schedule_status !== undefined) updateData.delivery_schedule_status = shippingInfo.delivery_schedule_status || null;
+    if (shippingInfo.schedule_token !== undefined) updateData.schedule_token = shippingInfo.schedule_token || null;
+
+    let restoredItems = null;
+    if (String(order.status_id || '') !== String(statusId)
+      && !order.stock_restoration_completed_at) {
+      const restoration = await restoreProductStockInTransaction(
+        transaction,
+        order.items,
+        order.stock_restored_product_ids,
+        now
+      );
+      const hasMissingProducts = restoration.missingProductIds.length > 0;
+      updateData.stock_restored_product_ids = restoration.restoredProductIds;
+      updateData.stock_restoration_missing_product_ids = restoration.missingProductIds;
+      updateData.stock_restoration_status = hasMissingProducts ? 'partial' : 'restored';
+      if (!hasMissingProducts) {
+        updateData.stock_restoration_completed_at = now;
+      }
+      restoredItems = order.items || [];
+    }
+
+    transaction.update(orderRef, updateData);
+    return { id: orderDoc.id, ...order, ...updateData, restoredItems };
+  });
+
+  if (!result) return null;
+  if (result.restoredItems) {
+    await syncRestoredOrderStock(result.restoredItems);
+    delete result.restoredItems;
+  }
+  return result;
+}
+
+/**
+ * Retry a cancelled order's stock restoration without duplicating products
+ * that were already restored by a previous partial attempt.
+ */
+export async function restoreCancelledOrderStock(orderId) {
+  const cancelledStatusId = await getOrderStatusIdByName('cancelled') || CANCELLED_STATUS_ID;
+
+  const orderRef = db.collection(ORDERS_COLLECTION).doc(String(orderId));
+  const now = new Date().toISOString();
+  const result = await db.runTransaction(async (transaction) => {
+    const orderDoc = await transaction.get(orderRef);
+    if (!orderDoc.exists) return { status: 'not_found' };
+
+    const order = orderDoc.data();
+    if (String(order.status_id || '') !== String(cancelledStatusId)) {
+      return { status: 'not_cancelled' };
+    }
+    if (order.stock_restoration_completed_at) {
+      return { status: 'already_restored', order: { id: orderDoc.id, ...order } };
+    }
+
+    const restoration = await restoreProductStockInTransaction(
+      transaction,
+      order.items,
+      order.stock_restored_product_ids,
+      now
+    );
+    const hasMissingProducts = restoration.missingProductIds.length > 0;
+    const updateData = {
+      stock_restored_product_ids: restoration.restoredProductIds,
+      stock_restoration_missing_product_ids: restoration.missingProductIds,
+      stock_restoration_status: hasMissingProducts ? 'partial' : 'restored',
+      updated_at: now
+    };
+    if (!hasMissingProducts) {
+      updateData.stock_restoration_completed_at = now;
+    }
+    transaction.update(orderRef, updateData);
+
+    return {
+      status: hasMissingProducts ? 'partial' : 'restored',
+      order: { id: orderDoc.id, ...order, ...updateData },
+      items: order.items || []
+    };
+  });
+
+  if (result.items) {
+    await syncRestoredOrderStock(result.items);
+    delete result.items;
+  }
+  return result;
 }
 
 /** Update delivery schedule (admin sets date/time). Sets delivery_schedule_status to 'pending' and generates schedule_token. */
@@ -433,8 +568,7 @@ export async function updateOrderScheduleResponse(orderId, delivery_schedule_sta
 
 /** Set order to cancelled status */
 export async function cancelOrder(orderId) {
-  const cancelledId = await getOrderStatusIdByName('cancelled');
-  if (!cancelledId) throw new Error('Cancelled status not found');
+  const cancelledId = await getOrderStatusIdByName('cancelled') || CANCELLED_STATUS_ID;
   return updateOrderStatus(orderId, cancelledId, 'Order cancelled');
 }
 

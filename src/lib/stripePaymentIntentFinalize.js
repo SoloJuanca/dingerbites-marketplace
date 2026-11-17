@@ -1,6 +1,30 @@
 import { createOrderFromPayload } from './orderCreation';
 import { db } from './firebaseAdmin';
 import { PENDING_STRIPE_CHECKOUTS_COLLECTION } from './pendingStripeCheckout';
+import { createEnviaShippingLabelForOrder } from './enviaShippingLabels';
+
+async function tryCreateShippingLabel(orderId, paymentIntentId) {
+  try {
+    const result = await createEnviaShippingLabelForOrder(orderId, { paymentConfirmed: true });
+    if (!['purchased', 'already_created', 'not_delivery'].includes(result.status)) {
+      console.error('Paid order has no Envia shipping label', {
+        order_id: orderId,
+        payment_intent_id: paymentIntentId,
+        status: result.status,
+        error: result.error || null
+      });
+    }
+    return result;
+  } catch (error) {
+    console.error('Could not create Envia shipping label for paid order', {
+      order_id: orderId,
+      payment_intent_id: paymentIntentId,
+      code: error.code || 'ENVIA_LABEL_FAILED',
+      message: error.message
+    });
+    return { status: 'failed', error: error.message };
+  }
+}
 
 /**
  * Ensures a Firestore order exists for a succeeded PaymentIntent by reading the pending
@@ -25,7 +49,9 @@ export async function ensureOrderForPaymentIntent(stripe, piId, requestMeta = {}
     .get();
 
   if (!existingSnap.empty) {
-    return { status: 'exists', order: existingSnap.docs[0].data() };
+    const existingOrder = existingSnap.docs[0];
+    await tryCreateShippingLabel(existingOrder.id, piId);
+    return { status: 'exists', order: { id: existingOrder.id, ...existingOrder.data() } };
   }
 
   const fullPi = await stripe.paymentIntents.retrieve(piId);
@@ -125,5 +151,9 @@ export async function ensureOrderForPaymentIntent(stripe, piId, requestMeta = {}
     return { status: 'error', reason: 'order_not_found_after_create' };
   }
 
-  return { status: 'created', order: finalSnap.docs[0].data() };
+  await tryCreateShippingLabel(finalSnap.docs[0].id, piId);
+  return {
+    status: 'created',
+    order: { id: finalSnap.docs[0].id, ...finalSnap.docs[0].data() }
+  };
 }

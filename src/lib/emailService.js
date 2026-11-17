@@ -3,11 +3,11 @@ const BREVO_API_URL = 'https://api.brevo.com/v3';
 
 // Configuraciones por defecto
 const DEFAULT_SENDER = {
-  email: process.env.BREVO_SENDER_EMAIL || 'noreply@patitomontenegro.com',
+  email: process.env.BREVO_SENDER_EMAIL || 'noreply@dingerbites.com',
   name: process.env.BREVO_SENDER_NAME || 'Dingerbites'
 };
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@patitomontenegro.com';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@dingerbites.com';
 
 /**
  * Envía un correo usando Brevo
@@ -471,8 +471,8 @@ export function generateCustomerEmailContent(orderData) {
             Si tienes alguna pregunta sobre tu pedido o necesitas hacer algún cambio, no dudes en contactarnos:
           </p>
           <p style="color: #4a5568; margin: 0;">
-            <a href="mailto:admin@patitomontenegro.com" style="color: #3182ce; text-decoration: none;">admin@patitomontenegro.com</a><br>
-            WhatsApp: Pronto te enviaremos un mensaje
+            <a href="mailto:admin@dingerbites.com" style="color: #3182ce; text-decoration: none;">admin@dingerbites.com</a><br>
+            WhatsApp: 8124496289
           </p>
         </div>
 

@@ -85,6 +85,16 @@ export default function OrdersTableView({
             >
               <td className={styles.orderNumber}>
                 <strong>{order.order_number}</strong>
+                {order.shipping_label_status === 'insufficient_funds' && (
+                  <span
+                    className={styles.shippingFundsAlert}
+                    title="Falta saldo en Envia para generar la guía de envío"
+                    aria-label="Alerta: falta saldo en Envia para generar la guía"
+                  >
+                    <span className="material-symbols-outlined" aria-hidden="true">warning</span>
+                    <span>Falta guía</span>
+                  </span>
+                )}
               </td>
               <td className={styles.customerInfo}>
                 <div className={styles.customerName}>

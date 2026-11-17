@@ -1,6 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getEnviaCarriers, getEnviaRateOptions } from '../envia.js';
+import {
+  getEnviaLabelResponseData,
+  getEnviaCarriers,
+  getEnviaRateOptions,
+  isEnviaInsufficientFundsError
+} from '../envia.js';
+
+test('getEnviaLabelResponseData reads the Envia meta.data response shape', () => {
+  const result = getEnviaLabelResponseData({
+    meta: {
+      data: [{ trackingNumber: 'TRACK-123', label: 'https://labels.example/123.pdf' }]
+    }
+  });
+
+  assert.equal(result.trackingNumber, 'TRACK-123');
+  assert.equal(result.label, 'https://labels.example/123.pdf');
+});
 
 test('getEnviaCarriers normalizes a comma-separated list and removes duplicates', () => {
   assert.deepEqual(getEnviaCarriers('FedEx, dhl, fedex, , Estafeta'), [
@@ -59,4 +75,10 @@ test('getEnviaRateOptions keeps the lowest price for duplicate carrier services'
 
   assert.equal(options.length, 1);
   assert.equal(options[0].price, 125);
+});
+
+test('isEnviaInsufficientFundsError recognizes common API responses', () => {
+  assert.equal(isEnviaInsufficientFundsError(new Error('Insufficient funds')), true);
+  assert.equal(isEnviaInsufficientFundsError({ code: 'INSUFFICIENT_BALANCE' }), true);
+  assert.equal(isEnviaInsufficientFundsError(new Error('Invalid postal code')), false);
 });

@@ -4,6 +4,7 @@ import { db } from '../../../../lib/firebaseAdmin';
 import { getStripe, isStripeConfigured } from '../../../../lib/stripeServer';
 import { ensureOrderForPaymentIntent } from '../../../../lib/stripePaymentIntentFinalize';
 import { PENDING_STRIPE_CHECKOUTS_COLLECTION } from '../../../../lib/pendingStripeCheckout';
+import { createEnviaShippingLabelForOrder } from '../../../../lib/enviaShippingLabels';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,15 @@ async function handleCheckoutSessionCompleted(event, stripe) {
     .get();
 
   if (!existingSnap.empty) {
+    try {
+      await createEnviaShippingLabelForOrder(existingSnap.docs[0].id, { paymentConfirmed: true });
+    } catch (error) {
+      console.error('Could not create Envia shipping label for paid order', {
+        order_id: existingSnap.docs[0].id,
+        code: error.code || 'ENVIA_LABEL_FAILED',
+        message: error.message
+      });
+    }
     return NextResponse.json({ received: true, duplicate: true });
   }
 
@@ -81,7 +91,7 @@ async function handleCheckoutSessionCompleted(event, stripe) {
 
   const authUser = pending.auth_user_id ? { id: pending.auth_user_id } : null;
 
-  await createOrderFromPayload({
+  const { orderRef } = await createOrderFromPayload({
     body: orderBody,
     authUser,
     requestMeta,
@@ -92,6 +102,16 @@ async function handleCheckoutSessionCompleted(event, stripe) {
       prePricedServiceItems: pending.priced_service_items ?? null
     }
   });
+
+  try {
+    await createEnviaShippingLabelForOrder(orderRef.id, { paymentConfirmed: true });
+  } catch (error) {
+    console.error('Could not create Envia shipping label for paid order', {
+      order_id: orderRef.id,
+      code: error.code || 'ENVIA_LABEL_FAILED',
+      message: error.message
+    });
+  }
 
   await pendingRef.delete().catch(() => {});
   return NextResponse.json({ received: true });

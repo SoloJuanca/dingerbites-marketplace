@@ -118,3 +118,40 @@ export async function sendSurchargeAlertEmail({
     htmlContent
   });
 }
+
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[character]);
+}
+
+export async function sendShippingLabelFundsAlertEmail({ orderNumber, carrier, shippingAmount, error }) {
+  const safeOrderNumber = escapeHtml(orderNumber || 'Sin número');
+  const safeCarrier = escapeHtml(carrier || 'No especificada');
+  const safeAmount = Number.isFinite(Number(shippingAmount))
+    ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(shippingAmount))
+    : 'No disponible';
+  const safeError = escapeHtml(error || 'Fondos insuficientes en la cuenta de Envia.');
+  const appUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+  return sendEmail({
+    to: [{ email: ADMIN_EMAIL, name: 'Admin Dingerbites' }],
+    subject: `Acción requerida: fondos insuficientes para la guía — ${safeOrderNumber}`,
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #111827;">
+        <h2 style="color: #b91c1c;">No se pudo comprar la guía de envío</h2>
+        <p>Envia rechazó la creación de la guía por fondos insuficientes.</p>
+        <p><strong>Pedido:</strong> ${safeOrderNumber}</p>
+        <p><strong>Paquetería:</strong> ${safeCarrier}</p>
+        <p><strong>Costo cotizado:</strong> ${safeAmount}</p>
+        <p><strong>Respuesta:</strong> ${safeError}</p>
+        <p>Agrega fondos a la cuenta de Envia y reintenta la creación desde administración.</p>
+        <p><a href="${appUrl}/admin/orders">Abrir administración de pedidos</a></p>
+      </div>
+    `
+  });
+}

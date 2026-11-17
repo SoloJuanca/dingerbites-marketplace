@@ -75,7 +75,7 @@ export function getEnviaCarriers(configuredCarriers = ENVIA_SHIPPING_CARRIERS) {
   return carriers;
 }
 
-function normalizeAddress(addr) {
+export function normalizeEnviaAddress(addr) {
   const state = String(addr.state || '').trim();
   const normalizedState =
     state.length <= 3
@@ -117,8 +117,8 @@ export async function quoteShipment({ origin, destination, packages, carrier }) 
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ENVIA_API_KEY}` },
       body: JSON.stringify({
-        origin: normalizeAddress(origin),
-        destination: normalizeAddress(destination),
+        origin: normalizeEnviaAddress(origin),
+        destination: normalizeEnviaAddress(destination),
         packages: packages || [{ weight: 0.1, length: 15, width: 10, height: 2, content: 'TCG cards' }],
         settings: { currency: 'MXN' },
         shipment: { type: 1, carrier }
@@ -207,6 +207,73 @@ export async function quoteShipments({ origin, destination, packages }) {
     .flatMap((result) => result.value.rates);
 
   return { rates, carrierResults };
+}
+
+export async function generateShipmentLabel(payload) {
+  if (!ENVIA_API_KEY) {
+    const error = new Error('Envia no está configurado. Agrega ENVIA_API_KEY para crear la guía.');
+    error.code = 'ENVIA_NOT_CONFIGURED';
+    throw error;
+  }
+
+  const response = await fetch(`${ENVIA_API_URL}/ship/generate/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${ENVIA_API_KEY}`
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const contentType = response.headers.get('content-type') || '';
+  let body = {};
+  if (contentType.includes('application/json')) {
+    body = await response.json();
+  } else {
+    const error = new Error(
+      `Envia respondió con contenido no JSON al crear la guía (HTTP ${response.status}).`
+    );
+    error.status = response.status;
+    error.definitive = response.status < 500;
+    throw error;
+  }
+
+  const hasApiError = typeof body.error === 'string'
+    ? Boolean(body.error.trim())
+    : typeof body.error === 'number'
+      ? body.error !== 0
+      : body.error && typeof body.error === 'object'
+        ? Object.keys(body.error).length > 0
+        : body.error === true;
+  if (!response.ok || body.success === false || body.meta?.success === false || hasApiError) {
+    const message = body.message || body.error?.message
+      || (typeof body.error === 'string' ? body.error : '')
+      || body.meta?.message || body.meta?._message
+      || body.data?.message
+      || `Envia rechazó la creación de la guía (HTTP ${response.status}).`;
+    const error = new Error(message);
+    error.code = body.code || body.data?.code || body.error?.code || body.meta?.code || null;
+    error.status = response.status;
+    error.definitive = response.status < 500;
+    throw error;
+  }
+
+  return body;
+}
+
+export function getEnviaLabelResponseData(body) {
+  if (Array.isArray(body?.meta?.data)) return body.meta.data[0] || {};
+  if (body?.meta?.data && typeof body.meta.data === 'object') return body.meta.data;
+  if (Array.isArray(body?.data)) return body.data[0] || {};
+  if (body?.data && typeof body.data === 'object') return body.data;
+  if (Array.isArray(body?.shipment)) return body.shipment[0] || {};
+  if (body?.shipment && typeof body.shipment === 'object') return body.shipment;
+  return body || {};
+}
+
+export function isEnviaInsufficientFundsError(error) {
+  return /insufficient.{0,30}(fund|balance)|not enough funds|low balance|balance.{0,30}(insufficient|low)|fondos insuficientes|saldo insuficiente|sin fondos|saldo bajo/i
+    .test(`${error?.code || ''} ${error?.message || ''}`);
 }
 
 function getRateLabel(value) {
